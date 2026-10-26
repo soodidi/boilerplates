@@ -1,0 +1,41 @@
+name: ios
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    runs-on: macos-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: brew install swiftlint swiftformat
+      - run: swiftformat --lint .
+      - run: swiftlint --strict
+
+  test:
+    runs-on: macos-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # IOS-005 : tests des modules (Swift Testing), rapides, sans simulateur.
+      - run: swift test --package-path Packages
+      # Build de l'app complète pour le simulateur, sans signature.
+      - run: brew install xcodegen && xcodegen generate
+      - run: |
+          xcodebuild build -project iOSApp.xcodeproj -scheme iOSApp \
+            -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO

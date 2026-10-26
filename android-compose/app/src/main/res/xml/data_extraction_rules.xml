@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- AND-004 : les préférences chiffrées (tokens) ne sont ni sauvegardées ni transférées. -->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="file" path="datastore/secure.preferences_pb" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="file" path="datastore/secure.preferences_pb" />
+    </device-transfer>
+</data-extraction-rules>

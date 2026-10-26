@@ -1,0 +1,66 @@
+@import 'tailwindcss';
+
+/*
+ * FE-005 : tokens sémantiques définis une seule fois.
+ * Les composants utilisent bg-background, text-muted-foreground, etc. — jamais des couleurs brutes.
+ * Les contrastes texte/fond respectent WCAG AA (FE-008).
+ */
+:root {
+  --background: oklch(0.99 0 0);
+  --foreground: oklch(0.21 0.02 265);
+  --muted: oklch(0.96 0.005 265);
+  --muted-foreground: oklch(0.45 0.02 265);
+  --border: oklch(0.9 0.01 265);
+  --primary: oklch(0.51 0.23 277);
+  --primary-foreground: oklch(0.99 0 0);
+  --destructive: oklch(0.53 0.21 27);
+  --success: oklch(0.5 0.13 155);
+  --ring: oklch(0.51 0.23 277);
+  --radius: 0.5rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: oklch(0.17 0.01 265);
+    --foreground: oklch(0.96 0.005 265);
+    --muted: oklch(0.24 0.015 265);
+    --muted-foreground: oklch(0.72 0.02 265);
+    --border: oklch(0.32 0.02 265);
+    --primary: oklch(0.68 0.17 277);
+    --primary-foreground: oklch(0.17 0.01 265);
+    --destructive: oklch(0.7 0.17 25);
+    --success: oklch(0.72 0.14 155);
+    --ring: oklch(0.68 0.17 277);
+  }
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-destructive: var(--destructive);
+  --color-success: var(--success);
+  --color-ring: var(--ring);
+  --radius-md: var(--radius);
+}
+
+@layer base {
+  body {
+    @apply bg-background text-foreground antialiased;
+  }
+
+  /* FE-008 : respect de prefers-reduced-motion. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}

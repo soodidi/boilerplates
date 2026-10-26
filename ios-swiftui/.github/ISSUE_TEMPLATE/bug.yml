@@ -1,0 +1,52 @@
+name: Bug
+description: Signaler un comportement anormal (GLB-009)
+labels: [bug]
+body:
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Sévérité
+      description: S1 critique (prod indisponible, données, sécurité) · S2 majeur (sans contournement) · S3 mineur · S4 cosmétique
+      options:
+        - S1 – Critique
+        - S2 – Majeur
+        - S3 – Mineur
+        - S4 – Cosmétique
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Étapes pour reproduire
+      placeholder: |
+        1. Aller sur…
+        2. Cliquer sur…
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Résultat attendu
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Résultat obtenu
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environnement
+      placeholder: production · iPhone 17 · iOS 26.1
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version ou SHA du build
+  - type: input
+    id: sentry
+    attributes:
+      label: Lien Sentry

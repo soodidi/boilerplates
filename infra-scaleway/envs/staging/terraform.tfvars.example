@@ -1,0 +1,5 @@
+project        = "mon-projet"
+api_image      = "rg.fr-par.scw.cloud/mon-projet/api:<sha-du-premier-build>"
+web_origin     = "https://staging.app.example.com"
+web_domain     = "staging.app.example.com"
+api_sentry_dsn = ""

@@ -1,0 +1,45 @@
+name: deploy
+
+# OPS-004 : une image par commit sur main (taguée avec le SHA), déployée en staging,
+# puis en production après approbation (GitHub Environment `production` avec reviewers).
+#
+# À configurer dans GitHub :
+#   repo : variable REGISTRY_IMAGE (ex. rg.fr-par.scw.cloud/mon-projet/api), secret SCW_SECRET_KEY (push registre)
+#   environnements staging / production :
+#     secrets : SCW_ACCESS_KEY, SCW_SECRET_KEY, DATABASE_URL (pour le job de migration)
+#     variables : SCW_DEFAULT_PROJECT_ID, CONTAINER_ID (ID du Serverless Container créé par infra-scaleway)
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  image:
+    uses: ./.github/workflows/docker.yml
+    with:
+      push: true
+    secrets: inherit
+
+  staging:
+    needs: image
+    uses: ./.github/workflows/deploy-environment.yml
+    with:
+      environment: staging
+      image: ${{ needs.image.outputs.image }}
+    secrets: inherit
+
+  production:
+    needs: [image, staging]
+    uses: ./.github/workflows/deploy-environment.yml
+    with:
+      environment: production
+      image: ${{ needs.image.outputs.image }}
+    secrets: inherit

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- GLB-007 : aucun texte affiché en dur dans le code. -->
+<resources>
+    <string name="app_name">Mon app</string>
+    <string name="notes_title">Notes</string>
+    <string name="notes_search_label">Rechercher une note</string>
+    <string name="notes_empty">Aucune note pour le moment.</string>
+    <string name="notes_no_results">Aucune note ne correspond à « %1$s ».</string>
+    <string name="notes_load_error">Impossible de charger les notes.</string>
+    <string name="notes_retry">Réessayer</string>
+    <string name="notes_new_title_label">Titre de la nouvelle note</string>
+    <string name="notes_add">Ajouter</string>
+    <string name="notes_added">Note ajoutée.</string>
+    <string name="notes_add_error">La note n\'a pas pu être ajoutée.</string>
+    <string name="validation_required">Ce champ est obligatoire.</string>
+</resources>

@@ -1,0 +1,125 @@
+name: infra
+
+# OPS-003 : vérifications sur chaque PR, `plan` visible dans le résumé du job,
+# `apply` par la CI après fusion (staging) ou après approbation (production).
+#
+# À configurer dans GitHub :
+#   environnements `staging` et `production` (reviewers obligatoires pour production) pour l'apply,
+#   et `staging-plan` / `production-plan` (sans reviewers, clé API en lecture seule) pour le plan des PR :
+#     secrets : SCW_ACCESS_KEY, SCW_SECRET_KEY
+#     variables : SCW_DEFAULT_PROJECT_ID, SCW_DEFAULT_ORGANIZATION_ID
+#   les tfvars de chaque environnement sont versionnés dans envs/<env>/<env>.auto.tfvars
+#   (aucun secret dedans).
+
+on:
+  pull_request:
+    paths: ['envs/**', 'modules/**', '.github/workflows/infra.yml']
+  push:
+    branches: [main]
+    paths: ['envs/**', 'modules/**', '.github/workflows/infra.yml']
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Environnement à appliquer
+        type: choice
+        options: [staging, production]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: infra-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: opentofu/setup-opentofu@a1320f892987e89d278cc92dc5adc984fb93aca4 # v2.0.2
+        with:
+          tofu_version_file: .opentofu-version
+      - run: tofu fmt -check -recursive
+      - name: tofu validate
+        run: |
+          for env in envs/*/; do
+            tofu -chdir="$env" init -backend=false -input=false
+            tofu -chdir="$env" validate
+          done
+      - name: tflint
+        run: |
+          curl -sSL https://raw.githubusercontent.com/terraform-linters/tflint/master/install_linux.sh | bash
+          tflint --init
+          tflint --recursive
+      # Mauvaises configurations de sécurité (bucket public non voulu, chiffrement…).
+      - uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: config
+          scan-ref: .
+          severity: CRITICAL,HIGH
+          exit-code: '1'
+
+  plan:
+    if: github.event_name == 'pull_request'
+    needs: checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      matrix:
+        environment: [staging, production]
+    environment:
+      name: ${{ matrix.environment }}-plan
+    env:
+      SCW_ACCESS_KEY: ${{ secrets.SCW_ACCESS_KEY }}
+      SCW_SECRET_KEY: ${{ secrets.SCW_SECRET_KEY }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.SCW_ACCESS_KEY }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.SCW_SECRET_KEY }}
+      SCW_DEFAULT_PROJECT_ID: ${{ vars.SCW_DEFAULT_PROJECT_ID }}
+      SCW_DEFAULT_ORGANIZATION_ID: ${{ vars.SCW_DEFAULT_ORGANIZATION_ID }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: opentofu/setup-opentofu@a1320f892987e89d278cc92dc5adc984fb93aca4 # v2.0.2
+        with:
+          tofu_version_file: .opentofu-version
+          tofu_wrapper: false
+      - run: tofu -chdir=envs/${{ matrix.environment }} init -input=false
+      - name: tofu plan
+        run: |
+          tofu -chdir=envs/${{ matrix.environment }} plan -input=false -no-color -lock=false > plan.txt
+          {
+            echo "### Plan ${{ matrix.environment }}"
+            echo '```'
+            tail -c 60000 plan.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  apply:
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    needs: checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment:
+      name: ${{ inputs.environment || 'staging' }}
+    env:
+      ENVIRONMENT: ${{ inputs.environment || 'staging' }}
+      SCW_ACCESS_KEY: ${{ secrets.SCW_ACCESS_KEY }}
+      SCW_SECRET_KEY: ${{ secrets.SCW_SECRET_KEY }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.SCW_ACCESS_KEY }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.SCW_SECRET_KEY }}
+      SCW_DEFAULT_PROJECT_ID: ${{ vars.SCW_DEFAULT_PROJECT_ID }}
+      SCW_DEFAULT_ORGANIZATION_ID: ${{ vars.SCW_DEFAULT_ORGANIZATION_ID }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: opentofu/setup-opentofu@a1320f892987e89d278cc92dc5adc984fb93aca4 # v2.0.2
+        with:
+          tofu_version_file: .opentofu-version
+          tofu_wrapper: false
+      - run: tofu -chdir="envs/$ENVIRONMENT" init -input=false
+      - run: tofu -chdir="envs/$ENVIRONMENT" apply -input=false -auto-approve

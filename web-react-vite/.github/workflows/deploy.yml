@@ -1,0 +1,68 @@
+name: deploy
+
+# OPS-004 : « build once, deploy many ». Un seul build par commit sur main,
+# déployé automatiquement en staging, puis en production après approbation
+# (GitHub Environment `production` avec reviewers obligatoires).
+#
+# À configurer dans GitHub (Settings → Environments) :
+#   staging / production :
+#     secrets : SCW_ACCESS_KEY, SCW_SECRET_KEY (clé API dédiée, droits limités au bucket, OPS-006)
+#     variables : BUCKET (nom du bucket), API_URL, SENTRY_DSN
+#   repo :
+#     secret : SENTRY_AUTH_TOKEN ; variables : SENTRY_ORG, SENTRY_PROJECT
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      # FE-009 : le plugin Sentry envoie les source maps puis les supprime de dist/.
+      - run: npm run build
+        env:
+          VITE_APP_VERSION: ${{ github.sha }}
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ vars.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ vars.SENTRY_PROJECT }}
+      - name: Retirer les fichiers propres au développement
+        run: |
+          rm -f dist/mockServiceWorker.js dist/config.json
+          find dist -name '*.map' -delete
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: dist
+          path: dist
+          retention-days: 30
+
+  staging:
+    needs: build
+    uses: ./.github/workflows/deploy-environment.yml
+    with:
+      environment: staging
+    secrets: inherit
+
+  production:
+    needs: staging
+    uses: ./.github/workflows/deploy-environment.yml
+    with:
+      environment: production
+    secrets: inherit

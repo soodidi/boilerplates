@@ -1,0 +1,13 @@
+node_modules
+dist
+coverage
+.git
+.github
+.vitest
+.env
+.env.*
+!.env.example
+**/*.spec.ts
+**/*.e2e-spec.ts
+test
+*.md

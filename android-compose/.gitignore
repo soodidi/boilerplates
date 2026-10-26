@@ -1,0 +1,14 @@
+.gradle/
+build/
+/local.properties
+/.idea/
+*.iml
+.DS_Store
+/captures
+.externalNativeBuild
+.cxx
+*.keystore
+*.jks
+# GLB-005 : fichiers de config de prod et clés de signature jamais commités.
+google-services.json
+keystore.properties

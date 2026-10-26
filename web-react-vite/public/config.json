@@ -1,0 +1,6 @@
+{
+  "environment": "development",
+  "apiUrl": "",
+  "sentryDsn": "",
+  "enableMocks": true
+}
