@@ -1,0 +1,29 @@
+# IOS-005 : règles d'analyse. Le formatage est géré par SwiftFormat.
+included:
+  - App
+  - Packages/Sources
+  - Packages/Tests
+excluded:
+  - Packages/.build
+opt_in_rules:
+  - empty_count
+  - first_where
+  - force_unwrapping
+  - implicitly_unwrapped_optional
+  - private_swiftui_state
+  - sorted_first_last
+  - unused_import
+disabled_rules:
+  - trailing_comma
+  - opening_brace
+line_length:
+  warning: 140
+  error: 200
+identifier_name:
+  excluded: [id, ok, at]
+custom_rules:
+  no_print:
+    name: "Pas de print"
+    regex: '\bprint\('
+    message: "Utiliser Logger (OSLog) avec la confidentialité par défaut (IOS-004)."
+    severity: error

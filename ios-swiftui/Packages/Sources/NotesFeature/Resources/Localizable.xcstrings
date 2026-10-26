@@ -1,0 +1,72 @@
+{
+  "sourceLanguage" : "fr",
+  "strings" : {
+    "notes.add" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Add" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Ajouter" } }
+      }
+    },
+    "notes.added" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Note added." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Note ajoutée." } }
+      }
+    },
+    "notes.addError" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "The note could not be added." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "La note n’a pas pu être ajoutée." } }
+      }
+    },
+    "notes.empty" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "No notes yet." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Aucune note pour le moment." } }
+      }
+    },
+    "notes.loadError" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Notes could not be loaded." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Impossible de charger les notes." } }
+      }
+    },
+    "notes.newTitle" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "New note title" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Titre de la nouvelle note" } }
+      }
+    },
+    "notes.noResults %@" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "No note matches “%@”." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Aucune note ne correspond à « %@ »." } }
+      }
+    },
+    "notes.retry" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Try again" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Réessayer" } }
+      }
+    },
+    "notes.search" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Search notes" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Rechercher une note" } }
+      }
+    },
+    "notes.title" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Notes" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Notes" } }
+      }
+    },
+    "validation.required" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "This field is required." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Ce champ est obligatoire." } }
+      }
+    }
+  },
+  "version" : "1.0"
+}

@@ -1,0 +1,29 @@
+import { index, pgTable, text, timestamp, uuid, varchar } from 'drizzle-orm/pg-core';
+import { v7 as uuidv7 } from 'uuid';
+
+export const NOTE_TITLE_MAX = 120;
+export const NOTE_CONTENT_MAX = 2000;
+
+/**
+ * BE-003 : table au pluriel, UUID v7, timestamptz en UTC, created_at / updated_at.
+ * Précision à la milliseconde pour que la pagination par curseur soit exacte avec les dates JS.
+ */
+export const notes = pgTable(
+  'notes',
+  {
+    id: uuid()
+      .primaryKey()
+      .$defaultFn(() => uuidv7()),
+    title: varchar({ length: NOTE_TITLE_MAX }).notNull(),
+    content: text().notNull().default(''),
+    createdAt: timestamp({ withTimezone: true, precision: 3 }).notNull().defaultNow(),
+    updatedAt: timestamp({ withTimezone: true, precision: 3 })
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (table) => [index('notes_created_at_id_idx').on(table.createdAt.desc(), table.id.desc())],
+);
+
+export type Note = typeof notes.$inferSelect;
+export type NewNote = typeof notes.$inferInsert;

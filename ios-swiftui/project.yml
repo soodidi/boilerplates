@@ -1,0 +1,44 @@
+# Projet Xcode généré par XcodeGen (`xcodegen generate`) : le .xcodeproj n'est pas versionné,
+# ce qui évite les conflits de merge (IOS-003). Le code vit dans le package local Packages/ (IOS-002).
+name: iOSApp
+options:
+  bundleIdPrefix: com.example
+  deploymentTarget:
+    iOS: "26.0"
+  createIntermediateGroups: true
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    SWIFT_STRICT_CONCURRENCY: complete
+    SWIFT_TREAT_WARNINGS_AS_ERRORS: YES
+    MARKETING_VERSION: 0.1.0
+    CURRENT_PROJECT_VERSION: 1
+    DEVELOPMENT_TEAM: ""
+packages:
+  Packages:
+    path: Packages
+targets:
+  iOSApp:
+    type: application
+    platform: iOS
+    sources:
+      - App
+    dependencies:
+      - package: Packages
+        product: NotesFeature
+      - package: Packages
+        product: CoreNetworking
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.example.app
+        GENERATE_INFOPLIST_FILE: NO
+        INFOPLIST_FILE: App/Info.plist
+        TARGETED_DEVICE_FAMILY: "1,2"
+      configs:
+        Debug:
+          # Simulateur → API locale (boilerplate api-nestjs).
+          API_BASE_URL: http://localhost:3000
+          # IOS-004 : seule exception ATS, en Debug uniquement (réseau local).
+          INFOPLIST_FILE: App/Info-Debug.plist
+        Release:
+          API_BASE_URL: https://api.example.com

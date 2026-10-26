@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">My app</string>
+    <string name="notes_title">Notes</string>
+    <string name="notes_search_label">Search notes</string>
+    <string name="notes_empty">No notes yet.</string>
+    <string name="notes_no_results">No note matches “%1$s”.</string>
+    <string name="notes_load_error">Notes could not be loaded.</string>
+    <string name="notes_retry">Try again</string>
+    <string name="notes_new_title_label">New note title</string>
+    <string name="notes_add">Add</string>
+    <string name="notes_added">Note added.</string>
+    <string name="notes_add_error">The note could not be added.</string>
+    <string name="validation_required">This field is required.</string>
+</resources>

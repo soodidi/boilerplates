@@ -1,0 +1,54 @@
+name: deploy-environment
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        type: string
+        required: true
+      image:
+        type: string
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: ${{ inputs.environment }}
+    env:
+      SCW_ACCESS_KEY: ${{ secrets.SCW_ACCESS_KEY }}
+      SCW_SECRET_KEY: ${{ secrets.SCW_SECRET_KEY }}
+      SCW_DEFAULT_PROJECT_ID: ${{ vars.SCW_DEFAULT_PROJECT_ID }}
+      SCW_DEFAULT_REGION: fr-par
+      IMAGE: ${{ inputs.image }}
+    steps:
+      # OPS-004 : 1) migrations (compatibles avec la version en cours, expand/contract),
+      # avec la MÊME image que celle qui va être déployée.
+      - name: Appliquer les migrations
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          echo "$SCW_SECRET_KEY" | docker login rg.fr-par.scw.cloud -u nologin --password-stdin
+          docker run --rm -e DATABASE_URL "$IMAGE" node dist/database/migrate.js
+
+      # 2) Déploiement de la nouvelle image ; la plateforme bascule quand /health/ready répond.
+      - name: Installer la CLI Scaleway
+        run: curl -fsSL https://raw.githubusercontent.com/scaleway/scaleway-cli/master/scripts/get.sh | sh
+      - name: Déployer
+        env:
+          CONTAINER_ID: ${{ vars.CONTAINER_ID }}
+        run: |
+          scw container container update "$CONTAINER_ID" image="$IMAGE"
+          # Attendre que le conteneur soit prêt (sondes /health/ready, BE-007).
+          for _ in $(seq 1 60); do
+            status=$(scw container container get "$CONTAINER_ID" -o json | jq -r .status)
+            echo "status: $status"
+            [ "$status" = "ready" ] && exit 0
+            [ "$status" = "error" ] && exit 1
+            sleep 10
+          done
+          echo "::error::Le conteneur n'est pas prêt après 10 minutes" && exit 1

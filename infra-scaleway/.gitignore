@@ -1,0 +1,10 @@
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+crash.log
+*.tfvars
+!*.tfvars.example
+# Versionnés : valeurs non secrètes de chaque environnement.
+!*.auto.tfvars
+.terraform.tfstate.lock.info

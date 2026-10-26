@@ -1,0 +1,20 @@
+# Projet Xcode généré par XcodeGen (project.yml)
+*.xcodeproj/
+*.xcworkspace/
+!Packages/.swiftpm/
+xcuserdata/
+DerivedData/
+.build/
+.swiftpm/
+build/
+*.ipa
+*.dSYM.zip
+*.dSYM
+.DS_Store
+# GLB-005 : certificats, profils et clés jamais commités.
+*.p12
+*.cer
+*.mobileprovision
+*.p8
+fastlane/report.xml
+fastlane/README.md
