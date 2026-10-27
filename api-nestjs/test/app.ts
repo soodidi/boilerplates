@@ -59,7 +59,8 @@ export async function signUpAndSignIn(
 
   const verification = mailer.lastTo(email);
   if (verification?.template !== 'verify-email') throw new Error('No verification email');
-  await app.inject({ method: 'GET', url: linkPath(verification.text) });
+  const verify = await app.inject({ method: 'GET', url: linkPath(verification.text) });
+  if (verify.statusCode >= 400) throw new Error(`Email verification failed: ${verify.body}`);
 
   return signIn(app, email);
 }

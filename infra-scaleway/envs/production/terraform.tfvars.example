@@ -1,3 +1,4 @@
+app_name       = "Mon app"
 project        = "mon-projet"
 api_image      = "rg.fr-par.scw.cloud/mon-projet/api:<sha-du-premier-build>"
 web_origin     = "https://app.example.com"

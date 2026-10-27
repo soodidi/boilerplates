@@ -73,6 +73,7 @@ module "api" {
     SENTRY_ENVIRONMENT      = local.environment
     CORS_ORIGINS            = var.web_origin
     SENTRY_DSN              = var.api_sentry_dsn
+    APP_NAME                = var.app_name
     MAIL_FROM               = var.mail_from
     BETTER_AUTH_URL         = var.api_url
     WEB_URL                 = split(",", var.web_origin)[0]

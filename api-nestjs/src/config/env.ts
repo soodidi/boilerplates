@@ -42,6 +42,9 @@ export const envSchema = z.object({
     )
     .pipe(z.array(z.email())),
   APP_VERSION: z.string().default('dev'),
+  // BE-006 : nombre de proxys de confiance devant l'API (1 = l'Envoy de Scaleway Serverless Containers).
+  // L'IP du client est la dernière entrée de X-Forwarded-For ajoutée par ce proxy.
+  TRUST_PROXY_HOPS: z.coerce.number().int().min(0).max(5).default(1),
 });
 
 export type Env = z.infer<typeof envSchema>;

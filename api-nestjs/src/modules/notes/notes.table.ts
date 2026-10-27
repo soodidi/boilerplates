@@ -15,7 +15,8 @@ export const notes = pgTable(
       .primaryKey()
       .$defaultFn(() => uuidv7()),
     // BE-006 : propriétaire de la note. Pas de clé étrangère vers `users`, qui appartient au
-    // module auth (BE-002) ; la suppression d'un compte supprime ses notes côté service.
+    // module auth (BE-002). La suppression de compte n'est pas encore activée : quand elle le sera
+    // (RGPD), un hook `user.delete.after` du module auth supprimera les notes via `notes/index.ts`.
     userId: uuid().notNull(),
     title: varchar({ length: NOTE_TITLE_MAX }).notNull(),
     content: text().notNull().default(''),

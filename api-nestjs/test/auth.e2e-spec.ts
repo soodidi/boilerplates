@@ -161,4 +161,19 @@ describe('Auth (e2e)', () => {
       .where(eq(sessions.token, sessionToken));
     expect(session?.expiresAt.getTime()).toBe(createdAt.getTime() + 90 * DAY_MS);
   });
+
+  it('records the client IP added by the trusted proxy, not one forged by the client', async () => {
+    await signUpAndSignIn(app, mailer, 'ada@example.com');
+
+    await app.inject({
+      method: 'POST',
+      url: '/v1/auth/sign-in/email',
+      headers: { 'x-forwarded-for': '6.6.6.6, 203.0.113.7', 'x-client-ip': '6.6.6.6' },
+      payload: { email: 'ada@example.com', password: PASSWORD },
+    });
+
+    const ips = (await database.db.select().from(sessions)).map((session) => session.ipAddress);
+    expect(ips).toContain('203.0.113.7');
+    expect(ips).not.toContain('6.6.6.6');
+  });
 });

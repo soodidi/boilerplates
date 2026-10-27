@@ -113,6 +113,17 @@ describe('Notes API (e2e)', () => {
     expect(response.headers['content-type']).toContain('application/problem+json');
   });
 
+  it('POST /v1/notes requires authentication (401 Problem Details)', async () => {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/v1/notes',
+      payload: { title: 'anonymous' },
+    });
+
+    expect(response.statusCode).toBe(401);
+    expect(response.headers['content-type']).toContain('application/problem+json');
+  });
+
   it("GET /v1/notes never returns another user's notes (IDOR)", async () => {
     await app.inject({
       method: 'POST',
@@ -144,5 +155,19 @@ describe('Notes API (e2e)', () => {
 
     expect(forged.statusCode).toBe(403);
     expect(legit.statusCode).toBe(201);
+  });
+
+  it('POST /v1/notes with a cookie but no Origin is refused; Bearer without Origin is allowed', async () => {
+    const { cookie, token } = await signUpAndSignIn(app, mailer, 'dave@example.com');
+    const request = { method: 'POST' as const, url: '/v1/notes', payload: { title: 'x' } };
+
+    const cookieOnly = await app.inject({ ...request, headers: { cookie } });
+    const bearerOnly = await app.inject({
+      ...request,
+      headers: { authorization: `Bearer ${token}` },
+    });
+
+    expect(cookieOnly.statusCode).toBe(403);
+    expect(bearerOnly.statusCode).toBe(201);
   });
 });

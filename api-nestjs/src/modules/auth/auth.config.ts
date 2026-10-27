@@ -4,6 +4,7 @@ import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { bearer } from 'better-auth/plugins';
 import { v7 as uuidv7 } from 'uuid';
+import { CLIENT_IP_HEADER } from '../../common/client-ip.js';
 import { type Env } from '../../config/env.js';
 import { type Database } from '../../database/database.module.js';
 import {
@@ -49,7 +50,11 @@ export function createAuth({ env, db, mailer }: AuthDependencies) {
     // Liste, pas fonction : le module NestJS n'applique CORS sur Fastify qu'avec une liste.
     trustedOrigins: env.CORS_ORIGINS,
     database: drizzleAdapter(db, { provider: 'pg', usePlural: true, schema: authSchema }),
-    advanced: { database: { generateId: () => uuidv7() } },
+    advanced: {
+      database: { generateId: () => uuidv7() },
+      // IP du client pour le rate limiting et les sessions, calculée par Fastify (app.setup.ts).
+      ipAddress: { ipAddressHeaders: [CLIENT_IP_HEADER] },
+    },
     // BE-007 : au niveau info, Better Auth écrit l'adresse e-mail en clair. Les arguments
     // supplémentaires (données de la requête) ne sont jamais journalisés.
     logger: {

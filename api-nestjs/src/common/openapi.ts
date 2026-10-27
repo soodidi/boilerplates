@@ -7,7 +7,10 @@ export function createOpenApiDocument(app: INestApplication, version: string) {
   const config = new DocumentBuilder()
     .setTitle('API')
     .setVersion(version)
-    .addCookieAuth('session')
+    // BE-006 : cookie de session pour le web (préfixé `__Secure-` en HTTPS), Bearer pour le mobile.
+    // Les routes /v1/auth/* sont servies par Better Auth : les clients utilisent son SDK.
+    .addCookieAuth('better-auth.session_token')
+    .addBearerAuth()
     .build();
   return SwaggerModule.createDocument(app, config, {
     operationIdFactory: (_controllerKey, methodKey) => methodKey,

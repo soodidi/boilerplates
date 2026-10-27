@@ -1,8 +1,8 @@
 import { Controller, Get, VERSION_NEUTRAL } from '@nestjs/common';
 import { HealthCheck, HealthCheckService } from '@nestjs/terminus';
 import { SkipThrottle } from '@nestjs/throttler';
-import { Public } from '../modules/auth/index.js';
 import { ApiTags } from '@nestjs/swagger';
+import { Public } from '../modules/auth/index.js';
 import { DatabaseHealthIndicator } from './database.health.js';
 
 /** BE-007 : sondes utilisées par la plateforme (OPS-005). */

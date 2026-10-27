@@ -39,3 +39,8 @@ variable "api_url" {
   description = "URL publique de l'API (ex. https://api.app.example.com). Même domaine que le front, sinon le cookie de session n'est pas envoyé (BE-006)"
   type        = string
 }
+
+variable "app_name" {
+  description = "Nom de l'app affiché dans les e-mails (BE-009)"
+  type        = string
+}

@@ -94,6 +94,8 @@ Better Auth sert ses routes sous `/v1/auth` : `sign-up/email`, `sign-in/email`, 
 - **Sessions** : 30 jours, prolongées à l'usage, jamais plus de 90 jours après la connexion ; révoquées à la déconnexion et à la réinitialisation du mot de passe.
 - **Mises à jour** : Renovate ne fusionne jamais `better-auth` ni `@thallesp/nestjs-better-auth` automatiquement. Lire le changelog et lancer `npm run test:integration` avant de fusionner.
 
+- **IP du client** (rate limiting, sessions) : dernière entrée de `X-Forwarded-For` ajoutée par les `TRUST_PROXY_HOPS` proxys de confiance (1 derrière Scaleway). Au premier déploiement en staging, vérifier que `sessions.ip_address` contient bien ta vraie IP.
+
 En local, l'e-mail de vérification arrive dans Mailpit (http://localhost:8025).
 
 ## E-mails (BE-009)
