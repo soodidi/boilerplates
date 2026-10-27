@@ -6,17 +6,20 @@ Il applique les ADR **BE-001 à BE-008**, OPS-001 et OPS-004, et les règles glo
 
 ## Démarrer un projet
 
+En temps normal, `/new-project` fait tout cela. À la main :
+
 ```bash
 npx degit soodidi/boilerplates/api-nestjs mon-api
 cd mon-api
 git init -b main
-cp .env.example .env
-npm install              # installe aussi les hooks Git (lefthook)
-npm run db:generate          # génère la première migration depuis le schéma (à commiter)
-docker compose up -d      # PostgreSQL et Mailpit (e-mails sur http://localhost:8025)
-npm run build && npm run db:migrate
-npm run dev                  # http://localhost:3000, docs sur /docs
+npm install        # installe aussi les hooks Git (lefthook)
+npm run setup      # .env prêt (secrets de dev générés), PostgreSQL + Mailpit, migrations
+npm run dev        # http://localhost:3000, docs sur /docs, e-mails sur http://localhost:8025
 ```
+
+`npm run setup` se relance sans risque : il ne fait que compléter le `.env` avec les variables apparues dans `.env.example`, sans toucher aux valeurs existantes.
+
+**Même image qu'en production** : `npm run stack` lance l'API dans l'image construite par le `Dockerfile`, celle qui part en staging et en production (OPS-001, OPS-004). Seule la configuration change (le `.env` et `compose.yaml`). La CI rejoue ce parcours à chaque PR (`npm run stack:smoke` : santé, inscription, e-mail reçu dans Mailpit). Utiliser `npm run dev` pour le rechargement à chaud, `npm run stack` pour vérifier le comportement réel de l'image. Les deux utilisent le port 3000 : arrêter l'un avant de lancer l'autre. Comme en production, la stack active le rate limiting de l'auth : en cas de 429 pendant des essais répétés, mettre `AUTH_RATE_LIMIT=false` dans `.env`.
 
 Prérequis : Node 26 (`.nvmrc`), npm (fourni avec Node), Docker (base locale et tests d'intégration), [gitleaks](https://github.com/gitleaks/gitleaks#installing) pour le hook de pré-commit.
 
@@ -26,7 +29,9 @@ Prérequis : Node 26 (`.nvmrc`), npm (fourni avec Node), Docker (base locale et 
 
 | Commande                   | Rôle                                                                                                                      |
 | -------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `npm run setup`            | Prépare le dev : `.env` créé ou complété, PostgreSQL et Mailpit, migrations (relançable)                                  |
 | `npm run dev`              | API en mode watch (lit `.env`)                                                                                            |
+| `npm run stack`            | API dans l'image de production, avec PostgreSQL et Mailpit (`stack:down` pour arrêter, `stack:smoke` pour tester)         |
 | `npm run test`             | Tests unitaires                                                                                                           |
 | `npm run test:integration` | Tests d'intégration et e2e sur un vrai PostgreSQL (Testcontainers ; sans Docker : `TEST_DATABASE_URL` vers une base vide) |
 | `npm run db:generate`      | Génère une migration SQL depuis les fichiers `*.table.ts` (à relire avant de commiter)                                    |
