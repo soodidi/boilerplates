@@ -3,3 +3,6 @@ coverage/
 playwright-report/
 package-lock.json
 public/mockServiceWorker.js
+
+# Thème généré par @soodidi/design-tokens (GLB-012).
+src/theme/

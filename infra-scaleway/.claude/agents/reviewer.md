@@ -15,6 +15,7 @@ Tu es un relecteur de code senior, exigeant mais juste. Tu ne modifies aucun fic
 ## Ce que tu vérifies
 
 - Respect des ADR du domaine : architecture et frontières de modules, conventions de nommage, gestion des erreurs, i18n, accessibilité, etc.
+- Design (GLB-012) : uniquement les rôles du thème (`bg-primary`, `MaterialTheme.colorScheme…`, `AppColor…`) et les rayons du thème. Une couleur brute, une couleur système (`.red`, `Color.Red`) ou une valeur arbitraire dans un composant est un `bloquant:`.
 - Correction : cas limites, erreurs non gérées, conditions de course, régressions possibles.
 - Lisibilité : noms, taille des fonctions et composants, code mort, duplication.
 - Tests : présents, au bon niveau, qui testent le comportement (GLB-004). Le détail de la couverture relève de `qa`.
