@@ -24,3 +24,13 @@ variable "api_sentry_dsn" {
   type        = string
   default     = ""
 }
+
+variable "mail_domain" {
+  description = "Domaine d'envoi créé par envs/shared (BE-009)"
+  type        = string
+}
+
+variable "mail_from" {
+  description = "Expéditeur des e-mails, sur le domaine d'envoi (ex. Mon app <noreply@mail.example.com>)"
+  type        = string
+}

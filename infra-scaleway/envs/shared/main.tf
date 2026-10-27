@@ -31,3 +31,12 @@ resource "scaleway_registry_namespace" "this" {
   description = "Images Docker de ${var.project}"
   is_public   = false
 }
+
+# BE-009 : domaine d'envoi des e-mails, commun à staging et production.
+# `accept_tos` accepte la politique anti-spam de Scaleway TEM au moment de l'apply.
+resource "scaleway_tem_domain" "mail" {
+  name       = var.mail_domain
+  accept_tos = true
+  # true si la zone DNS est gérée chez Scaleway : SPF, DKIM et DMARC sont alors créés automatiquement.
+  autoconfig = var.mail_dns_autoconfig
+}

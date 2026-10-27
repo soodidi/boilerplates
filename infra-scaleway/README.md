@@ -43,7 +43,9 @@ envs/
    export AWS_ACCESS_KEY_ID=$SCW_ACCESS_KEY AWS_SECRET_ACCESS_KEY=$SCW_SECRET_KEY   # backend S3
    ```
 
-4. Appliquer `envs/shared` (registre), puis pousser une première image de l'API depuis sa CI.
+4. Appliquer `envs/shared` (registre et domaine d'envoi des e-mails, BE-009), puis pousser une première image de l'API depuis sa CI.
+   - Si la zone DNS n'est pas chez Scaleway, publier les enregistrements de `tofu -chdir=envs/shared output mail_dns_records` chez le registrar, puis attendre que le domaine soit vérifié dans la console TEM avant le premier envoi.
+   - Sinon, mettre `mail_dns_autoconfig = true` : SPF, DKIM et DMARC sont créés automatiquement.
 5. Pour chaque environnement : copier `terraform.tfvars.example` en `<env>.auto.tfvars`, compléter, puis :
 
    ```bash
@@ -63,4 +65,5 @@ Commiter le fichier `.terraform.lock.hcl` créé par `tofu init` (versions des p
 - La console Scaleway sert à **observer**. Toute modification manuelle d'urgence est reportée dans le code le jour même (OPS-003).
 - L'image de l'API est déployée par la CI de l'API : OpenTofu ignore les changements d'image (`lifecycle.ignore_changes`).
 - Les sorties sensibles (`database_url`) ne s'affichent qu'avec `tofu output -raw`.
+- E-mails (BE-009) : chaque environnement a sa propre clé API, limitée à l'envoi SMTP (`TransactionalEmailEmailSmtpCreate`), injectée dans l'API comme secret `SMTP_URL`. En staging, `mail_allowed_recipients` est obligatoire : aucun e-mail ne part vers d'autres adresses.
 - Passer à Kubernetes (Kapsule) seulement via un ADR (OPS-005).
