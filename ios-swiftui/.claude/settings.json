@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "allow": [
+      "Bash(git status)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git show:*)",
+      "Bash(git branch:*)",
+      "Bash(gh issue view:*)",
+      "Bash(gh issue list:*)",
+      "Bash(gh pr view:*)",
+      "Bash(gh pr diff:*)",
+      "Bash(gh pr checks:*)",
+      "Bash(gh run list:*)",
+      "Bash(gh run view:*)",
+      "Bash(swiftformat:*)",
+      "Bash(swiftlint:*)",
+      "Bash(swift test:*)",
+      "Bash(swift build:*)",
+      "Bash(xcodegen:*)",
+      "Bash(xcodebuild test:*)",
+      "Bash(xcodebuild build:*)",
+      "Bash(xcrun simctl list:*)"
+    ],
+    "deny": [
+      "Bash(git push --force:*)",
+      "Bash(git push -f:*)",
+      "Bash(git push --force-with-lease:*)",
+      "Bash(git push origin main:*)",
+      "Bash(git reset --hard:*)",
+      "Bash(git commit --no-verify:*)",
+      "Bash(git commit -n:*)",
+      "Bash(git push --no-verify:*)",
+      "Bash(gh pr merge:*)",
+      "Bash(gh repo delete:*)",
+      "Bash(gh secret:*)",
+      "Bash(gh release create:*)",
+      "Read(./.env)",
+      "Read(./.env.local)",
+      "Read(./.env.production)",
+      "Read(./.env.staging)",
+      "Bash(xcodebuild archive:*)",
+      "Bash(xcrun altool:*)",
+      "Bash(xcrun notarytool:*)",
+      "Read(./**/*.p12)",
+      "Read(./**/*.mobileprovision)"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|MultiEdit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/after-edit.sh",
+            "timeout": 60
+          }
+        ]
+      }
+    ]
+  }
+}

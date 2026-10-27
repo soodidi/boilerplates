@@ -14,11 +14,30 @@ Les quatre apps partagent la même feature d'exemple, **notes**, sur le même co
 
 ## Créer un projet
 
+Le plus simple : dans Claude Code, `/new-project` (installé depuis engineering-guidelines, voir `ai/README.md`). Il copie le boilerplate, renomme le projet, crée le repo GitHub, protège `main` et liste les secrets à configurer.
+
+À la main :
+
 ```bash
 npx degit soodidi/boilerplates/web-react-vite mon-projet
 ```
 
 Puis suivre le README du boilerplate. Le projet créé a son propre historique Git et ne reste pas lié au boilerplate.
+
+## Kit IA (GLB-011)
+
+Chaque boilerplate embarque une configuration Claude Code dans `.claude/` :
+
+| Élément | Rôle |
+|---------|------|
+| `agents/` | Agents spécialisés : `planner`, `reviewer`, `qa`, `security`, `devops` |
+| `skills/` | Commandes `/feature <issue>` (cycle complet jusqu'à la PR) et `/review [PR]` |
+| `hooks/after-edit.sh` | Formate et lint chaque fichier modifié par l'IA, lui renvoie les erreurs |
+| `settings.json` | Permissions : vérifications autorisées, actions irréversibles interdites |
+
+S'y ajoute le template d'issue « Fonctionnalité » (`.github/ISSUE_TEMPLATE/feature.yml`), qui sert de brief à `/feature`.
+
+Les agents, commandes, hook et template sont communs : on les modifie dans `_shared/`, puis `scripts/sync-shared.sh` les recopie partout.
 
 ## Maintenir ce repo
 

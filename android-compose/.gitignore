@@ -12,3 +12,7 @@ build/
 # GLB-005 : fichiers de config de prod et clés de signature jamais commités.
 google-services.json
 keystore.properties
+
+# Claude Code : fichiers de passation entre agents et réglages personnels (GLB-011)
+.claude/work/
+.claude/settings.local.json

@@ -8,3 +8,7 @@ crash.log
 # Versionnés : valeurs non secrètes de chaque environnement.
 !*.auto.tfvars
 .terraform.tfstate.lock.info
+
+# Claude Code : fichiers de passation entre agents et réglages personnels (GLB-011)
+.claude/work/
+.claude/settings.local.json

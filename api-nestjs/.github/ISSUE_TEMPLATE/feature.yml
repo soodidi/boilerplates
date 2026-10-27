@@ -1,0 +1,51 @@
+name: Fonctionnalité
+description: Décrire un besoin à développer, avec ses critères d'acceptation (GLB-011)
+labels: [feature]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Cette issue sert de brief, à un humain comme à l'IA (`/feature <numéro>`).
+        Plus les critères d'acceptation sont précis, meilleur sera le résultat.
+  - type: textarea
+    id: context
+    attributes:
+      label: Contexte et objectif
+      description: Pour qui, quel problème, pourquoi maintenant.
+      placeholder: En tant qu'utilisateur, je veux… afin de…
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Critères d'acceptation
+      description: Chaque critère doit être vérifiable par un test. Inclure les cas d'erreur.
+      placeholder: |
+        - [ ] Quand je …, alors …
+        - [ ] Si le serveur renvoie une erreur, alors …
+        - [ ] La page est utilisable au clavier et avec un lecteur d'écran.
+    validations:
+      required: true
+  - type: textarea
+    id: out-of-scope
+    attributes:
+      label: Hors périmètre
+      description: Ce qui ne doit PAS être fait dans cette issue.
+  - type: textarea
+    id: design
+    attributes:
+      label: Maquettes, contrat d'API, exemples
+      description: Liens, captures, schémas de données. Facultatif.
+  - type: dropdown
+    id: sensitive
+    attributes:
+      label: Sujets sensibles
+      description: Déclenche les contrôles security / devops (GLB-011).
+      multiple: true
+      options:
+        - Aucun
+        - Authentification ou droits d'accès
+        - Données personnelles
+        - Nouvelle dépendance
+        - Migration de base de données
+        - CI, Docker ou infrastructure
