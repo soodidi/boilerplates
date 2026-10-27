@@ -8,6 +8,7 @@ import {
 import {
   ForgotPasswordPage,
   LoginPage,
+  redirectIfSignedIn,
   redirectSearchSchema,
   requireSession,
   ResetPasswordPage,
@@ -40,6 +41,8 @@ const loginRoute = createRoute({
   path: '/login',
   // Page demandée avant la connexion (chemin interne uniquement).
   validateSearch: redirectSearchSchema,
+  // Déjà connecté (par exemple après le lien de vérification) : on va directement à destination.
+  beforeLoad: redirectIfSignedIn,
   component: LoginPage,
 });
 

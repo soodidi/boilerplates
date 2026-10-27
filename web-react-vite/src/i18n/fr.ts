@@ -53,6 +53,8 @@ export const fr = {
       noAccount: 'Pas encore de compte ? Créer un compte',
       resendVerification: "Renvoyer l'e-mail de confirmation",
       verificationSent: 'E-mail de confirmation envoyé.',
+      verificationLinkInvalid:
+        'Ce lien de confirmation est invalide ou a expiré. Connectez-vous pour en recevoir un nouveau.',
     },
     signup: {
       title: 'Créer un compte',

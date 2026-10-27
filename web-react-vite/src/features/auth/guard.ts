@@ -21,3 +21,18 @@ export async function requireSession({
   }
   return { session };
 }
+
+/** `beforeLoad` de /login : un utilisateur déjà connecté part vers `?redirect=` ou /notes. */
+export async function redirectIfSignedIn({
+  context,
+  search,
+}: {
+  context: { queryClient: QueryClient };
+  search: { redirect?: string | undefined };
+}) {
+  const session = await context.queryClient.query(sessionQueryOptions());
+  if (session) {
+    // eslint-disable-next-line @typescript-eslint/only-throw-error
+    throw redirect({ to: search.redirect ?? '/notes' });
+  }
+}

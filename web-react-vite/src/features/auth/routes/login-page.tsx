@@ -14,7 +14,7 @@ import { signInFormSchema } from '../schemas/auth';
 export function LoginPage() {
   const m = useMessages();
   const navigate = useNavigate();
-  const { redirect } = useSearch({ from: '/login' });
+  const { redirect, error: linkError } = useSearch({ from: '/login' });
   const signIn = useSignIn();
   const resend = useResendVerification();
 
@@ -36,6 +36,11 @@ export function LoginPage() {
 
   return (
     <AuthLayout title={m.auth.login.title}>
+      {linkError ? (
+        <p role="alert" className="text-sm text-destructive">
+          {m.auth.login.verificationLinkInvalid}
+        </p>
+      ) : null}
       <form noValidate className="grid gap-4" onSubmit={(event) => void onSubmit(event)}>
         <FormField label={m.auth.fields.email} error={errors.email?.message}>
           {(control) => (
@@ -63,7 +68,7 @@ export function LoginPage() {
             variant="secondary"
             disabled={resend.isPending}
             onClick={() => {
-              resend.mutate(form.getValues('email'));
+              resend.mutate(form.getValues('email').trim().toLowerCase());
             }}
           >
             {m.auth.login.resendVerification}

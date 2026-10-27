@@ -75,9 +75,12 @@ export const handlers = [
   http.get('*/v1/notes', ({ request }) => {
     if (!currentUser()) return problem(401, { title: 'Unauthorized' });
     const query = new URL(request.url).searchParams.get('q')?.toLowerCase() ?? '';
+    const userId = db.sessionUserId;
+    // Comme l'API : seules les notes de l'utilisateur connecté (BE-006).
     const data = db.notes
-      .filter((note) => note.title.toLowerCase().includes(query))
-      .toSorted((a, b) => b.createdAt.localeCompare(a.createdAt));
+      .filter((note) => note.ownerId === userId && note.title.toLowerCase().includes(query))
+      .toSorted((a, b) => b.createdAt.localeCompare(a.createdAt))
+      .map(({ ownerId: _ownerId, ...note }) => note);
     return HttpResponse.json({ data, nextCursor: null });
   }),
 
@@ -96,7 +99,7 @@ export const handlers = [
       content: typeof body.content === 'string' ? body.content.trim() : '',
       createdAt: new Date().toISOString(),
     };
-    db.notes.push(note);
+    db.notes.push({ ...note, ownerId: db.sessionUserId ?? '' });
     return HttpResponse.json(note, { status: 201 });
   }),
 ];

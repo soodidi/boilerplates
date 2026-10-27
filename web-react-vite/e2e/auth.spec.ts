@@ -33,7 +33,7 @@ test('une page privée renvoie vers la connexion', async ({ page }) => {
 });
 
 test('les pages d’authentification respectent WCAG 2.2 AA', async ({ page }) => {
-  for (const path of ['/login', '/signup', '/forgot-password']) {
+  for (const path of ['/login', '/signup', '/forgot-password', '/reset-password?token=t']) {
     await page.goto(path);
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
     const results = await new AxeBuilder({ page })

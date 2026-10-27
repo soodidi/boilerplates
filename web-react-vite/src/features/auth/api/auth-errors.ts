@@ -11,6 +11,7 @@ export function authErrorMessage(error: unknown, m: Messages): string {
     if (error.status === 403 && error.code === 'EMAIL_NOT_VERIFIED')
       return m.auth.errors.emailNotVerified;
     if (error.status === 429) return m.auth.errors.tooManyAttempts;
+    if (error.code === 'INVALID_TOKEN') return m.auth.reset.invalidLink;
   }
   return m.auth.errors.generic;
 }

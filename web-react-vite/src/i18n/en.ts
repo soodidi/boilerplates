@@ -54,6 +54,8 @@ export const en: Messages = {
       noAccount: 'No account yet? Create one',
       resendVerification: 'Resend the confirmation email',
       verificationSent: 'Confirmation email sent.',
+      verificationLinkInvalid:
+        'This confirmation link is invalid or has expired. Sign in to receive a new one.',
     },
     signup: {
       title: 'Create an account',

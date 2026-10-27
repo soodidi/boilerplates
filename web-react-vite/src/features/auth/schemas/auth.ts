@@ -16,9 +16,12 @@ export type Session = z.infer<typeof sessionSchema>;
 
 /** Redirection après connexion : chemin interne uniquement (pas d'URL vers un autre site). */
 export const redirectSearchSchema = z.object({
+  /** Erreur renvoyée par l'API après un lien de vérification expiré ou invalide. */
+  error: z.string().optional().catch(undefined),
   redirect: z
     .string()
-    .regex(/^\/(?!\/)/)
+    // Refuse `//evil.com` et `/\\evil.com`, que les navigateurs lisent comme une autre origine.
+    .regex(/^\/(?![\\/\t\n\r])/)
     .optional()
     .catch(undefined),
 });

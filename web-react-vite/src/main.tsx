@@ -1,7 +1,7 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from '@/app/app';
-import { authKeys, configureAuthClient } from '@/features/auth';
+import { configureAuthClient, createUnauthorizedHandler } from '@/features/auth';
 import { createAppRouter } from '@/app/router';
 import { detectLocale } from '@/i18n';
 import { loadConfig } from '@/lib/config';
@@ -25,11 +25,7 @@ async function bootstrap() {
   configureAuthClient({ baseUrl: config.apiUrl });
   configureHttp({
     baseUrl: config.apiUrl,
-    // Session expirée ou révoquée : on l'oublie et on renvoie vers la connexion.
-    onUnauthorized: () => {
-      queryClient.setQueryData(authKeys.session, null);
-      void router.navigate({ to: '/login', search: { redirect: router.state.location.href } });
-    },
+    onUnauthorized: createUnauthorizedHandler(queryClient, router),
   });
   initSentry(config, router);
 

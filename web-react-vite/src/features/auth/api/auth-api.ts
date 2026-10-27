@@ -1,4 +1,4 @@
-import { queryOptions, useMutation, useQueryClient } from '@tanstack/react-query';
+import { type QueryClient, queryOptions, useMutation, useQueryClient } from '@tanstack/react-query';
 import { authClient } from './auth-client';
 import { type Session, type SignInInput, type SignUpInput, sessionSchema } from '../schemas/auth';
 
@@ -31,6 +31,18 @@ export const authKeys = {
 };
 
 /**
+ * Change d'utilisateur (connexion, déconnexion, session expirée) : toutes les données en cache
+ * sont supprimées, pour que rien d'un compte ne s'affiche au suivant. La session est mise à
+ * jour plutôt que supprimée, pour que les composants abonnés (en-tête) suivent le changement.
+ */
+export function resetUserCache(queryClient: QueryClient, session: Session | undefined) {
+  queryClient.removeQueries({ predicate: (query) => query.queryKey[0] !== authKeys.session[0] });
+  if (session === undefined) return queryClient.invalidateQueries({ queryKey: authKeys.session });
+  queryClient.setQueryData(authKeys.session, session);
+  return Promise.resolve();
+}
+
+/**
  * Session de l'utilisateur, ou `null`. Relue au chargement de l'app : c'est aussi ce qui
  * prolonge le cookie de session (BE-006, sessions renouvelées à l'usage).
  */
@@ -47,15 +59,17 @@ export function useSignIn() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (input: SignInInput) => unwrap(await authClient().signIn.email(input)),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: authKeys.session }),
+    // Nouveau compte, nouveau cache ; la session est relue auprès de l'API.
+    onSuccess: () => resetUserCache(queryClient, undefined),
   });
 }
 
 export function useSignUp() {
   return useMutation({
     mutationFn: async (input: SignUpInput) =>
-      // Après le clic sur le lien de vérification, l'API connecte l'utilisateur et le renvoie ici.
-      unwrap(await authClient().signUp.email({ ...input, callbackURL: appUrl('/notes') })),
+      // Après le clic sur le lien, l'API connecte l'utilisateur et le renvoie sur /login, qui
+      // redirige vers les notes ; en cas de lien expiré, /login affiche `?error=`.
+      unwrap(await authClient().signUp.email({ ...input, callbackURL: appUrl('/login') })),
   });
 }
 
@@ -87,8 +101,6 @@ export function useSignOut() {
   return useMutation({
     mutationFn: async () => unwrap(await authClient().signOut()),
     // Plus aucune donnée d'utilisateur ne reste en cache après la déconnexion.
-    onSettled: () => {
-      queryClient.clear();
-    },
+    onSettled: () => resetUserCache(queryClient, null),
   });
 }

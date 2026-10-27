@@ -16,5 +16,6 @@ export const ResetPasswordPage = lazyRouteComponent(
 export { AccountMenu } from './components/account-menu';
 export { authKeys, sessionQueryOptions } from './api/auth-api';
 export { configureAuthClient } from './api/auth-client';
-export { requireSession } from './guard';
+export { redirectIfSignedIn, requireSession } from './guard';
+export { createUnauthorizedHandler } from './session-expiry';
 export { redirectSearchSchema, resetPasswordSearchSchema } from './schemas/auth';

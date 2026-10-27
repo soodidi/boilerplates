@@ -33,7 +33,7 @@ export function SignupPage() {
   // BE-006 : même message que l'adresse soit nouvelle ou déjà inscrite.
   if (signUp.isSuccess) {
     return (
-      <AuthLayout title={m.auth.signup.checkInboxTitle}>
+      <AuthLayout focusTitle title={m.auth.signup.checkInboxTitle}>
         <p role="status">{m.auth.signup.checkInbox(form.getValues('email'))}</p>
         <Link to="/login" className={authLinkClass}>
           {m.auth.signup.backToLogin}

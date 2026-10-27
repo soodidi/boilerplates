@@ -29,25 +29,35 @@ describe('SignupPage', () => {
 });
 
 describe('ForgotPasswordPage', () => {
-  it('confirme l’envoi sans dire si le compte existe', async () => {
-    const user = userEvent.setup();
-    renderRoute('/forgot-password');
+  it.each(['nobody@example.com', DEMO_USER.email])(
+    'confirme l’envoi sans dire si le compte existe (%s)',
+    async (email) => {
+      const user = userEvent.setup();
+      renderRoute('/forgot-password');
 
-    await user.type(
-      await screen.findByRole('textbox', { name: 'Adresse e-mail' }),
-      'nobody@example.com',
-    );
-    await user.click(screen.getByRole('button', { name: 'Envoyer le lien' }));
+      await user.type(await screen.findByRole('textbox', { name: 'Adresse e-mail' }), email);
+      await user.click(screen.getByRole('button', { name: 'Envoyer le lien' }));
 
-    expect(await screen.findByRole('status')).toHaveTextContent(
-      'Si un compte existe avec cette adresse',
-    );
-  });
+      expect(await screen.findByRole('status')).toHaveTextContent(
+        'Si un compte existe avec cette adresse',
+      );
+    },
+  );
 });
 
 describe('ResetPasswordPage', () => {
   it('signale un lien invalide ou expiré', async () => {
     renderRoute('/reset-password?error=INVALID_TOKEN');
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Ce lien est invalide ou a expiré.');
+  });
+
+  it('signale un lien déjà utilisé ou expiré à l’envoi du formulaire', async () => {
+    const user = userEvent.setup();
+    renderRoute('/reset-password?token=used-token');
+
+    await user.type(await screen.findByLabelText(/^Mot de passe/), 'a brand new long password');
+    await user.click(screen.getByRole('button', { name: 'Enregistrer le mot de passe' }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Ce lien est invalide ou a expiré.');
   });

@@ -26,7 +26,7 @@ export function ResetPasswordPage() {
 
   if (!token || error) {
     return (
-      <AuthLayout title={m.auth.reset.title}>
+      <AuthLayout focusTitle title={m.auth.reset.title}>
         <p role="alert">{m.auth.reset.invalidLink}</p>
         <Link to="/forgot-password" className={authLinkClass}>
           {m.auth.reset.requestNewLink}
@@ -37,7 +37,7 @@ export function ResetPasswordPage() {
 
   if (resetPassword.isSuccess) {
     return (
-      <AuthLayout title={m.auth.reset.title}>
+      <AuthLayout focusTitle title={m.auth.reset.title}>
         <p role="status">{m.auth.reset.done}</p>
         <Link to="/login" className={authLinkClass}>
           {m.auth.signup.backToLogin}

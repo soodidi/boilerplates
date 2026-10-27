@@ -10,7 +10,7 @@ let client: AuthClient | undefined;
  */
 export function configureAuthClient(options: { baseUrl: string }) {
   client = createAuthClient({
-    baseURL: options.baseUrl || window.location.origin,
+    baseURL: options.baseUrl.replace(/\/$/, '') || window.location.origin,
     basePath: '/v1/auth',
     // Session en cookie HttpOnly, envoyé à l'API même sur un autre sous-domaine.
     fetchOptions: {
