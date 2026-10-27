@@ -1,5 +1,5 @@
 // BE-004 : exporte la spec OpenAPI (openapi.json) pour la CI et la génération des clients.
-// Usage : npm run build && npm run openapi (DATABASE_URL requis mais aucune connexion n'est ouverte).
+// Usage : npm run build && npm run openapi (DATABASE_URL, SMTP_URL et MAIL_FROM requis, mais aucune connexion n'est ouverte).
 import { writeFile } from 'node:fs/promises';
 import { NestFactory } from '@nestjs/core';
 import { type NestFastifyApplication } from '@nestjs/platform-fastify';
