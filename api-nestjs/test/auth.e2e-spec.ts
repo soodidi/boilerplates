@@ -3,7 +3,7 @@ import { eq } from 'drizzle-orm';
 import { afterAll, beforeAll, beforeEach, describe, expect, inject, it } from 'vitest';
 import { type InMemoryMailer } from '../src/mail/index.js';
 import { accounts, sessions } from '../src/modules/auth/auth.table.js';
-import { createTestApp, linkPath, PASSWORD, signIn, signUpAndSignIn, WEB_ORIGIN } from './app.js';
+import { createTestApp, PASSWORD, signIn, signUpAndSignIn, WEB_ORIGIN } from './app.js';
 import { createTestDatabase } from './database.js';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -30,6 +30,13 @@ describe('Auth (e2e)', () => {
   });
 
   const bearer = (token: string) => ({ authorization: `Bearer ${token}` });
+  /** Structure d'une réponse (clés et types), sans les valeurs propres à chaque compte. */
+  const shape = (value: unknown): unknown =>
+    value && typeof value === 'object'
+      ? Object.fromEntries(Object.entries(value).map(([key, item]) => [key, shape(item)]))
+      : value === null
+        ? null
+        : typeof value;
   const listNotes = (token: string) =>
     app.inject({ method: 'GET', url: '/v1/notes', headers: bearer(token) });
 
@@ -42,7 +49,14 @@ describe('Auth (e2e)', () => {
       payload: { email: 'ada@example.com', password: PASSWORD, name: 'Mallory' },
     });
 
+    const fresh = await app.inject({
+      method: 'POST',
+      url: '/v1/auth/sign-up/email',
+      payload: { email: 'new@example.com', password: PASSWORD, name: 'New' },
+    });
+
     expect(response.statusCode).toBe(200);
+    expect(shape(response.json())).toEqual(shape(fresh.json()));
     expect(mailer.lastTo('ada@example.com')?.template).toBe('existing-account');
   });
 
@@ -84,7 +98,8 @@ describe('Auth (e2e)', () => {
 
     const [account] = await database.db.select().from(accounts);
 
-    expect(account?.password).toMatch(/^\$argon2id\$/);
+    // Paramètres OWASP de BE-006 : 19 Mio, 2 passes, 1 fil.
+    expect(account?.password).toMatch(/^\$argon2id\$v=19\$m=19456,t=2,p=1\$/);
   });
 
   it('revokes the session on sign-out', async () => {
@@ -111,10 +126,7 @@ describe('Auth (e2e)', () => {
     });
     const email = mailer.lastTo('ada@example.com');
     expect(email?.template).toBe('reset-password');
-    const resetToken = linkPath(email?.text ?? '')
-      .split('?')[0]
-      ?.split('/')
-      .at(-1);
+    const resetToken = /\/reset-password\/([^?\s]+)/.exec(email?.text ?? '')?.[1];
 
     const reset = await app.inject({
       method: 'POST',
@@ -129,15 +141,84 @@ describe('Auth (e2e)', () => {
     );
   });
 
-  it('answers a password reset for an unknown email without sending anything', async () => {
+  it('answers a password reset for an unknown email exactly like a known one, without sending anything', async () => {
+    await signUpAndSignIn(app, mailer, 'ada@example.com');
+    mailer.sent.length = 0;
+    const requestReset = (email: string) =>
+      app.inject({
+        method: 'POST',
+        url: '/v1/auth/request-password-reset',
+        payload: { email, redirectTo: `${WEB_ORIGIN}/reset-password` },
+      });
+
+    const unknown = await requestReset('nobody@example.com');
+    expect(mailer.sent).toHaveLength(0);
+    const known = await requestReset('ada@example.com');
+
+    expect(unknown.statusCode).toBe(200);
+    expect(unknown.json()).toEqual(known.json());
+  });
+
+  it('refuses a password reset redirecting to an untrusted origin', async () => {
+    await signUpAndSignIn(app, mailer, 'ada@example.com');
+    mailer.sent.length = 0;
+
     const response = await app.inject({
       method: 'POST',
       url: '/v1/auth/request-password-reset',
-      payload: { email: 'nobody@example.com', redirectTo: `${WEB_ORIGIN}/reset-password` },
+      payload: { email: 'ada@example.com', redirectTo: 'https://evil.example.com/steal' },
     });
 
-    expect(response.statusCode).toBe(200);
+    expect(response.statusCode).toBeGreaterThanOrEqual(400);
     expect(mailer.sent).toHaveLength(0);
+  });
+
+  it('sets the session cookie HttpOnly and SameSite=Lax', async () => {
+    await signUpAndSignIn(app, mailer, 'ada@example.com');
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/v1/auth/sign-in/email',
+      payload: { email: 'ada@example.com', password: PASSWORD },
+    });
+    const cookies = [response.headers['set-cookie'] ?? []].flat();
+    const session = cookies.find((cookie) => cookie.includes('session_token='));
+
+    expect(session).toMatch(/HttpOnly/i);
+    expect(session).toMatch(/SameSite=Lax/i);
+  });
+
+  it('revokes the session on sign-out with the web cookie', async () => {
+    const { cookie } = await signUpAndSignIn(app, mailer, 'ada@example.com');
+    const notesWithCookie = () =>
+      app.inject({ method: 'GET', url: '/v1/notes', headers: { cookie } });
+    expect((await notesWithCookie()).statusCode).toBe(200);
+
+    const signOut = await app.inject({
+      method: 'POST',
+      url: '/v1/auth/sign-out',
+      headers: { cookie, origin: WEB_ORIGIN },
+    });
+
+    expect(signOut.statusCode).toBe(200);
+    expect((await notesWithCookie()).statusCode).toBe(401);
+  });
+
+  it('refuses an expired session', async () => {
+    const { token } = await signUpAndSignIn(app, mailer, 'ada@example.com');
+    await database.db
+      .update(sessions)
+      .set({ expiresAt: new Date(Date.now() - 1000) })
+      .where(eq(sessions.token, token.split('.')[0] ?? ''));
+
+    expect((await listNotes(token)).statusCode).toBe(401);
+  });
+
+  it('refuses a Bearer token with a forged signature', async () => {
+    const { token } = await signUpAndSignIn(app, mailer, 'ada@example.com');
+    const forged = `${token.split('.')[0] ?? ''}.${'A'.repeat(43)}=`;
+
+    expect((await listNotes(forged)).statusCode).toBe(401);
   });
 
   it('never extends a session beyond 90 days after sign-in', async () => {

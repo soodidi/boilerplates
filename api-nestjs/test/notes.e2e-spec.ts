@@ -170,4 +170,37 @@ describe('Notes API (e2e)', () => {
     expect(cookieOnly.statusCode).toBe(403);
     expect(bearerOnly.statusCode).toBe(201);
   });
+
+  it('POST /v1/notes with a Bearer token and a cookie but no Origin is allowed (iOS URLSession)', async () => {
+    const { cookie, token } = await signUpAndSignIn(app, mailer, 'erin@example.com');
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/v1/notes',
+      headers: { cookie, authorization: `Bearer ${token}` },
+      payload: { title: 'from iOS' },
+    });
+
+    expect(response.statusCode).toBe(201);
+  });
+
+  it('CORS preflight only allows trusted origins (the CSRF exemption for Bearer relies on it)', async () => {
+    const preflight = (origin: string) =>
+      app.inject({
+        method: 'OPTIONS',
+        url: '/v1/notes',
+        headers: {
+          origin,
+          'access-control-request-method': 'POST',
+          'access-control-request-headers': 'authorization',
+        },
+      });
+
+    const evil = await preflight('https://evil.example.com');
+    const trusted = await preflight(WEB_ORIGIN);
+
+    expect(evil.headers['access-control-allow-origin']).toBeUndefined();
+    expect(trusted.headers['access-control-allow-origin']).toBe(WEB_ORIGIN);
+    expect(trusted.headers['access-control-allow-credentials']).toBe('true');
+  });
 });

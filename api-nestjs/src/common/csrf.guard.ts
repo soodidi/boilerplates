@@ -13,7 +13,9 @@ const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 /**
  * BE-006 : protection CSRF des routes métier authentifiées par cookie.
  * Une requête qui modifie l'état avec un cookie DOIT venir d'une origine de la liste blanche.
- * Les clients mobiles (`Authorization: Bearer`, sans cookie) ne sont pas concernés.
+ * Une requête qui porte `Authorization: Bearer <token>` n'est pas concernée, même si elle a aussi un cookie (URLSession
+ * sur iOS renvoie les cookies reçus) : un navigateur ne peut pas ajouter cet en-tête à une requête
+ * venue d'un autre site sans que CORS, en liste blanche, l'autorise d'abord.
  * Les routes de Better Auth ont leur propre vérification d'origine.
  */
 @Injectable()
@@ -30,6 +32,7 @@ export class CsrfGuard implements CanActivate {
   canActivate(context: ExecutionContext): boolean {
     const request = context.switchToHttp().getRequest<FastifyRequest>();
     if (SAFE_METHODS.has(request.method) || !request.headers.cookie) return true;
+    if (/^Bearer \S+$/.test(request.headers.authorization ?? '')) return true;
 
     const origin = request.headers.origin;
     if (origin && this.trustedOrigins.has(origin)) return true;

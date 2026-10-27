@@ -44,7 +44,7 @@ envs/
    export TF_VAR_state_passphrase=…
    ```
 
-4. Appliquer **`envs/iam` à la main**, avec une clé API personnelle qui a les droits IAM sur l'organisation. Les applications et clés IAM sont des ressources d'organisation : la clé de la CI, limitée au projet, ne peut pas les créer (OPS-006). Ce dossier crée la clé de la CI (tous les produits du projet, aucun droit IAM) et une clé SMTP par environnement (envoi TEM uniquement).
+4. Appliquer **`envs/iam` à la main**, avec une clé API personnelle qui a les droits IAM sur l'organisation. Les applications et clés IAM sont des ressources d'organisation : la clé de la CI, limitée au projet, ne peut pas les créer (OPS-006). Ce dossier crée la clé de la CI infra (tous les produits du projet, aucun droit IAM), une clé de déploiement par repo applicatif (web : Object Storage ; API : registre et conteneurs) et une clé SMTP par environnement (envoi TEM uniquement).
 
    ```bash
    export SCW_ACCESS_KEY=<clé admin> SCW_SECRET_KEY=… SCW_DEFAULT_ORGANIZATION_ID=…
@@ -52,9 +52,15 @@ envs/
    tofu -chdir=envs/iam init && tofu -chdir=envs/iam apply
    tofu -chdir=envs/iam output -raw ci_access_key   # → secret SCW_ACCESS_KEY
    tofu -chdir=envs/iam output -raw ci_secret_key   # → secret SCW_SECRET_KEY
+   # Repos applicatifs : une clé par pipeline (OPS-006), jamais la clé de la CI infra.
+   tofu -chdir=envs/iam output -json deploy_access_keys   # web → repo web, api → repo API
+   tofu -chdir=envs/iam output -json deploy_secret_keys
    ```
 
-   À refaire pour chaque rotation de clé (OPS-006, au moins une fois par an) : `tofu -chdir=envs/iam apply -replace='module.ci.scaleway_iam_api_key.this'`.
+   Rotation des clés (OPS-006, au moins une fois par an) : `tofu -chdir=envs/iam apply` avec `-replace` sur chaque clé, puis reporter les nouvelles valeurs dans GitHub :
+   - CI infra : `-replace='module.ci.scaleway_iam_api_key.this'` ;
+   - déploiement : `-replace='module.deploy["web"].scaleway_iam_api_key.this'` et `-replace='module.deploy["api"].scaleway_iam_api_key.this'` ;
+   - SMTP : `-replace='module.smtp["staging"].scaleway_iam_api_key.this'` (et `production`), puis ré-appliquer staging et production pour que l'API reçoive la nouvelle `SMTP_URL`.
 
 5. Pour la suite, utiliser la **clé de la CI** en local (`SCW_ACCESS_KEY`, `SCW_SECRET_KEY`, `SCW_DEFAULT_PROJECT_ID`, `SCW_DEFAULT_ORGANIZATION_ID`, mêmes `AWS_*`).
 6. Appliquer `envs/shared` (registre et domaine d'envoi des e-mails, BE-009), puis pousser une première image de l'API depuis sa CI.

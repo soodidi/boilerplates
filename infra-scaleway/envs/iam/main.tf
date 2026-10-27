@@ -49,13 +49,44 @@ locals {
   tags = ["project:${var.project}", "managed-by:opentofu"]
 }
 
-# Clé de la CI : tous les produits du projet, aucun droit IAM ni sur les autres projets.
+# Clé de la CI du repo infra : tous les produits du projet, aucun droit IAM ni sur les autres projets.
 module "ci" {
   source               = "../../modules/api-key"
   name                 = "${var.project}-ci"
-  description          = "CI de ${var.project} : plan et apply OpenTofu, déploiement"
+  description          = "CI infra de ${var.project} : plan et apply OpenTofu"
   project_id           = var.project_id
   permission_set_names = ["AllProductsFullAccess"]
+  tags                 = local.tags
+}
+
+# Clés de déploiement des repos applicatifs (OPS-006 : une clé par pipeline).
+# Object Storage est limité au projet, pas à un bucket : la clé web peut écrire dans les autres
+# buckets du projet, dont celui du state (chiffré et versionné).
+locals {
+  deploy_keys = {
+    web = {
+      description = "Déploiement du front de ${var.project} : envoi du build dans le bucket"
+      permissions = [
+        "ObjectStorageBucketsRead",
+        "ObjectStorageObjectsRead",
+        "ObjectStorageObjectsWrite",
+        "ObjectStorageObjectsDelete",
+      ]
+    }
+    api = {
+      description = "Déploiement de l'API de ${var.project} : push d'image et mise à jour du conteneur"
+      permissions = ["ContainerRegistryFullAccess", "ContainersFullAccess"]
+    }
+  }
+}
+
+module "deploy" {
+  source               = "../../modules/api-key"
+  for_each             = local.deploy_keys
+  name                 = "${var.project}-deploy-${each.key}"
+  description          = each.value.description
+  project_id           = var.project_id
+  permission_set_names = each.value.permissions
   tags                 = local.tags
 }
 

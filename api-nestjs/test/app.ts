@@ -7,7 +7,7 @@ import { InMemoryMailer, Mailer } from '../src/mail/index.js';
 export const WEB_ORIGIN = 'http://localhost:5173';
 
 /** L'API complète, comme en production, avec les e-mails gardés en mémoire. */
-export async function createTestApp(databaseUrl: string) {
+export async function createTestApp(databaseUrl: string, overrides: Record<string, string> = {}) {
   Object.assign(process.env, {
     NODE_ENV: 'test',
     LOG_LEVEL: 'silent',
@@ -19,6 +19,9 @@ export async function createTestApp(databaseUrl: string) {
     BETTER_AUTH_SECRET: 'test-secret-with-at-least-32-characters',
     BETTER_AUTH_URL: 'http://localhost:3000',
     WEB_URL: WEB_ORIGIN,
+    TRUST_PROXY_HOPS: '1',
+    AUTH_RATE_LIMIT: 'false',
+    ...overrides,
   });
   const mailer = new InMemoryMailer();
   const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
