@@ -9,6 +9,7 @@ import { ENV, type Env } from './config/env.js';
 import { EnvModule } from './config/env.module.js';
 import { DatabaseModule } from './database/database.module.js';
 import { HealthModule } from './health/health.module.js';
+import { MailModule } from './mail/index.js';
 import { NotesModule } from './modules/notes/index.js';
 
 @Module({
@@ -33,6 +34,7 @@ import { NotesModule } from './modules/notes/index.js';
     // BE-006 : limitation de débit globale (à renforcer sur les routes d'authentification).
     ThrottlerModule.forRoot([{ ttl: 60_000, limit: 100 }]),
     DatabaseModule,
+    MailModule,
     HealthModule,
     NotesModule,
   ],

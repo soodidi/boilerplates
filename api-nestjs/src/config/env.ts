@@ -22,6 +22,20 @@ export const envSchema = z.object({
     )
     .pipe(z.array(z.url())),
   ENABLE_DOCS: envBoolean.default(false),
+  // BE-009 : serveur SMTP (Mailpit en local, Scaleway TEM en staging et production).
+  SMTP_URL: z.url({ protocol: /^smtps?$/ }),
+  MAIL_FROM: z.string().min(1),
+  // Staging : seules ces adresses reçoivent des e-mails. Vide = tous les destinataires.
+  MAIL_ALLOWED_RECIPIENTS: z
+    .string()
+    .default('')
+    .transform((value) =>
+      value
+        .split(',')
+        .map((email) => email.trim().toLowerCase())
+        .filter(Boolean),
+    )
+    .pipe(z.array(z.email())),
   APP_VERSION: z.string().default('dev'),
 });
 

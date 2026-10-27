@@ -17,6 +17,8 @@ describe('Notes API (e2e)', () => {
       LOG_LEVEL: 'silent',
       DATABASE_URL: databaseUrl,
       ENABLE_DOCS: 'false',
+      SMTP_URL: 'smtp://localhost:1025',
+      MAIL_FROM: 'Test <noreply@localhost>',
     });
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
     app = moduleRef.createNestApplication<NestFastifyApplication>(createFastifyAdapter());
