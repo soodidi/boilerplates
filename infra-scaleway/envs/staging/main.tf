@@ -17,6 +17,30 @@ terraform {
     skip_requesting_account_id  = true
     skip_s3_checksum            = true
   }
+
+  # OPS-006 : le state contient des secrets générés (clés API, mots de passe) : il est chiffré.
+  # Passphrase : variable TF_VAR_state_passphrase (secret GitHub TF_STATE_PASSPHRASE et gestionnaire de mots de passe).
+  encryption {
+    key_provider "pbkdf2" "state" {
+      passphrase = var.state_passphrase
+    }
+    method "aes_gcm" "state" {
+      keys = key_provider.pbkdf2.state
+    }
+    state {
+      method   = method.aes_gcm.state
+      enforced = true
+    }
+    plan {
+      method   = method.aes_gcm.state
+      enforced = true
+    }
+    remote_state_data_sources {
+      default {
+        method = method.aes_gcm.state
+      }
+    }
+  }
 }
 
 provider "scaleway" {
@@ -53,10 +77,19 @@ resource "random_password" "auth_secret" {
   special = false
 }
 
-module "mail" {
-  source = "../../modules/mail-sender"
-  name   = local.name
-  domain = var.mail_domain
+# BE-009 : clé SMTP créée par envs/iam (ressource d'organisation, hors de portée de la clé de la CI).
+data "terraform_remote_state" "iam" {
+  backend = "s3"
+  config = {
+    bucket                      = "CHANGE-ME-tfstate"
+    key                         = "iam/terraform.tfstate"
+    region                      = "fr-par"
+    endpoints                   = { s3 = "https://s3.fr-par.scw.cloud" }
+    skip_credentials_validation = true
+    skip_region_validation      = true
+    skip_requesting_account_id  = true
+    skip_s3_checksum            = true
+  }
 }
 
 module "api" {
@@ -82,7 +115,7 @@ module "api" {
 
   secret_environment_variables = {
     DATABASE_URL       = module.database.database_url
-    SMTP_URL           = module.mail.smtp_url
+    SMTP_URL           = data.terraform_remote_state.iam.outputs.smtp_urls["staging"]
     BETTER_AUTH_SECRET = random_password.auth_secret.result
   }
 

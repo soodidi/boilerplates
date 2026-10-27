@@ -25,10 +25,6 @@ variable "api_sentry_dsn" {
   default     = ""
 }
 
-variable "mail_domain" {
-  description = "Domaine d'envoi créé par envs/shared (BE-009)"
-  type        = string
-}
 
 variable "mail_from" {
   description = "Expéditeur des e-mails, sur le domaine d'envoi (ex. Mon app <noreply@mail.example.com>)"
@@ -43,4 +39,15 @@ variable "api_url" {
 variable "app_name" {
   description = "Nom de l'app affiché dans les e-mails (BE-009)"
   type        = string
+}
+
+variable "state_passphrase" {
+  description = "Passphrase de chiffrement du state (16 caractères au moins), commune à tous les environnements"
+  type        = string
+  sensitive   = true
+
+  validation {
+    condition     = length(var.state_passphrase) >= 16
+    error_message = "La passphrase du state doit faire au moins 16 caractères."
+  }
 }
