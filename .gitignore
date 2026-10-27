@@ -1,2 +1,5 @@
 node_modules/
 .DS_Store
+
+# Créé par `lefthook install` lancé depuis un sous-projet : chaque boilerplate a son propre lefthook.yml.
+/lefthook.yml
