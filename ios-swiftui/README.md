@@ -4,7 +4,7 @@ Boilerplate iOS : **Swift 6 (concurrence stricte) + SwiftUI + Observation + asyn
 
 Il applique les ADR **IOS-001 à IOS-005** de [engineering-guidelines](https://github.com/soodidi/engineering-guidelines).
 
-> Écrit et relu, mais pas compilé dans l'environnement où il a été généré (pas de Xcode). Premier réflexe après la copie : `swift test --package-path Packages` puis un build dans Xcode.
+> Vérifié avec Xcode 26.6 : `swiftformat --lint .`, `swiftlint --strict`, `swift test --package-path Packages` et `xcodebuild test` sur simulateur iOS 26.5 passent. Les tests des modules sont aussi lancés par le schéma `iOSApp`.
 
 ## Démarrer un projet
 
