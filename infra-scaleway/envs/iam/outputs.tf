@@ -1,10 +1,10 @@
 output "ci_access_key" {
-  description = "Secret SCW_ACCESS_KEY des environnements GitHub du repo infra uniquement"
+  description = "Secret SCW_ACCESS_KEY des environnements staging et production du repo infra (apply)"
   value       = module.ci.access_key
 }
 
 output "ci_secret_key" {
-  description = "Secret SCW_SECRET_KEY des environnements GitHub du repo infra uniquement"
+  description = "Secret SCW_SECRET_KEY des environnements staging et production du repo infra (apply)"
   value       = module.ci.secret_key
   sensitive   = true
 }
@@ -27,5 +27,22 @@ output "deploy_access_keys" {
 output "deploy_secret_keys" {
   description = "SCW_SECRET_KEY des repos applicatifs (même clé que deploy_access_keys)"
   value       = { for repo, key in module.deploy : repo => key.secret_key }
+  sensitive   = true
+}
+
+# Lus par staging et production pour autoriser l'écriture dans le bucket du front (bucket policy).
+output "web_writer_application_ids" {
+  description = "Applications IAM autorisées à écrire dans les buckets du front : CI infra et deploy-web"
+  value       = [module.ci.application_id, module.deploy["web"].application_id]
+}
+
+output "ci_plan_access_key" {
+  description = "SCW_ACCESS_KEY des environnements GitHub staging-plan et production-plan (repo infra)"
+  value       = module.ci_plan.access_key
+}
+
+output "ci_plan_secret_key" {
+  description = "SCW_SECRET_KEY des environnements GitHub staging-plan et production-plan (repo infra)"
+  value       = module.ci_plan.secret_key
   sensitive   = true
 }

@@ -22,7 +22,9 @@ on:
       environment:
         description: Environnement à appliquer
         type: choice
-        options: [staging, production]
+        # shared (registre, domaine d'envoi) : commun aux environnements, appliqué à la demande,
+        # avec l'approbation de l'environnement production.
+        options: [staging, production, shared]
 
 permissions:
   contents: read
@@ -52,7 +54,11 @@ jobs:
           done
       - name: tflint
         run: |
-          curl -sSL https://raw.githubusercontent.com/terraform-linters/tflint/master/install_linux.sh | bash
+          # Version et empreinte épinglées (OPS-002).
+          curl -fsSL -o tflint.zip https://github.com/terraform-linters/tflint/releases/download/v0.65.0/tflint_linux_amd64.zip
+          echo "d4c545ed2e29d6338604b586f34f544f380f70f243aa72f7b484713835eaec61  tflint.zip" | sha256sum --check
+          unzip -q tflint.zip -d "$RUNNER_TEMP" && rm tflint.zip
+          export PATH="$RUNNER_TEMP:$PATH"
           tflint --init
           tflint --recursive
       # Mauvaises configurations de sécurité (bucket public non voulu, chiffrement…).
@@ -70,9 +76,10 @@ jobs:
     timeout-minutes: 15
     strategy:
       matrix:
-        environment: [staging, production]
+        environment: [shared, staging, production]
     environment:
-      name: ${{ matrix.environment }}-plan
+      # Clé `ci_plan` en lecture seule (envs/iam). shared utilise celle de production-plan.
+      name: ${{ matrix.environment == 'shared' && 'production' || matrix.environment }}-plan
     env:
       SCW_ACCESS_KEY: ${{ secrets.SCW_ACCESS_KEY }}
       SCW_SECRET_KEY: ${{ secrets.SCW_SECRET_KEY }}
@@ -107,7 +114,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     environment:
-      name: ${{ inputs.environment || 'staging' }}
+      name: ${{ inputs.environment == 'shared' && 'production' || inputs.environment || 'staging' }}
     env:
       ENVIRONMENT: ${{ inputs.environment || 'staging' }}
       SCW_ACCESS_KEY: ${{ secrets.SCW_ACCESS_KEY }}

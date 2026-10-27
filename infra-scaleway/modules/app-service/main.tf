@@ -56,3 +56,11 @@ resource "scaleway_container" "this" {
     ignore_changes = [image]
   }
 }
+
+# BE-006 : domaine de l'API sur le même site que le front (cookie de session). Le CNAME du domaine
+# vers `dns_target` doit exister avant l'apply (Scaleway vérifie le DNS et émet le certificat).
+resource "scaleway_container_domain" "this" {
+  count        = var.domain == null ? 0 : 1
+  container_id = scaleway_container.this.id
+  hostname     = var.domain
+}

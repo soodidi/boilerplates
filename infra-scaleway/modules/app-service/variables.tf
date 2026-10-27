@@ -54,3 +54,9 @@ variable "tags" {
   type    = list(string)
   default = []
 }
+
+variable "domain" {
+  description = "Domaine de l'API (ex. api.app.example.com) ; null = URL Scaleway uniquement"
+  type        = string
+  default     = null
+}

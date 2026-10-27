@@ -93,7 +93,9 @@ data "terraform_remote_state" "iam" {
 }
 
 module "api" {
-  source             = "../../modules/app-service"
+  source = "../../modules/app-service"
+  # Domaine tiré de api_url (BE-006 : même site que le front).
+  domain             = regex("^https?://([^/:]+)", var.api_url)[0]
   name               = "${local.name}-api"
   image              = var.api_image
   private_network_id = module.network.private_network_id
@@ -123,8 +125,9 @@ module "api" {
 }
 
 module "web" {
-  source      = "../../modules/static-site"
-  bucket_name = "${local.name}-web"
-  domain      = var.web_domain
-  tags        = local.tags
+  source                 = "../../modules/static-site"
+  bucket_name            = "${local.name}-web"
+  domain                 = var.web_domain
+  writer_application_ids = data.terraform_remote_state.iam.outputs.web_writer_application_ids
+  tags                   = local.tags
 }

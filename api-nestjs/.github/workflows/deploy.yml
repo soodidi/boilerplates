@@ -6,7 +6,8 @@ name: deploy
 # À configurer dans GitHub :
 #   repo : variable REGISTRY_IMAGE (ex. rg.fr-par.scw.cloud/mon-projet/api), secret SCW_SECRET_KEY (push registre)
 #   environnements staging / production :
-#     secrets : SCW_ACCESS_KEY, SCW_SECRET_KEY (clé deploy-api de envs/iam), DATABASE_URL (pour le job de migration)
+#     secrets : SCW_ACCESS_KEY, SCW_SECRET_KEY (clé deploy-api de envs/iam). Pas de DATABASE_URL :
+#     les migrations s'appliquent au démarrage de l'API, dans le réseau privé (BE-003)
 #     variables : SCW_DEFAULT_PROJECT_ID, CONTAINER_ID (ID du Serverless Container créé par infra-scaleway)
 
 on:
