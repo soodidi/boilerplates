@@ -176,4 +176,12 @@ describe('Auth (e2e)', () => {
     expect(ips).toContain('203.0.113.7');
     expect(ips).not.toContain('6.6.6.6');
   });
+
+  it('refuses an unsigned Bearer token, even if it exists in the database', async () => {
+    const { token } = await signUpAndSignIn(app, mailer, 'ada@example.com');
+    const unsigned = token.split('.')[0] ?? '';
+
+    expect((await listNotes(token)).statusCode).toBe(200);
+    expect((await listNotes(unsigned)).statusCode).toBe(401);
+  });
 });

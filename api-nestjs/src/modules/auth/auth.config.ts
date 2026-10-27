@@ -103,6 +103,10 @@ export function createAuth({ env, db, mailer }: AuthDependencies) {
           // La session courante est chargée par getSession avant sa prolongation.
           before: (data, ctx) => {
             const createdAt = ctx?.context.session?.session.createdAt;
+            if (data.expiresAt && !createdAt) {
+              // Aucun chemin actuel de Better Auth : à revoir à chaque mise à jour de la librairie.
+              logger.warn('Session extended without its creation date: lifetime cap not applied');
+            }
             if (!data.expiresAt || !createdAt) return Promise.resolve();
             return Promise.resolve({
               data: { ...data, expiresAt: capSessionExpiry(new Date(data.expiresAt), createdAt) },
@@ -124,8 +128,9 @@ export function createAuth({ env, db, mailer }: AuthDependencies) {
         '/send-verification-email': { window: 300, max: 3 },
       },
     },
-    // Mobile : token de session dans `Authorization: Bearer`, reçu dans `set-auth-token`.
-    plugins: [bearer()],
+    // Mobile : token de session dans `Authorization: Bearer`, reçu signé dans `set-auth-token`.
+    // Signature exigée : un token lu dans la table `sessions` ne suffit pas sans le secret.
+    plugins: [bearer({ requireSignature: true })],
   });
 }
 

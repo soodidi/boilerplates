@@ -21,7 +21,10 @@ export class CsrfGuard implements CanActivate {
   private readonly trustedOrigins: Set<string>;
 
   constructor(@Inject(ENV) env: Env) {
-    this.trustedOrigins = new Set(env.CORS_ORIGINS.map((origin) => new URL(origin).origin));
+    // L'origine de l'API elle-même (Swagger UI) est acceptée, comme sur les routes de Better Auth.
+    this.trustedOrigins = new Set(
+      [...env.CORS_ORIGINS, env.BETTER_AUTH_URL].map((origin) => new URL(origin).origin),
+    );
   }
 
   canActivate(context: ExecutionContext): boolean {
