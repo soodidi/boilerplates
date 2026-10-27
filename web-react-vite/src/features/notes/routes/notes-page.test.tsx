@@ -1,9 +1,14 @@
 import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
+import { signInAsDemo } from '@/mocks/db';
 import { renderRoute } from '@/test/render';
 
 describe('NotesPage', () => {
+  beforeEach(() => {
+    signInAsDemo();
+  });
+
   it('affiche les notes renvoyées par l’API', async () => {
     renderRoute('/notes');
 

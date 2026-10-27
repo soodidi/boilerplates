@@ -1,9 +1,10 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
+import { signInAndOpen } from './helpers';
 
 // FE-007 : parcours critique. FE-008 : aucune violation d'accessibilité WCAG 2.2 AA détectée.
 test('créer une note et la retrouver dans la liste', async ({ page }) => {
-  await page.goto('/notes');
+  await signInAndOpen(page);
   await expect(page.getByRole('heading', { level: 1, name: 'Notes' })).toBeVisible();
 
   await page.getByRole('textbox', { name: 'Titre' }).fill('Note créée en E2E');
@@ -16,7 +17,7 @@ test('créer une note et la retrouver dans la liste', async ({ page }) => {
 });
 
 test('la page Notes respecte WCAG 2.2 AA', async ({ page }) => {
-  await page.goto('/notes');
+  await signInAndOpen(page);
   await expect(page.getByRole('list', { name: 'Liste des notes' })).toBeVisible();
 
   const results = await new AxeBuilder({ page })
