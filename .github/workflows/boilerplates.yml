@@ -16,6 +16,17 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  shared:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # GLB-011 : le kit IA commun doit être identique dans chaque boilerplate.
+      - run: scripts/sync-shared.sh --check
+      - run: bash -n _shared/claude/hooks/after-edit.sh
+
   node:
     runs-on: ubuntu-latest
     timeout-minutes: 25

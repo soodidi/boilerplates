@@ -1,6 +1,6 @@
 # Instructions pour les assistants IA
 
-Ce projet suit [engineering-guidelines](https://github.com/soodidi/engineering-guidelines). Avant de coder, lire `adr/global/README.md` et `adr/backend/README.md` de ce repo.
+Ce projet suit [engineering-guidelines](https://github.com/soodidi/engineering-guidelines). Copie locale : chemin indiqué dans `~/.claude/CLAUDE.md`, par défaut `~/Documents/projects/engineering-guidelines`. Avant de coder, y lire `adr/global/README.md` et `adr/backend/README.md`.
 
 ## Règles à appliquer sans demander
 
@@ -13,3 +13,11 @@ Ce projet suit [engineering-guidelines](https://github.com/soodidi/engineering-g
 - Logs via le `Logger` NestJS (pino), jamais `console.log`, jamais de token ni de donnée personnelle (BE-007).
 - Tests : service avec un fake du repository ; repository et endpoints contre PostgreSQL réel (`*.integration.spec.ts`, `test/*.e2e-spec.ts`). Jamais de mock de la base (BE-008).
 - `npm run verify` doit passer avant de proposer une PR.
+
+## Travail avec l'IA (GLB-011)
+
+- Une fonctionnalité passe par `/feature <issue>` : plan validé par un humain, code, vérification, contrôles par les agents `reviewer`, `qa`, `security`, `devops` (`.claude/agents/`), puis PR. `/review` relit une branche ou une PR sans rien modifier.
+- Les agents échangent via `.claude/work/<sujet>/` (non versionné) ; la synthèse finale va dans la description de la PR.
+- Chaque fichier modifié est formaté et linté automatiquement (`.claude/hooks/after-edit.sh`) : corriger les erreurs renvoyées, ne jamais les contourner.
+- Ne jamais fusionner une PR, forcer un push, ni lancer une action irréversible (migration en production, `tofu apply`, publication). Les préparer et les laisser à un humain.
+- `.claude/agents`, `.claude/skills` et `.claude/hooks` viennent du repo `boilerplates` : les améliorer là-bas, puis reporter ici.

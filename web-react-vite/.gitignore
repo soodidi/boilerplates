@@ -9,3 +9,7 @@ playwright-report/
 .env.*
 !.env.example
 .DS_Store
+
+# Claude Code : fichiers de passation entre agents et réglages personnels (GLB-011)
+.claude/work/
+.claude/settings.local.json
