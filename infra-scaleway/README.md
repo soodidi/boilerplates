@@ -57,7 +57,10 @@ envs/
    tofu -chdir=envs/iam output -json deploy_secret_keys
    ```
 
-   À refaire pour chaque rotation de clé (OPS-006, au moins une fois par an) : `tofu -chdir=envs/iam apply -replace='module.ci.scaleway_iam_api_key.this'`.
+   Rotation des clés (OPS-006, au moins une fois par an) : `tofu -chdir=envs/iam apply` avec `-replace` sur chaque clé, puis reporter les nouvelles valeurs dans GitHub :
+   - CI infra : `-replace='module.ci.scaleway_iam_api_key.this'` ;
+   - déploiement : `-replace='module.deploy["web"].scaleway_iam_api_key.this'` et `-replace='module.deploy["api"].scaleway_iam_api_key.this'` ;
+   - SMTP : `-replace='module.smtp["staging"].scaleway_iam_api_key.this'` (et `production`), puis ré-appliquer staging et production pour que l'API reçoive la nouvelle `SMTP_URL`.
 
 5. Pour la suite, utiliser la **clé de la CI** en local (`SCW_ACCESS_KEY`, `SCW_SECRET_KEY`, `SCW_DEFAULT_PROJECT_ID`, `SCW_DEFAULT_ORGANIZATION_ID`, mêmes `AWS_*`).
 6. Appliquer `envs/shared` (registre et domaine d'envoi des e-mails, BE-009), puis pousser une première image de l'API depuis sa CI.

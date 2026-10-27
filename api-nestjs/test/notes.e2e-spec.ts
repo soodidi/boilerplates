@@ -183,4 +183,24 @@ describe('Notes API (e2e)', () => {
 
     expect(response.statusCode).toBe(201);
   });
+
+  it('CORS preflight only allows trusted origins (the CSRF exemption for Bearer relies on it)', async () => {
+    const preflight = (origin: string) =>
+      app.inject({
+        method: 'OPTIONS',
+        url: '/v1/notes',
+        headers: {
+          origin,
+          'access-control-request-method': 'POST',
+          'access-control-request-headers': 'authorization',
+        },
+      });
+
+    const evil = await preflight('https://evil.example.com');
+    const trusted = await preflight(WEB_ORIGIN);
+
+    expect(evil.headers['access-control-allow-origin']).toBeUndefined();
+    expect(trusted.headers['access-control-allow-origin']).toBe(WEB_ORIGIN);
+    expect(trusted.headers['access-control-allow-credentials']).toBe('true');
+  });
 });

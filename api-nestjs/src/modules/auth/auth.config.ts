@@ -51,6 +51,9 @@ export function createAuth({ env, db, mailer }: AuthDependencies) {
     trustedOrigins: env.CORS_ORIGINS,
     database: drizzleAdapter(db, { provider: 'pg', usePlural: true, schema: authSchema }),
     advanced: {
+      // Better Auth désactive la vérification d'origine et des URL de redirection quand il détecte
+      // un environnement de test : on la force partout, pour tester ce qui tourne en production.
+      disableOriginCheck: false,
       database: { generateId: () => uuidv7() },
       // IP du client pour le rate limiting et les sessions, calculée par Fastify (app.setup.ts).
       ipAddress: { ipAddressHeaders: [CLIENT_IP_HEADER] },
@@ -117,7 +120,7 @@ export function createAuth({ env, db, mailer }: AuthDependencies) {
     },
     rateLimit: {
       // Actif hors développement et tests ; compteurs en base, partagés entre instances.
-      enabled: env.NODE_ENV === 'production',
+      enabled: env.AUTH_RATE_LIMIT ?? env.NODE_ENV === 'production',
       storage: 'database',
       window: 60,
       max: 100,

@@ -26,6 +26,8 @@ export const envSchema = z.object({
   APP_NAME: z.string().min(1).default('Mon app'),
   BETTER_AUTH_SECRET: z.string().min(32),
   BETTER_AUTH_URL: z.url(),
+  // Rate limiting de Better Auth : actif en production par défaut ; forçable pour les tests.
+  AUTH_RATE_LIMIT: envBoolean.optional(),
   WEB_URL: z.url(),
   // BE-009 : serveur SMTP (Mailpit en local, Scaleway TEM en staging et production).
   SMTP_URL: z.url({ protocol: /^smtps?$/ }),

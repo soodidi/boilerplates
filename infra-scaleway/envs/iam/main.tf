@@ -53,7 +53,7 @@ locals {
 module "ci" {
   source               = "../../modules/api-key"
   name                 = "${var.project}-ci"
-  description          = "CI de ${var.project} : plan et apply OpenTofu, déploiement"
+  description          = "CI infra de ${var.project} : plan et apply OpenTofu"
   project_id           = var.project_id
   permission_set_names = ["AllProductsFullAccess"]
   tags                 = local.tags
