@@ -7,11 +7,17 @@
       "Bash(git log:*)",
       "Bash(git show:*)",
       "Bash(git branch:*)",
+      "Bash(git switch:*)",
+      "Bash(git pull:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push -u origin:*)",
       "Bash(gh issue view:*)",
       "Bash(gh issue list:*)",
       "Bash(gh pr view:*)",
       "Bash(gh pr diff:*)",
       "Bash(gh pr checks:*)",
+      "Bash(gh pr create:*)",
       "Bash(gh run list:*)",
       "Bash(gh run view:*)",
       "Bash(./gradlew ktlintCheck:*)",
@@ -25,6 +31,7 @@
       "Bash(git push -f:*)",
       "Bash(git push --force-with-lease:*)",
       "Bash(git push origin main:*)",
+      "Bash(git push -u origin main:*)",
       "Bash(git reset --hard:*)",
       "Bash(git commit --no-verify:*)",
       "Bash(git commit -n:*)",
@@ -51,7 +58,7 @@
           {
             "type": "command",
             "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/after-edit.sh",
-            "timeout": 60
+            "timeout": 120
           }
         ]
       }
