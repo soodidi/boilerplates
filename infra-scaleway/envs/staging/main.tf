@@ -47,6 +47,12 @@ module "database" {
   tags               = local.tags
 }
 
+module "mail" {
+  source = "../../modules/mail-sender"
+  name   = local.name
+  domain = var.mail_domain
+}
+
 module "api" {
   source             = "../../modules/app-service"
   name               = "${local.name}-api"
@@ -56,15 +62,18 @@ module "api" {
   max_scale          = 2
 
   environment_variables = {
-    NODE_ENV           = "production"
-    LOG_LEVEL          = "info"
-    SENTRY_ENVIRONMENT = local.environment
-    CORS_ORIGINS       = var.web_origin
-    SENTRY_DSN         = var.api_sentry_dsn
+    NODE_ENV                = "production"
+    LOG_LEVEL               = "info"
+    SENTRY_ENVIRONMENT      = local.environment
+    CORS_ORIGINS            = var.web_origin
+    SENTRY_DSN              = var.api_sentry_dsn
+    MAIL_FROM               = var.mail_from
+    MAIL_ALLOWED_RECIPIENTS = var.mail_allowed_recipients
   }
 
   secret_environment_variables = {
     DATABASE_URL = module.database.database_url
+    SMTP_URL     = module.mail.smtp_url
   }
 
   tags = local.tags

@@ -1,1 +1,2 @@
 project = "mon-projet"
+mail_domain = "mail.example.com"
