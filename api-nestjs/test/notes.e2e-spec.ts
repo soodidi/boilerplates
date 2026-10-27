@@ -170,4 +170,17 @@ describe('Notes API (e2e)', () => {
     expect(cookieOnly.statusCode).toBe(403);
     expect(bearerOnly.statusCode).toBe(201);
   });
+
+  it('POST /v1/notes with a Bearer token and a cookie but no Origin is allowed (iOS URLSession)', async () => {
+    const { cookie, token } = await signUpAndSignIn(app, mailer, 'erin@example.com');
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/v1/notes',
+      headers: { cookie, authorization: `Bearer ${token}` },
+      payload: { title: 'from iOS' },
+    });
+
+    expect(response.statusCode).toBe(201);
+  });
 });

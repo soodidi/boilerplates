@@ -6,7 +6,7 @@ name: deploy
 #
 # À configurer dans GitHub (Settings → Environments) :
 #   staging / production :
-#     secrets : SCW_ACCESS_KEY, SCW_SECRET_KEY (clé API dédiée, droits limités au bucket, OPS-006)
+#     secrets : SCW_ACCESS_KEY, SCW_SECRET_KEY (clé deploy-web de envs/iam : Object Storage seulement, OPS-006)
 #     variables : BUCKET (nom du bucket), API_URL, SENTRY_DSN
 #   repo :
 #     secret : SENTRY_AUTH_TOKEN ; variables : SENTRY_ORG, SENTRY_PROJECT

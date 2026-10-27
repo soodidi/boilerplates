@@ -44,7 +44,7 @@ envs/
    export TF_VAR_state_passphrase=…
    ```
 
-4. Appliquer **`envs/iam` à la main**, avec une clé API personnelle qui a les droits IAM sur l'organisation. Les applications et clés IAM sont des ressources d'organisation : la clé de la CI, limitée au projet, ne peut pas les créer (OPS-006). Ce dossier crée la clé de la CI (tous les produits du projet, aucun droit IAM) et une clé SMTP par environnement (envoi TEM uniquement).
+4. Appliquer **`envs/iam` à la main**, avec une clé API personnelle qui a les droits IAM sur l'organisation. Les applications et clés IAM sont des ressources d'organisation : la clé de la CI, limitée au projet, ne peut pas les créer (OPS-006). Ce dossier crée la clé de la CI infra (tous les produits du projet, aucun droit IAM), une clé de déploiement par repo applicatif (web : Object Storage ; API : registre et conteneurs) et une clé SMTP par environnement (envoi TEM uniquement).
 
    ```bash
    export SCW_ACCESS_KEY=<clé admin> SCW_SECRET_KEY=… SCW_DEFAULT_ORGANIZATION_ID=…
@@ -52,6 +52,9 @@ envs/
    tofu -chdir=envs/iam init && tofu -chdir=envs/iam apply
    tofu -chdir=envs/iam output -raw ci_access_key   # → secret SCW_ACCESS_KEY
    tofu -chdir=envs/iam output -raw ci_secret_key   # → secret SCW_SECRET_KEY
+   # Repos applicatifs : une clé par pipeline (OPS-006), jamais la clé de la CI infra.
+   tofu -chdir=envs/iam output -json deploy_access_keys   # web → repo web, api → repo API
+   tofu -chdir=envs/iam output -json deploy_secret_keys
    ```
 
    À refaire pour chaque rotation de clé (OPS-006, au moins une fois par an) : `tofu -chdir=envs/iam apply -replace='module.ci.scaleway_iam_api_key.this'`.
