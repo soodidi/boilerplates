@@ -31,9 +31,9 @@ Chaque boilerplate embarque une configuration Claude Code dans `.claude/` :
 | Élément | Rôle |
 |---------|------|
 | `agents/` | Agents spécialisés : `planner`, `reviewer`, `qa`, `security`, `devops` |
-| `skills/` | Commandes `/feature <issue>` (cycle complet jusqu'à la PR) et `/review [PR]` |
-| `hooks/after-edit.sh` | Formate et lint chaque fichier modifié par l'IA, lui renvoie les erreurs |
-| `settings.json` | Permissions : vérifications autorisées, actions irréversibles interdites |
+| `skills/` | Commandes `/feature <issue>` (cycle complet jusqu'à la PR), `/fix <issue>` (bug : test qui reproduit, correction, PR) et `/review [PR]` |
+| `hooks/after-edit.sh` | Formate et lint chaque fichier modifié par l'IA, lui renvoie les erreurs (Kotlin : tâche Gradle `ktlintFormat`, même version que la CI) |
+| `settings.json` | Permissions : vérifications, branches, commits et ouverture de PR autorisés ; actions irréversibles interdites (push sur `main`, force-push, fusion) |
 
 S'y ajoute le template d'issue « Fonctionnalité » (`.github/ISSUE_TEMPLATE/feature.yml`), qui sert de brief à `/feature`.
 

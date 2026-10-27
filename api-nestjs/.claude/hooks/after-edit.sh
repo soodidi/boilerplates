@@ -36,7 +36,16 @@ case "$file" in
     has_node_tool prettier && run node_modules/.bin/prettier --write --log-level warn --ignore-unknown "$file"
     ;;
   *.kt | *.kts)
-    has ktlint && run ktlint --format "$file"
+    # Gradle task first: same ktlint version as the CI (the standalone CLI may differ).
+    if [[ -x ./gradlew ]]; then
+      [[ -z ${ANDROID_HOME:-} && -d $HOME/Library/Android/sdk ]] && export ANDROID_HOME=$HOME/Library/Android/sdk
+      if ! ./gradlew ktlintFormat --quiet --console=plain >/dev/null 2>&1; then
+        # --quiet hides the violations: return the ktlint reports instead of Gradle's output.
+        errors+="\$ ./gradlew ktlintFormat"$'\n'"$(find . -path '*/build/reports/ktlint/*Format*.txt' -size +0 -exec cat {} + 2>/dev/null | sed $'s/\x1b\\[[0-9;]*m//g')"$'\n'
+      fi
+    elif has ktlint; then
+      run ktlint --format "$file"
+    fi
     ;;
   *.swift)
     has swiftformat && run swiftformat --quiet "$file"
