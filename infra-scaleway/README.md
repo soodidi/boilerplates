@@ -65,5 +65,6 @@ Commiter le fichier `.terraform.lock.hcl` créé par `tofu init` (versions des p
 - La console Scaleway sert à **observer**. Toute modification manuelle d'urgence est reportée dans le code le jour même (OPS-003).
 - L'image de l'API est déployée par la CI de l'API : OpenTofu ignore les changements d'image (`lifecycle.ignore_changes`).
 - Les sorties sensibles (`database_url`) ne s'affichent qu'avec `tofu output -raw`.
+- Auth (BE-006) : `BETTER_AUTH_SECRET` est généré par environnement (`random_password`). `api_url` DOIT être sur le même domaine que le front (ex. `api.app.example.com` et `app.example.com`) : sinon le navigateur n'envoie pas le cookie de session.
 - E-mails (BE-009) : chaque environnement a sa propre clé API, limitée à l'envoi SMTP (`TransactionalEmailEmailSmtpCreate`), injectée dans l'API comme secret `SMTP_URL`. En staging, `mail_allowed_recipients` est obligatoire : aucun e-mail ne part vers d'autres adresses.
 - Passer à Kubernetes (Kapsule) seulement via un ADR (OPS-005).

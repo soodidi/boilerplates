@@ -22,6 +22,11 @@ export const envSchema = z.object({
     )
     .pipe(z.array(z.url())),
   ENABLE_DOCS: envBoolean.default(false),
+  // BE-006 : Better Auth. Le secret signe les cookies : 32 caractères au moins, propre à chaque environnement.
+  APP_NAME: z.string().min(1).default('Mon app'),
+  BETTER_AUTH_SECRET: z.string().min(32),
+  BETTER_AUTH_URL: z.url(),
+  WEB_URL: z.url(),
   // BE-009 : serveur SMTP (Mailpit en local, Scaleway TEM en staging et production).
   SMTP_URL: z.url({ protocol: /^smtps?$/ }),
   MAIL_FROM: z.string().min(1),

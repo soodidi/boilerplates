@@ -44,3 +44,8 @@ variable "mail_allowed_recipients" {
     error_message = "En staging, au moins une adresse autorisée : jamais d'e-mail à de vrais utilisateurs."
   }
 }
+
+variable "api_url" {
+  description = "URL publique de l'API (ex. https://api.staging.app.example.com). Même domaine que le front, sinon le cookie de session n'est pas envoyé (BE-006)"
+  type        = string
+}

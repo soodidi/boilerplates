@@ -12,7 +12,9 @@ export function createTestDatabase(databaseUrl: string) {
     db,
     /** BE-008 : chaque test part d'une base propre. */
     async reset() {
-      await db.execute(sql`truncate table notes restart identity cascade`);
+      await db.execute(
+        sql`truncate table notes, users, sessions, accounts, verifications, rate_limits restart identity cascade`,
+      );
     },
     close: () => pool.end(),
   };

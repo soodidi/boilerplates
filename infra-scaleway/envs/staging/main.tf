@@ -47,6 +47,12 @@ module "database" {
   tags               = local.tags
 }
 
+# BE-006 : secret de Better Auth (signature des cookies), propre à l'environnement.
+resource "random_password" "auth_secret" {
+  length  = 48
+  special = false
+}
+
 module "mail" {
   source = "../../modules/mail-sender"
   name   = local.name
@@ -68,12 +74,15 @@ module "api" {
     CORS_ORIGINS            = var.web_origin
     SENTRY_DSN              = var.api_sentry_dsn
     MAIL_FROM               = var.mail_from
+    BETTER_AUTH_URL         = var.api_url
+    WEB_URL                 = split(",", var.web_origin)[0]
     MAIL_ALLOWED_RECIPIENTS = var.mail_allowed_recipients
   }
 
   secret_environment_variables = {
-    DATABASE_URL = module.database.database_url
-    SMTP_URL     = module.mail.smtp_url
+    DATABASE_URL       = module.database.database_url
+    SMTP_URL           = module.mail.smtp_url
+    BETTER_AUTH_SECRET = random_password.auth_secret.result
   }
 
   tags = local.tags

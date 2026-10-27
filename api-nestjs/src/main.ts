@@ -6,6 +6,8 @@ import { configureApp, createFastifyAdapter } from './app.setup.js';
 
 const app = await NestFactory.create<NestFastifyApplication>(AppModule, createFastifyAdapter(), {
   bufferLogs: true,
+  // BE-006 : Better Auth lit le corps brut de ses routes ; le module réinstalle les parseurs ailleurs.
+  bodyParser: false,
 });
 app.useLogger(app.get(Logger));
 

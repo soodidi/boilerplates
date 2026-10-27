@@ -1,11 +1,13 @@
 import { Controller, Get, VERSION_NEUTRAL } from '@nestjs/common';
 import { HealthCheck, HealthCheckService } from '@nestjs/terminus';
 import { SkipThrottle } from '@nestjs/throttler';
+import { Public } from '../modules/auth/index.js';
 import { ApiTags } from '@nestjs/swagger';
 import { DatabaseHealthIndicator } from './database.health.js';
 
 /** BE-007 : sondes utilisées par la plateforme (OPS-005). */
 @ApiTags('health')
+@Public()
 @SkipThrottle()
 @Controller({ path: 'health', version: VERSION_NEUTRAL })
 export class HealthController {

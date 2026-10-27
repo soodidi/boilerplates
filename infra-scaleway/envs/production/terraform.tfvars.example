@@ -1,6 +1,7 @@
 project        = "mon-projet"
 api_image      = "rg.fr-par.scw.cloud/mon-projet/api:<sha-du-premier-build>"
 web_origin     = "https://app.example.com"
+api_url        = "https://api.app.example.com"
 web_domain     = "app.example.com"
 api_sentry_dsn = ""
 mail_domain    = "mail.example.com"

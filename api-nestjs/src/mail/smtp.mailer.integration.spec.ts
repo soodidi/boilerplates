@@ -29,6 +29,9 @@ describe('SmtpMailer against Mailpit (integration)', () => {
       DATABASE_URL: 'postgres://unused:unused@localhost:5432/unused',
       SMTP_URL: `smtp://${host}:${container.getMappedPort(1025)}`,
       MAIL_FROM: 'Notes <noreply@example.com>',
+      BETTER_AUTH_SECRET: 'test-secret-with-at-least-32-characters',
+      BETTER_AUTH_URL: 'http://localhost:3000',
+      WEB_URL: 'http://localhost:5173',
     });
     mailer = new SmtpMailer(createSmtpTransport(env), env);
   });
