@@ -36,7 +36,7 @@ public struct NotesView: View {
         case .failed:
             VStack(alignment: .leading, spacing: Spacing.small) {
                 Text("notes.loadError", bundle: .module)
-                    .foregroundStyle(.red)
+                    .foregroundStyle(AppColor.destructive)
                 Button {
                     Task { await viewModel.load() }
                 } label: {
@@ -81,7 +81,7 @@ private struct CreateNoteRow: View {
             if viewModel.titleIsInvalid {
                 Text("validation.required", bundle: .module)
                     .font(.footnote)
-                    .foregroundStyle(.red)
+                    .foregroundStyle(AppColor.destructive)
             }
         }
     }
@@ -97,11 +97,11 @@ private struct NoteRow: View {
             if !note.content.isEmpty {
                 Text(note.content)
                     .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(AppColor.mutedForeground)
             }
             Text(note.createdAt, format: .dateTime.day().month().year())
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(AppColor.mutedForeground)
         }
         .accessibilityElement(children: .combine)
     }
