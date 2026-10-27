@@ -18,6 +18,25 @@ terraform {
     skip_requesting_account_id  = true
     skip_s3_checksum            = true
   }
+
+  # OPS-006 : le state contient des secrets générés (clés API, mots de passe) : il est chiffré.
+  # Passphrase : variable TF_VAR_state_passphrase (secret GitHub TF_STATE_PASSPHRASE et gestionnaire de mots de passe).
+  encryption {
+    key_provider "pbkdf2" "state" {
+      passphrase = var.state_passphrase
+    }
+    method "aes_gcm" "state" {
+      keys = key_provider.pbkdf2.state
+    }
+    state {
+      method   = method.aes_gcm.state
+      enforced = true
+    }
+    plan {
+      method   = method.aes_gcm.state
+      enforced = true
+    }
+  }
 }
 
 provider "scaleway" {

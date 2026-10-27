@@ -6,7 +6,7 @@ name: infra
 # À configurer dans GitHub :
 #   environnements `staging` et `production` (reviewers obligatoires pour production) pour l'apply,
 #   et `staging-plan` / `production-plan` (sans reviewers, clé API en lecture seule) pour le plan des PR :
-#     secrets : SCW_ACCESS_KEY, SCW_SECRET_KEY
+#     secrets : SCW_ACCESS_KEY, SCW_SECRET_KEY (sorties de envs/iam), TF_STATE_PASSPHRASE
 #     variables : SCW_DEFAULT_PROJECT_ID, SCW_DEFAULT_ORGANIZATION_ID
 #   les tfvars de chaque environnement sont versionnés dans envs/<env>/<env>.auto.tfvars
 #   (aucun secret dedans).
@@ -45,6 +45,7 @@ jobs:
       - run: tofu fmt -check -recursive
       - name: tofu validate
         run: |
+          # envs/iam est appliqué à la main avec une clé admin (OPS-006) : validé ici, jamais appliqué.
           for env in envs/*/; do
             tofu -chdir="$env" init -backend=false -input=false
             tofu -chdir="$env" validate
@@ -79,6 +80,8 @@ jobs:
       AWS_SECRET_ACCESS_KEY: ${{ secrets.SCW_SECRET_KEY }}
       SCW_DEFAULT_PROJECT_ID: ${{ vars.SCW_DEFAULT_PROJECT_ID }}
       SCW_DEFAULT_ORGANIZATION_ID: ${{ vars.SCW_DEFAULT_ORGANIZATION_ID }}
+      # OPS-006 : passphrase de chiffrement du state, nécessaire dès `tofu init`.
+      TF_VAR_state_passphrase: ${{ secrets.TF_STATE_PASSPHRASE }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -113,6 +116,8 @@ jobs:
       AWS_SECRET_ACCESS_KEY: ${{ secrets.SCW_SECRET_KEY }}
       SCW_DEFAULT_PROJECT_ID: ${{ vars.SCW_DEFAULT_PROJECT_ID }}
       SCW_DEFAULT_ORGANIZATION_ID: ${{ vars.SCW_DEFAULT_ORGANIZATION_ID }}
+      # OPS-006 : passphrase de chiffrement du state, nécessaire dès `tofu init`.
+      TF_VAR_state_passphrase: ${{ secrets.TF_STATE_PASSPHRASE }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

@@ -13,3 +13,14 @@ variable "mail_dns_autoconfig" {
   type        = bool
   default     = false
 }
+
+variable "state_passphrase" {
+  description = "Passphrase de chiffrement du state (16 caractères au moins), commune à tous les environnements"
+  type        = string
+  sensitive   = true
+
+  validation {
+    condition     = length(var.state_passphrase) >= 16
+    error_message = "La passphrase du state doit faire au moins 16 caractères."
+  }
+}
