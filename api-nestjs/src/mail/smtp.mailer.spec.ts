@@ -19,6 +19,9 @@ function createEnv(overrides: Record<string, string> = {}): Env {
     DATABASE_URL: 'postgres://app:app@localhost:5432/app',
     SMTP_URL: 'smtp://localhost:1025',
     MAIL_FROM: 'App <noreply@example.com>',
+    BETTER_AUTH_SECRET: 'test-secret-with-at-least-32-characters',
+    BETTER_AUTH_URL: 'http://localhost:3000',
+    WEB_URL: 'http://localhost:5173',
     ...overrides,
   });
 }

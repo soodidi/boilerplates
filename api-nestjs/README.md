@@ -44,10 +44,11 @@ src/
 ├── config/              # configuration validée au démarrage (GLB-005)
 ├── common/              # Problem Details, validation, OpenAPI
 ├── database/            # client Drizzle, script de migration
-├── health/              # /health/live et /health/ready
+├── health/              # /health/live et /health/ready (publiques)
 ├── mail/                # envoi d'e-mails : interface Mailer, SMTP, gabarits (BE-009)
 └── modules/
-    └── notes/           # module d'exemple complet
+    ├── auth/            # Better Auth : configuration, tables, guard global (BE-006)
+    └── notes/           # module d'exemple complet, propre à chaque utilisateur
         ├── notes.controller.ts   # HTTP uniquement
         ├── notes.service.ts      # règles métier
         ├── notes.repository.ts   # seul accès à la base
@@ -62,25 +63,40 @@ Le module `notes` sert d'exemple et correspond à la feature `notes` du boilerpl
 
 ## Ce qui est déjà en place
 
-| Sujet                                                                                         | Où                                                      | ADR              |
-| --------------------------------------------------------------------------------------------- | ------------------------------------------------------- | ---------------- |
-| Validation Zod des requêtes (`@Body({ schema })`), réponses filtrées par un schéma de sortie  | `src/common/validation.ts`, `notes.controller.ts`       | BE-005           |
-| Erreurs au format Problem Details avec erreurs par champ et `traceId`                         | `src/common/problem-details.filter.ts`                  | BE-004           |
-| Versioning `/v1`, pagination par curseur, contrat OpenAPI exporté en CI                       | `app.setup.ts`, `notes.repository.ts`, `src/openapi.ts` | BE-004           |
-| Drizzle, UUID v7, `timestamptz`, snake_case, migrations versionnées                           | `notes.table.ts`, `drizzle.config.ts`                   | BE-003           |
-| Frontières entre modules vérifiées en CI                                                      | `.dependency-cruiser.cjs`                               | BE-002           |
-| Helmet, CORS en liste blanche, rate limiting                                                  | `app.setup.ts`, `app.module.ts`                         | BE-006           |
-| Logs JSON pino sans données sensibles, `x-request-id`, health checks, arrêt propre            | `app.module.ts`, `src/health/`                          | BE-007           |
-| Sentry (RGPD) : erreurs inattendues uniquement                                                | `src/instrument.ts`, `problem-details.filter.ts`        | BE-007           |
-| Tests unitaires avec fakes, intégration et e2e sur PostgreSQL réel                            | `*.spec.ts`, `*.integration.spec.ts`, `test/`           | BE-008           |
-| E-mails : `Mailer` injectable, SMTP hors requête avec reprises, gabarits FR, Mailpit en local | `src/mail/`, `compose.yaml`                             | BE-009           |
-| Image Docker multi-stage non-root, scan Trivy                                                 | `Dockerfile`, `.github/workflows/docker.yml`            | OPS-001          |
-| Déploiement : migrations puis Serverless Container, staging puis production                   | `.github/workflows/deploy*.yml`                         | OPS-004, OPS-005 |
+| Sujet                                                                                                                                                                                                                                | Où                                                      | ADR              |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------- | ---------------- |
+| Validation Zod des requêtes (`@Body({ schema })`), réponses filtrées par un schéma de sortie                                                                                                                                         | `src/common/validation.ts`, `notes.controller.ts`       | BE-005           |
+| Erreurs au format Problem Details avec erreurs par champ et `traceId`                                                                                                                                                                | `src/common/problem-details.filter.ts`                  | BE-004           |
+| Versioning `/v1`, pagination par curseur, contrat OpenAPI exporté en CI                                                                                                                                                              | `app.setup.ts`, `notes.repository.ts`, `src/openapi.ts` | BE-004           |
+| Drizzle, UUID v7, `timestamptz`, snake_case, migrations versionnées                                                                                                                                                                  | `notes.table.ts`, `drizzle.config.ts`                   | BE-003           |
+| Frontières entre modules vérifiées en CI                                                                                                                                                                                             | `.dependency-cruiser.cjs`                               | BE-002           |
+| Helmet, CORS en liste blanche, rate limiting                                                                                                                                                                                         | `app.setup.ts`, `app.module.ts`                         | BE-006           |
+| Logs JSON pino sans données sensibles, `x-request-id`, health checks, arrêt propre                                                                                                                                                   | `app.module.ts`, `src/health/`                          | BE-007           |
+| Sentry (RGPD) : erreurs inattendues uniquement                                                                                                                                                                                       | `src/instrument.ts`, `problem-details.filter.ts`        | BE-007           |
+| Tests unitaires avec fakes, intégration et e2e sur PostgreSQL réel                                                                                                                                                                   | `*.spec.ts`, `*.integration.spec.ts`, `test/`           | BE-008           |
+| Authentification Better Auth : inscription, vérification d'e-mail, connexion, mot de passe oublié, sessions révocables (cookie web, `Bearer` mobile), Argon2id, guard global + `@Public()`, CSRF, notes propres à chaque utilisateur | `src/modules/auth/`, `src/common/csrf.guard.ts`         | BE-006           |
+| E-mails : `Mailer` injectable, SMTP hors requête avec reprises, gabarits FR, Mailpit en local                                                                                                                                        | `src/mail/`, `compose.yaml`                             | BE-009           |
+| Image Docker multi-stage non-root, scan Trivy                                                                                                                                                                                        | `Dockerfile`, `.github/workflows/docker.yml`            | OPS-001          |
+| Déploiement : migrations puis Serverless Container, staging puis production                                                                                                                                                          | `.github/workflows/deploy*.yml`                         | OPS-004, OPS-005 |
 
 ## À ajouter selon le projet
 
-- **Authentification** (BE-006) : Better Auth, en cours d'intégration. À l'ajout : guard global avec décorateur `@Public()` pour les routes ouvertes, et un test d'accès refusé par endpoint protégé (BE-008).
 - **Files d'attente** (Redis/BullMQ) : seulement quand le besoin apparaît (BE-001).
+
+## Authentification (BE-006)
+
+Better Auth sert ses routes sous `/v1/auth` : `sign-up/email`, `sign-in/email`, `sign-out`, `get-session`, `request-password-reset`, `reset-password`, `verify-email`… Toute la configuration est dans `src/modules/auth/auth.config.ts`, à relire avec BE-006 avant toute modification.
+
+- **Toute route est protégée.** `@Public()` ouvre une route ; `@Session() session: UserSession` donne l'utilisateur connecté (`session.user.id`).
+- **Contrôle d'accès sur la ressource** : chaque requête filtre sur `userId` dans le repository, comme dans `notes`. Un test e2e vérifie qu'un utilisateur ne voit pas les données d'un autre.
+- **Web** : cookie de session `HttpOnly`. Les requêtes avec cookie qui modifient l'état doivent venir d'une origine de `CORS_ORIGINS` (`CsrfGuard`).
+- **Mobile** : le token arrive dans l'en-tête `set-auth-token` à la connexion, puis s'envoie en `Authorization: Bearer`.
+- **Sessions** : 30 jours, prolongées à l'usage, jamais plus de 90 jours après la connexion ; révoquées à la déconnexion et à la réinitialisation du mot de passe.
+- **Mises à jour** : Renovate ne fusionne jamais `better-auth` ni `@thallesp/nestjs-better-auth` automatiquement. Lire le changelog et lancer `npm run test:integration` avant de fusionner.
+
+- **IP du client** (rate limiting, sessions) : dernière entrée de `X-Forwarded-For` ajoutée par les `TRUST_PROXY_HOPS` proxys de confiance (1 derrière Scaleway). Au premier déploiement en staging, vérifier que `sessions.ip_address` contient bien ta vraie IP.
+
+En local, l'e-mail de vérification arrive dans Mailpit (http://localhost:8025).
 
 ## E-mails (BE-009)
 

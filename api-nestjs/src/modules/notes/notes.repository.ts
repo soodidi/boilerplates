@@ -1,11 +1,12 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { and, desc, ilike, type SQL, sql } from 'drizzle-orm';
+import { and, desc, eq, ilike, type SQL, sql } from 'drizzle-orm';
 import { DB, type Database } from '../../database/database.module.js';
 import { type NewNote, type Note, notes } from './notes.table.js';
 
 export type NoteCursor = { createdAt: Date; id: string };
 
 type FindPageParams = {
+  userId: string;
   q?: string | undefined;
   limit: number;
   cursor: NoteCursor | null;
@@ -16,8 +17,9 @@ type FindPageParams = {
 export class NotesRepository {
   constructor(@Inject(DB) private readonly db: Database) {}
 
-  async findPage({ q, limit, cursor }: FindPageParams) {
-    const conditions: SQL[] = [];
+  async findPage({ userId, q, limit, cursor }: FindPageParams) {
+    // BE-006 : toujours filtrer sur le propriétaire (protection IDOR).
+    const conditions: SQL[] = [eq(notes.userId, userId)];
     if (q) conditions.push(ilike(notes.title, `%${escapeLike(q)}%`));
     if (cursor) {
       conditions.push(sql`(${notes.createdAt}, ${notes.id}) < (${cursor.createdAt}, ${cursor.id})`);

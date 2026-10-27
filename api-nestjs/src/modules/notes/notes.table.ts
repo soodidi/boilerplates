@@ -14,6 +14,10 @@ export const notes = pgTable(
     id: uuid()
       .primaryKey()
       .$defaultFn(() => uuidv7()),
+    // BE-006 : propriétaire de la note. Pas de clé étrangère vers `users`, qui appartient au
+    // module auth (BE-002). La suppression de compte n'est pas encore activée : quand elle le sera
+    // (RGPD), un hook `user.delete.after` du module auth supprimera les notes via `notes/index.ts`.
+    userId: uuid().notNull(),
     title: varchar({ length: NOTE_TITLE_MAX }).notNull(),
     content: text().notNull().default(''),
     createdAt: timestamp({ withTimezone: true, precision: 3 }).notNull().defaultNow(),
@@ -22,7 +26,13 @@ export const notes = pgTable(
       .defaultNow()
       .$onUpdate(() => new Date()),
   },
-  (table) => [index('notes_created_at_id_idx').on(table.createdAt.desc(), table.id.desc())],
+  (table) => [
+    index('notes_user_id_created_at_id_idx').on(
+      table.userId,
+      table.createdAt.desc(),
+      table.id.desc(),
+    ),
+  ],
 );
 
 export type Note = typeof notes.$inferSelect;

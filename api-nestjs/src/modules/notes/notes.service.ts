@@ -21,21 +21,29 @@ export function decodeCursor(value: string): NoteCursor {
   }
 }
 
-/** BE-002 : règles métier du module. Ne connaît ni HTTP ni le SQL. */
+/** BE-002 : règles métier du module. Ne connaît ni HTTP ni le SQL. Chaque note appartient à un utilisateur. */
 @Injectable()
 export class NotesService {
   constructor(private readonly repository: NotesRepository) {}
 
-  async list(query: ListNotesQuery): Promise<{ notes: Note[]; nextCursor: string | null }> {
+  async list(
+    userId: string,
+    query: ListNotesQuery,
+  ): Promise<{ notes: Note[]; nextCursor: string | null }> {
     const cursor = query.cursor ? decodeCursor(query.cursor) : null;
-    const page = await this.repository.findPage({ q: query.q, limit: query.limit, cursor });
+    const page = await this.repository.findPage({
+      userId,
+      q: query.q,
+      limit: query.limit,
+      cursor,
+    });
     return {
       notes: page.notes,
       nextCursor: page.nextCursor ? encodeCursor(page.nextCursor) : null,
     };
   }
 
-  create(input: CreateNoteInput): Promise<Note> {
-    return this.repository.insert(input);
+  create(userId: string, input: CreateNoteInput): Promise<Note> {
+    return this.repository.insert({ ...input, userId });
   }
 }

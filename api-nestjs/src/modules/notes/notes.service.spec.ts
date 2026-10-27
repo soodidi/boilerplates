@@ -9,7 +9,12 @@ class FakeNotesRepository {
   readonly saved: Note[] = [];
   lastFindParams: unknown;
 
-  findPage(params: { q?: string | undefined; limit: number; cursor: NoteCursor | null }) {
+  findPage(params: {
+    userId: string;
+    q?: string | undefined;
+    limit: number;
+    cursor: NoteCursor | null;
+  }) {
     this.lastFindParams = params;
     const page = this.saved.slice(0, params.limit);
     const last = page.at(-1);
@@ -25,6 +30,7 @@ class FakeNotesRepository {
   insert(values: NewNote): Promise<Note> {
     const note: Note = {
       id: '019a1f3e-7b2c-7d4e-9f10-2a3b4c5d6e7f',
+      userId: values.userId,
       title: values.title,
       content: values.content ?? '',
       createdAt: new Date('2026-10-26T10:00:00.000Z'),
@@ -35,6 +41,8 @@ class FakeNotesRepository {
   }
 }
 
+const USER_ID = '019a1f3e-0000-7000-8000-000000000001';
+
 describe('NotesService', () => {
   let repository: FakeNotesRepository;
   let service: NotesService;
@@ -44,17 +52,24 @@ describe('NotesService', () => {
     service = new NotesService(repository as unknown as NotesRepository);
   });
 
-  it('creates a note', async () => {
-    const note = await service.create({ title: 'First', content: '' });
+  it('creates a note owned by the user', async () => {
+    const note = await service.create(USER_ID, { title: 'First', content: '' });
     expect(note.title).toBe('First');
+    expect(note.userId).toBe(USER_ID);
     expect(repository.saved).toHaveLength(1);
   });
 
-  it('returns an opaque cursor when more notes are available', async () => {
-    await service.create({ title: 'A', content: '' });
-    await service.create({ title: 'B', content: '' });
+  it('only queries the notes of the user', async () => {
+    await service.list(USER_ID, { limit: 20 });
 
-    const page = await service.list({ limit: 1 });
+    expect(repository.lastFindParams).toMatchObject({ userId: USER_ID });
+  });
+
+  it('returns an opaque cursor when more notes are available', async () => {
+    await service.create(USER_ID, { title: 'A', content: '' });
+    await service.create(USER_ID, { title: 'B', content: '' });
+
+    const page = await service.list(USER_ID, { limit: 1 });
 
     expect(page.notes).toHaveLength(1);
     expect(page.nextCursor).toEqual(expect.any(String));
@@ -70,14 +85,14 @@ describe('NotesService', () => {
       id: '019a1f3e-7b2c-7d4e-9f10-2a3b4c5d6e80',
     };
 
-    await service.list({ limit: 20, cursor: encodeCursor(cursor) });
+    await service.list(USER_ID, { limit: 20, cursor: encodeCursor(cursor) });
 
     expect(repository.lastFindParams).toMatchObject({ cursor });
   });
 
   it('rejects an invalid cursor with a 400 error', async () => {
-    await expect(service.list({ limit: 20, cursor: 'not-a-cursor' })).rejects.toBeInstanceOf(
-      BadRequestException,
-    );
+    await expect(
+      service.list(USER_ID, { limit: 20, cursor: 'not-a-cursor' }),
+    ).rejects.toBeInstanceOf(BadRequestException);
   });
 });

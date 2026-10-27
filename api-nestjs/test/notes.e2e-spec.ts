@@ -1,33 +1,26 @@
 import { type NestFastifyApplication } from '@nestjs/platform-fastify';
-import { Test } from '@nestjs/testing';
 import { afterAll, beforeAll, beforeEach, describe, expect, inject, it } from 'vitest';
-import { AppModule } from '../src/app.module.js';
-import { configureApp, createFastifyAdapter } from '../src/app.setup.js';
+import { type InMemoryMailer } from '../src/mail/index.js';
+import { createTestApp, signUpAndSignIn, WEB_ORIGIN } from './app.js';
 import { createTestDatabase } from './database.js';
 
-// BE-008 : l'API complète (validation, format d'erreur, codes HTTP) contre une vraie base.
+// BE-008 : l'API complète (validation, format d'erreur, codes HTTP, accès) contre une vraie base.
 describe('Notes API (e2e)', () => {
   const databaseUrl = inject('databaseUrl');
   const database = createTestDatabase(databaseUrl);
   let app: NestFastifyApplication;
+  let mailer: InMemoryMailer;
+  let auth: { authorization: string };
 
   beforeAll(async () => {
-    Object.assign(process.env, {
-      NODE_ENV: 'test',
-      LOG_LEVEL: 'silent',
-      DATABASE_URL: databaseUrl,
-      ENABLE_DOCS: 'false',
-      SMTP_URL: 'smtp://localhost:1025',
-      MAIL_FROM: 'Test <noreply@localhost>',
-    });
-    const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
-    app = moduleRef.createNestApplication<NestFastifyApplication>(createFastifyAdapter());
-    await configureApp(app);
-    await app.init();
-    await app.getHttpAdapter().getInstance().ready();
+    ({ app, mailer } = await createTestApp(databaseUrl));
   });
 
-  beforeEach(() => database.reset());
+  beforeEach(async () => {
+    await database.reset();
+    const { token } = await signUpAndSignIn(app, mailer, 'ada@example.com');
+    auth = { authorization: `Bearer ${token}` };
+  });
 
   afterAll(async () => {
     await app.close();
@@ -38,6 +31,7 @@ describe('Notes API (e2e)', () => {
     const response = await app.inject({
       method: 'POST',
       url: '/v1/notes',
+      headers: auth,
       payload: { title: '  Buy coffee  ', content: 'Arabica' },
     });
 
@@ -54,6 +48,7 @@ describe('Notes API (e2e)', () => {
     const response = await app.inject({
       method: 'POST',
       url: '/v1/notes',
+      headers: auth,
       payload: { title: '', unexpected: true },
     });
 
@@ -71,14 +66,19 @@ describe('Notes API (e2e)', () => {
 
   it('GET /v1/notes filters by title and paginates with a cursor', async () => {
     for (const title of ['coffee 1', 'coffee 2', 'tea']) {
-      await app.inject({ method: 'POST', url: '/v1/notes', payload: { title } });
+      await app.inject({ method: 'POST', url: '/v1/notes', headers: auth, payload: { title } });
     }
 
-    const first = await app.inject({ method: 'GET', url: '/v1/notes?q=coffee&limit=1' });
+    const first = await app.inject({
+      method: 'GET',
+      url: '/v1/notes?q=coffee&limit=1',
+      headers: auth,
+    });
     const firstPage = first.json<{ data: { title: string }[]; nextCursor: string }>();
     const second = await app.inject({
       method: 'GET',
       url: `/v1/notes?q=coffee&limit=1&cursor=${firstPage.nextCursor}`,
+      headers: auth,
     });
 
     expect(first.statusCode).toBe(200);
@@ -89,7 +89,11 @@ describe('Notes API (e2e)', () => {
   });
 
   it('GET /v1/notes rejects an invalid cursor', async () => {
-    const response = await app.inject({ method: 'GET', url: '/v1/notes?cursor=oops' });
+    const response = await app.inject({
+      method: 'GET',
+      url: '/v1/notes?cursor=oops',
+      headers: auth,
+    });
 
     expect(response.statusCode).toBe(400);
     expect(response.json()).toMatchObject({ status: 400, detail: 'Invalid cursor' });
@@ -100,5 +104,70 @@ describe('Notes API (e2e)', () => {
 
     expect(response.statusCode).toBe(200);
     expect(response.json()).toMatchObject({ status: 'ok' });
+  });
+
+  it('GET /v1/notes requires authentication (401 Problem Details)', async () => {
+    const response = await app.inject({ method: 'GET', url: '/v1/notes' });
+
+    expect(response.statusCode).toBe(401);
+    expect(response.headers['content-type']).toContain('application/problem+json');
+  });
+
+  it('POST /v1/notes requires authentication (401 Problem Details)', async () => {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/v1/notes',
+      payload: { title: 'anonymous' },
+    });
+
+    expect(response.statusCode).toBe(401);
+    expect(response.headers['content-type']).toContain('application/problem+json');
+  });
+
+  it("GET /v1/notes never returns another user's notes (IDOR)", async () => {
+    await app.inject({
+      method: 'POST',
+      url: '/v1/notes',
+      headers: auth,
+      payload: { title: 'secret of ada' },
+    });
+    const bob = await signUpAndSignIn(app, mailer, 'bob@example.com');
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/v1/notes',
+      headers: { authorization: `Bearer ${bob.token}` },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json<{ data: unknown[] }>().data).toEqual([]);
+  });
+
+  it('POST /v1/notes with a session cookie requires a trusted Origin (CSRF)', async () => {
+    const { cookie } = await signUpAndSignIn(app, mailer, 'carol@example.com');
+    const request = { method: 'POST' as const, url: '/v1/notes', payload: { title: 'x' } };
+
+    const forged = await app.inject({
+      ...request,
+      headers: { cookie, origin: 'https://evil.example.com' },
+    });
+    const legit = await app.inject({ ...request, headers: { cookie, origin: WEB_ORIGIN } });
+
+    expect(forged.statusCode).toBe(403);
+    expect(legit.statusCode).toBe(201);
+  });
+
+  it('POST /v1/notes with a cookie but no Origin is refused; Bearer without Origin is allowed', async () => {
+    const { cookie, token } = await signUpAndSignIn(app, mailer, 'dave@example.com');
+    const request = { method: 'POST' as const, url: '/v1/notes', payload: { title: 'x' } };
+
+    const cookieOnly = await app.inject({ ...request, headers: { cookie } });
+    const bearerOnly = await app.inject({
+      ...request,
+      headers: { authorization: `Bearer ${token}` },
+    });
+
+    expect(cookieOnly.statusCode).toBe(403);
+    expect(bearerOnly.statusCode).toBe(201);
   });
 });

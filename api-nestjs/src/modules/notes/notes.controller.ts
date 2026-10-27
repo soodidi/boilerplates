@@ -12,6 +12,7 @@ import {
 } from '@nestjs/common';
 import { ApiCreatedResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { responseSchema } from '../../common/openapi.js';
+import { Session, type UserSession } from '../auth/index.js';
 import {
   type CreateNoteInput,
   createNoteSchema,
@@ -45,9 +46,10 @@ export class NotesController {
   @SerializeOptions({ schema: notePageResponseSchema })
   @ApiOkResponse({ schema: responseSchema(notePageResponseSchema) })
   async list(
+    @Session() session: UserSession,
     @Query({ schema: listNotesQuerySchema }) query: ListNotesQuery,
   ): Promise<NotePageResponse> {
-    const page = await this.notesService.list(query);
+    const page = await this.notesService.list(session.user.id, query);
     return { data: page.notes.map(toResponse), nextCursor: page.nextCursor };
   }
 
@@ -55,7 +57,10 @@ export class NotesController {
   @HttpCode(HttpStatus.CREATED)
   @SerializeOptions({ schema: noteResponseSchema })
   @ApiCreatedResponse({ schema: responseSchema(noteResponseSchema) })
-  async create(@Body({ schema: createNoteSchema }) body: CreateNoteInput): Promise<NoteResponse> {
-    return toResponse(await this.notesService.create(body));
+  async create(
+    @Session() session: UserSession,
+    @Body({ schema: createNoteSchema }) body: CreateNoteInput,
+  ): Promise<NoteResponse> {
+    return toResponse(await this.notesService.create(session.user.id, body));
   }
 }
