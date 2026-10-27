@@ -53,7 +53,9 @@ public enum APIError: Error, Sendable, Equatable {
 
     /// Erreur attendue, à afficher à l'utilisateur (pas à envoyer au suivi d'erreurs).
     public var isClientError: Bool {
-        if case let .http(problem) = self { return problem.status < 500 }
+        if case let .http(problem) = self {
+            return problem.status < 500
+        }
         return false
     }
 }

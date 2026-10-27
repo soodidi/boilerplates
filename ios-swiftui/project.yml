@@ -28,6 +28,11 @@ targets:
         product: NotesFeature
       - package: Packages
         product: CoreNetworking
+    # Les tests du package local sont aussi lancés par `xcodebuild test` sur simulateur (IOS-005).
+    scheme:
+      testTargets:
+        - package: Packages/CoreNetworkingTests
+        - package: Packages/NotesFeatureTests
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.example.app

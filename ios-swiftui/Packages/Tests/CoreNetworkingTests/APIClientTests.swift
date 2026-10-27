@@ -9,7 +9,8 @@ private struct Ping: Decodable, Equatable {
 
 private func stub(status: Int, body: String) -> APIClient.Transport {
     { request in
-        let response = HTTPURLResponse(url: request.url!, statusCode: status, httpVersion: nil, headerFields: nil)!
+        let url = try #require(request.url)
+        let response = try #require(HTTPURLResponse(url: url, statusCode: status, httpVersion: nil, headerFields: nil))
         return (Data(body.utf8), response)
     }
 }
