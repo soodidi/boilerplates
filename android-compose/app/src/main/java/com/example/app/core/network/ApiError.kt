@@ -23,7 +23,9 @@ data class FieldError(
 
 /** Erreurs typées du domaine, construites à partir des erreurs HTTP et réseau (AND-004). */
 sealed interface ApiError {
-    data class Http(val problem: ProblemDetails) : ApiError
+    data class Http(
+        val problem: ProblemDetails,
+    ) : ApiError
 
     data object Network : ApiError
 }
