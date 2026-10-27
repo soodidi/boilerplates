@@ -53,9 +53,9 @@ jobs:
         with:
           node-version-file: .nvmrc
       - run: npm run setup
-      - run: npm run stack
-      - run: npm run stack:smoke
-      - if: failure()
+      - id: smoke
+        run: npm run stack && npm run stack:smoke
+      - if: failure() && steps.smoke.outcome == 'failure'
         run: docker compose --profile app logs
 
   migrations:

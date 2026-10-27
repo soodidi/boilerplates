@@ -19,7 +19,7 @@ npm run dev        # http://localhost:3000, docs sur /docs, e-mails sur http://l
 
 `npm run setup` se relance sans risque : il ne fait que compléter le `.env` avec les variables apparues dans `.env.example`, sans toucher aux valeurs existantes.
 
-**Même image qu'en production** : `npm run stack` lance l'API dans l'image construite par le `Dockerfile`, celle qui part en staging et en production (OPS-001, OPS-004). Seule la configuration change (le `.env` et `compose.yaml`). La CI rejoue ce parcours à chaque PR (`npm run stack:smoke` : santé, inscription, e-mail reçu dans Mailpit). Utiliser `npm run dev` pour le rechargement à chaud, `npm run stack` pour vérifier le comportement réel de l'image.
+**Même image qu'en production** : `npm run stack` lance l'API dans l'image construite par le `Dockerfile`, celle qui part en staging et en production (OPS-001, OPS-004). Seule la configuration change (le `.env` et `compose.yaml`). La CI rejoue ce parcours à chaque PR (`npm run stack:smoke` : santé, inscription, e-mail reçu dans Mailpit). Utiliser `npm run dev` pour le rechargement à chaud, `npm run stack` pour vérifier le comportement réel de l'image. Les deux utilisent le port 3000 : arrêter l'un avant de lancer l'autre. Comme en production, la stack active le rate limiting de l'auth : en cas de 429 pendant des essais répétés, mettre `AUTH_RATE_LIMIT=false` dans `.env`.
 
 Prérequis : Node 26 (`.nvmrc`), npm (fourni avec Node), Docker (base locale et tests d'intégration), [gitleaks](https://github.com/gitleaks/gitleaks#installing) pour le hook de pré-commit.
 

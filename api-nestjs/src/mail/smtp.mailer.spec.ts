@@ -1,7 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { type Env, envSchema } from '../config/env.js';
 import { type Email } from './mailer.js';
-import { type MailTransport, RETRY_DELAYS_MS, SmtpMailer } from './smtp.mailer.js';
+import {
+  createSmtpTransport,
+  type MailTransport,
+  RETRY_DELAYS_MS,
+  SmtpMailer,
+} from './smtp.mailer.js';
 
 const sentry = vi.hoisted(() => ({ captureException: vi.fn() }));
 vi.mock('@sentry/nestjs', () => sentry);
@@ -136,5 +141,33 @@ describe('SmtpMailer', () => {
     await shutdown;
 
     expect(transport.close).toHaveBeenCalled();
+  });
+});
+
+describe('createSmtpTransport', () => {
+  const tlsRequired = (overrides: Record<string, string>) => {
+    const transport = createSmtpTransport(createEnv(overrides));
+    transport.close();
+    return (transport as unknown as { options: { requireTLS: boolean } }).options.requireTLS;
+  };
+
+  it('exige TLS en production (BE-009)', () => {
+    expect(
+      tlsRequired({ NODE_ENV: 'production', SMTP_URL: 'smtp://u:p@smtp.example.com:587' }),
+    ).toBe(true);
+  });
+
+  it("n'exige pas TLS en développement", () => {
+    expect(tlsRequired({ NODE_ENV: 'development' })).toBe(false);
+  });
+
+  it("n'exige pas TLS vers Mailpit avec SMTP_INSECURE (npm run stack)", () => {
+    expect(
+      tlsRequired({
+        NODE_ENV: 'production',
+        SMTP_URL: 'smtp://mailpit:1025',
+        SMTP_INSECURE: 'true',
+      }),
+    ).toBe(false);
   });
 });

@@ -27,7 +27,9 @@ services:
   # Seule la configuration change : ici, le .env de développement et les services du compose.
   migrate:
     profiles: [app]
+    # Construite une seule fois, puis réutilisée par le service api.
     build: .
+    image: api-nestjs-local
     command: ['node', 'dist/database/migrate.js']
     env_file: .env
     environment: &container-env
@@ -42,7 +44,8 @@ services:
 
   api:
     profiles: [app]
-    build: .
+    image: api-nestjs-local
+    pull_policy: never
     env_file: .env
     environment: *container-env
     ports:

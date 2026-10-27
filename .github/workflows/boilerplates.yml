@@ -50,8 +50,9 @@ jobs:
       - run: npm run verify
       # API : la stack de dev dans l'image de production (setup, migrations, inscription, e-mail).
       - if: matrix.project == 'api-nestjs'
+        id: stack
         run: npm run setup && npm run stack && npm run stack:smoke
-      - if: failure() && matrix.project == 'api-nestjs'
+      - if: failure() && steps.stack.outcome == 'failure'
         run: docker compose --profile app logs
 
   infra:

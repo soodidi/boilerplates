@@ -30,4 +30,11 @@ describe('syncEnv', () => {
     expect(content).toContain('PORT=4000');
     expect(content).not.toContain('change-me');
   });
+
+  it("remplace un secret resté à la valeur d'exemple (publique)", () => {
+    const { content } = sync(example, 'PORT=3000\nBETTER_AUTH_SECRET=change-me\n');
+
+    expect(content).not.toContain('change-me');
+    expect(content).toMatch(/^BETTER_AUTH_SECRET=[A-Za-z0-9+/]{43}=$/m);
+  });
 });
