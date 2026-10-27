@@ -9,6 +9,7 @@
   },
   "scripts": {
     "dev": "vite",
+    "dev:api": "vite --mode api",
     "build": "vite build",
     "preview": "vite preview",
     "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.node.json",

@@ -22,7 +22,7 @@ export function createSmtpTransport(env: Env): MailTransport {
     host: url.hostname,
     port: url.port ? Number(url.port) : secure ? 465 : 587,
     secure,
-    requireTLS: env.NODE_ENV === 'production' && !secure,
+    requireTLS: env.NODE_ENV === 'production' && !secure && !env.SMTP_INSECURE,
     auth: url.username
       ? { user: decodeURIComponent(url.username), pass: decodeURIComponent(url.password) }
       : undefined,

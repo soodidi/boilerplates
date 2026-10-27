@@ -50,7 +50,7 @@ export default defineConfig(
     rules: { 'no-restricted-syntax': 'off' },
   },
   {
-    files: ['**/*.{js,cjs}'],
+    files: ['**/*.{js,cjs,mjs}'],
     extends: [tseslint.configs.disableTypeChecked],
     languageOptions: { globals: globals.node },
   },

@@ -3,10 +3,35 @@ import babel from '@rolldown/plugin-babel';
 import { sentryVitePlugin } from '@sentry/vite-plugin';
 import tailwindcss from '@tailwindcss/vite';
 import react, { reactCompilerPreset } from '@vitejs/plugin-react';
-import { defineConfig } from 'vite';
+import { defineConfig, type Plugin } from 'vite';
+
+/**
+ * `npm run dev:api` : le front de dev parle à l'API locale (`npm run dev` ou `npm run stack`
+ * dans api-nestjs) au lieu des mocks MSW. Seul le config.json servi change (OPS-004).
+ */
+function localApiConfig(): Plugin {
+  const config = {
+    environment: 'development',
+    apiUrl: 'http://localhost:3000',
+    sentryDsn: '',
+    enableMocks: false,
+  };
+  return {
+    name: 'local-api-config',
+    // Actif seulement avec `vite --mode api` : le config.json de public/ reste servi sinon.
+    apply: (_config, { command, mode }) => command === 'serve' && mode === 'api',
+    configureServer(server) {
+      server.middlewares.use('/config.json', (_request, response) => {
+        response.setHeader('Content-Type', 'application/json');
+        response.end(JSON.stringify(config));
+      });
+    },
+  };
+}
 
 export default defineConfig({
   plugins: [
+    localApiConfig(),
     react(),
     // FE-008 : React Compiler, mémoïsation automatique (pas de useMemo/useCallback manuels).
     babel({ presets: [reactCompilerPreset()] }),

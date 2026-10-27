@@ -31,6 +31,8 @@ export const envSchema = z.object({
   WEB_URL: z.url(),
   // BE-009 : serveur SMTP (Mailpit en local, Scaleway TEM en staging et production).
   SMTP_URL: z.url({ protocol: /^smtps?$/ }),
+  // Autorise SMTP sans TLS avec NODE_ENV=production : Mailpit dans `npm run stack` uniquement.
+  SMTP_INSECURE: envBoolean.default(false),
   MAIL_FROM: z.string().min(1),
   // Staging : seules ces adresses reçoivent des e-mails. Vide = tous les destinataires.
   MAIL_ALLOWED_RECIPIENTS: z

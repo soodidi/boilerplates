@@ -23,5 +23,46 @@ services:
       - '1025:1025'
       - '8025:8025'
 
+  # OPS-001 / OPS-004 : la même image qu'en staging et en production (`npm run stack`).
+  # Seule la configuration change : ici, le .env de développement et les services du compose.
+  migrate:
+    profiles: [app]
+    build: .
+    command: ['node', 'dist/database/migrate.js']
+    env_file: .env
+    environment: &container-env
+      NODE_ENV: production
+      DATABASE_URL: postgres://app:app@postgres:5432/app
+      SMTP_URL: smtp://mailpit:1025
+      # Mailpit n'a pas de TLS : autorisé ici uniquement (jamais en staging ni en production).
+      SMTP_INSECURE: 'true'
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  api:
+    profiles: [app]
+    build: .
+    env_file: .env
+    environment: *container-env
+    ports:
+      - '3000:3000'
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      mailpit:
+        condition: service_started
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://localhost:3000/health/ready').then((r) => process.exit(r.ok ? 0 : 1), () => process.exit(1))",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
 volumes:
   postgres-data:
