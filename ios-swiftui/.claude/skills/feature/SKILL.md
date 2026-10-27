@@ -14,6 +14,7 @@ Suis ces étapes dans l'ordre. Tu es le seul à lancer les agents ; ils échange
 - Si c'est un numéro d'issue : `gh issue view <n> --comments`. Sinon, considère la description comme l'issue.
 - Choisis un `<sujet>` court en kebab-case et crée `.claude/work/<sujet>/`.
 - S'il manque des critères d'acceptation vérifiables, propose-les à l'humain et attends sa réponse.
+- Si le besoin est flou (plusieurs lectures possibles, choix d'UX ou de modèle de données ouvert), **cadre** avant le plan : pose une question à la fois, puis propose deux ou trois approches avec leurs compromis et ta recommandation. Attends le choix de l'humain.
 
 ## 2. Planifier
 
@@ -25,6 +26,7 @@ Suis ces étapes dans l'ordre. Tu es le seul à lancer les agents ; ils échange
 - Pars de `main` à jour : `git switch main && git pull`, puis `git switch -c <type>/<sujet>` (GLB-002).
 - Implémente étape par étape en suivant `AGENTS.md`, tests compris. Un commit Conventional Commits en anglais par étape cohérente.
 - Lance la commande de vérification indiquée dans `AGENTS.md` jusqu'à ce qu'elle passe. Ne contourne jamais un hook ni une règle de lint.
+- **Vérifier avant d'annoncer** : n'écris jamais qu'une étape est finie ou que les tests passent sans avoir lancé la commande dans cette étape et cité son résultat (nombre de tests, sortie en échec).
 
 ## 4. Contrôler
 
@@ -37,4 +39,6 @@ Suis ces étapes dans l'ordre. Tu es le seul à lancer les agents ; ils échange
 ## 5. Livrer
 
 - `git push -u origin <branche>` puis `gh pr create` en remplissant le template de PR : résumé, `Closes #<n>`, comment tester, et une section **Contrôles IA** qui résume chaque rapport (corrigé, ouvert, actions manuelles).
-- **Ne fusionne jamais la PR.** Termine par le lien de la PR et la liste des actions qui restent à l'humain (relecture, validation en staging, secrets, `tofu apply`…).
+- Active la fusion automatique : `gh pr merge <n> --squash --auto --delete-branch`. **Jamais `--admin`** ni autre contournement des checks : c'est GitHub qui fusionne quand la CI requise est verte (GLB-011, règle temporaire).
+- Attends la CI : `gh pr checks <n> --watch`. Si un job échoue : `gh run view <id> --log-failed`, corrige la cause, pousse. Deux tentatives au plus ; au-delà, arrête-toi et explique à l'humain ce qui bloque.
+- Termine par le lien de la PR, son état (fusionnée ou en attente de CI) et ce qui reste à l'humain (validation en staging, secrets, `tofu apply`…).

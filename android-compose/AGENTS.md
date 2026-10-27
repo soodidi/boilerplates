@@ -19,5 +19,6 @@ Ce projet suit [engineering-guidelines](https://github.com/soodidi/engineering-g
 - Une fonctionnalité passe par `/feature <issue>` : plan validé par un humain, code, vérification, contrôles par les agents `reviewer`, `qa`, `security`, `devops` (`.claude/agents/`), puis PR. Un bug passe par `/fix <issue>` : test qui reproduit le bug, correction, contrôles, PR. `/review` relit une branche ou une PR sans rien modifier. Une décision d'architecture non couverte : `/adr` (brouillon dans engineering-guidelines, GLB-001).
 - Les agents échangent via `.claude/work/<sujet>/` (non versionné) ; la synthèse finale va dans la description de la PR.
 - Chaque fichier modifié est formaté et linté automatiquement (`.claude/hooks/after-edit.sh`) : corriger les erreurs renvoyées, ne jamais les contourner.
-- Ne jamais fusionner une PR, forcer un push, ni lancer une action irréversible (migration en production, `tofu apply`, publication). Les préparer et les laisser à un humain.
+- Fusion : une fois la PR ouverte, `gh pr merge <n> --squash --auto --delete-branch` ; GitHub fusionne quand la CI est verte. Jamais `--admin`, ni force-push, ni action irréversible hors fusion (migration en production, `tofu apply`, publication) : les préparer et les laisser à un humain.
+- Ne jamais annoncer qu'un travail est fini, corrigé ou testé sans avoir lancé la vérification et cité son résultat.
 - `.claude/agents`, `.claude/skills` et `.claude/hooks` viennent du repo `boilerplates` : les améliorer là-bas, puis reporter ici.
