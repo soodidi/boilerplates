@@ -5,6 +5,16 @@ import {
   createRouter,
   type RouterHistory,
 } from '@tanstack/react-router';
+import {
+  ForgotPasswordPage,
+  LoginPage,
+  redirectIfSignedIn,
+  redirectSearchSchema,
+  requireSession,
+  ResetPasswordPage,
+  resetPasswordSearchSchema,
+  SignupPage,
+} from '@/features/auth';
 import { HomePage } from '@/features/home';
 import { NotesPage, notesQueryOptions, notesSearchSchema } from '@/features/notes';
 import { NotFound, RouteError } from './error-fallback';
@@ -26,9 +36,40 @@ const homeRoute = createRoute({
   component: HomePage,
 });
 
+const loginRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/login',
+  // Page demandée avant la connexion (chemin interne uniquement).
+  validateSearch: redirectSearchSchema,
+  // Déjà connecté (par exemple après le lien de vérification) : on va directement à destination.
+  beforeLoad: redirectIfSignedIn,
+  component: LoginPage,
+});
+
+const signupRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/signup',
+  component: SignupPage,
+});
+
+const forgotPasswordRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/forgot-password',
+  component: ForgotPasswordPage,
+});
+
+const resetPasswordRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/reset-password',
+  validateSearch: resetPasswordSearchSchema,
+  component: ResetPasswordPage,
+});
+
 const notesRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/notes',
+  // BE-006 : page privée. Sans session, redirection vers /login.
+  beforeLoad: requireSession,
   // FE-004 : les filtres vivent dans l'URL, validés et typés par Zod.
   validateSearch: notesSearchSchema,
   loaderDeps: ({ search }) => ({ q: search.q }),
@@ -38,7 +79,14 @@ const notesRoute = createRoute({
   component: NotesPage,
 });
 
-const routeTree = rootRoute.addChildren([homeRoute, notesRoute]);
+const routeTree = rootRoute.addChildren([
+  homeRoute,
+  loginRoute,
+  signupRoute,
+  forgotPasswordRoute,
+  resetPasswordRoute,
+  notesRoute,
+]);
 
 type CreateAppRouterOptions = {
   queryClient: QueryClient;

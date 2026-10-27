@@ -3,7 +3,9 @@ import { createMemoryHistory, RouterProvider } from '@tanstack/react-router';
 import { render } from '@testing-library/react';
 import { type ReactElement } from 'react';
 import { createAppRouter } from '@/app/router';
+import { configureAuthClient, createUnauthorizedHandler } from '@/features/auth';
 import { I18nProvider } from '@/i18n';
+import { configureHttp } from '@/lib/http';
 
 function createTestQueryClient() {
   return new QueryClient({
@@ -26,6 +28,12 @@ export function renderRoute(url: string) {
   const queryClient = createTestQueryClient();
   const history = createMemoryHistory({ initialEntries: [url] });
   const router = createAppRouter({ queryClient, history });
+  // Client d'auth neuf à chaque test : le SDK garde un état interne (session, requêtes en cours).
+  configureAuthClient({ baseUrl: 'http://localhost:3000' });
+  configureHttp({
+    baseUrl: 'http://localhost:3000',
+    onUnauthorized: createUnauthorizedHandler(queryClient, router),
+  });
   const result = render(
     <I18nProvider locale="fr">
       <QueryClientProvider client={queryClient}>

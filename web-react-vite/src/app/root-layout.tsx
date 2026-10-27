@@ -1,4 +1,5 @@
 import { Link, Outlet } from '@tanstack/react-router';
+import { AccountMenu } from '@/features/auth';
 import { useMessages } from '@/i18n';
 
 const navLinkClass =
@@ -19,7 +20,7 @@ export function RootLayout() {
       <header className="border-b border-border">
         <nav
           aria-label={m.app.mainNavigation}
-          className="mx-auto flex max-w-4xl items-center gap-2 px-4 py-3"
+          className="mx-auto flex max-w-4xl flex-wrap items-center gap-2 px-4 py-3"
         >
           <span className="mr-4 font-semibold">{m.app.name}</span>
           <Link
@@ -37,6 +38,9 @@ export function RootLayout() {
           >
             {m.app.nav.notes}
           </Link>
+          <div className="ml-auto">
+            <AccountMenu linkClassName={navLinkClass} />
+          </div>
         </nav>
       </header>
       <main id="main" tabIndex={-1} className="mx-auto max-w-4xl px-4 py-8 focus:outline-none">

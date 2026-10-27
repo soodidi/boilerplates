@@ -17,7 +17,7 @@ npm run dev
 
 Prérequis : Node 26 (voir `.nvmrc`), npm (fourni avec Node), [gitleaks](https://github.com/gitleaks/gitleaks#installing) pour le hook de pré-commit (`brew install gitleaks`).
 
-L'app démarre avec des **mocks MSW** : la page Notes fonctionne sans backend. Pour brancher l'API, mettre son URL dans `public/config.json` et passer `enableMocks` à `false`.
+L'app démarre avec des **mocks MSW** : tout fonctionne sans backend. Compte de démonstration : `demo@example.com` / `demo-password-123` (ou créer un compte : les mocks confirment l'adresse tout de suite). Pour brancher l'API, mettre son URL dans `public/config.json` et passer `enableMocks` à `false`.
 
 À personnaliser : `name` dans `package.json`, titre dans `index.html`, `app.name` dans `src/i18n/fr.ts` et `en.ts`, couleurs dans `src/styles.css`.
 
@@ -37,8 +37,9 @@ L'app démarre avec des **mocks MSW** : la page Notes fonctionne sans backend. P
 src/
 ├── app/            # bootstrap : providers, routes, layout, écrans d'erreur
 ├── features/
+│   ├── auth/       # connexion, inscription, mot de passe oublié, garde des routes (BE-006)
 │   ├── home/
-│   └── notes/      # feature d'exemple complète
+│   └── notes/      # feature d'exemple complète, privée
 │       ├── api/        # requêtes + hooks TanStack Query
 │       ├── components/
 │       ├── routes/     # pages
@@ -55,21 +56,30 @@ La feature `notes` est là pour montrer les patterns : la supprimer (et sa route
 
 ## Ce qui est déjà en place
 
-| Sujet                                                                 | Où                                                                                       | ADR              |
-| --------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- | ---------------- |
-| Routes typées, recherche dans l'URL validée par Zod                   | `src/app/router.tsx`                                                                     | FE-001, FE-004   |
-| Données serveur avec TanStack Query, query keys par feature           | `src/features/notes/api`                                                                 | FE-004           |
-| Formulaire RHF + Zod, erreurs API reportées sur les champs, ARIA      | `src/features/notes/components/create-note-form.tsx`, `src/components/ui/form-field.tsx` | FE-006           |
-| Client HTTP qui valide les réponses et lève des `ProblemDetailsError` | `src/lib/http.ts`                                                                        | FE-002, BE-004   |
-| Tailwind avec tokens sémantiques, mode sombre, `cn()` + `cva`         | `src/styles.css`, `src/components/ui`                                                    | FE-005           |
-| React Compiler                                                        | `vite.config.ts`                                                                         | FE-008           |
-| Lien d'évitement, focus, `prefers-reduced-motion`, audit axe en E2E   | `src/app/root-layout.tsx`, `e2e/`                                                        | FE-008           |
-| Sentry (RGPD), ErrorBoundary, erreurs de route, source maps en CI     | `src/lib/sentry.ts`, `src/app/error-fallback.tsx`                                        | FE-009           |
-| Config d'exécution par environnement (`config.json`)                  | `src/lib/config.ts`, `.github/workflows/deploy-environment.yml`                          | OPS-004          |
-| Hooks Git : format, lint, secrets, commitlint, tests au push          | `lefthook.yml`                                                                           | GLB-002, GLB-005 |
-| CI : vérifications, E2E, gitleaks, titre de PR                        | `.github/workflows/ci.yml`                                                               | OPS-002          |
-| Déploiement staging puis production (approbation) sur Object Storage  | `.github/workflows/deploy.yml`                                                           | OPS-004, OPS-005 |
-| Templates de PR (Definition of Done) et de bug                        | `.github/`                                                                               | GLB-003, GLB-009 |
+| Sujet                                                                                                                                              | Où                                                                                       | ADR              |
+| -------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- | ---------------- |
+| Routes typées, recherche dans l'URL validée par Zod                                                                                                | `src/app/router.tsx`                                                                     | FE-001, FE-004   |
+| Données serveur avec TanStack Query, query keys par feature                                                                                        | `src/features/notes/api`                                                                 | FE-004           |
+| Formulaire RHF + Zod, erreurs API reportées sur les champs, ARIA                                                                                   | `src/features/notes/components/create-note-form.tsx`, `src/components/ui/form-field.tsx` | FE-006           |
+| Auth Better Auth : connexion, inscription, vérification d'e-mail, mot de passe oublié, déconnexion, routes privées (`beforeLoad`), 401 → connexion | `src/features/auth/`, `src/app/router.tsx`, `src/main.tsx`                               | BE-006           |
+| Client HTTP qui valide les réponses et lève des `ProblemDetailsError`                                                                              | `src/lib/http.ts`                                                                        | FE-002, BE-004   |
+| Tailwind avec tokens sémantiques, mode sombre, `cn()` + `cva`                                                                                      | `src/styles.css`, `src/components/ui`                                                    | FE-005           |
+| React Compiler                                                                                                                                     | `vite.config.ts`                                                                         | FE-008           |
+| Lien d'évitement, focus, `prefers-reduced-motion`, audit axe en E2E                                                                                | `src/app/root-layout.tsx`, `e2e/`                                                        | FE-008           |
+| Sentry (RGPD), ErrorBoundary, erreurs de route, source maps en CI                                                                                  | `src/lib/sentry.ts`, `src/app/error-fallback.tsx`                                        | FE-009           |
+| Config d'exécution par environnement (`config.json`)                                                                                               | `src/lib/config.ts`, `.github/workflows/deploy-environment.yml`                          | OPS-004          |
+| Hooks Git : format, lint, secrets, commitlint, tests au push                                                                                       | `lefthook.yml`                                                                           | GLB-002, GLB-005 |
+| CI : vérifications, E2E, gitleaks, titre de PR                                                                                                     | `.github/workflows/ci.yml`                                                               | OPS-002          |
+| Déploiement staging puis production (approbation) sur Object Storage                                                                               | `.github/workflows/deploy.yml`                                                           | OPS-004, OPS-005 |
+| Templates de PR (Definition of Done) et de bug                                                                                                     | `.github/`                                                                               | GLB-003, GLB-009 |
+
+## Authentification (BE-006)
+
+- **Page privée** : ajouter `beforeLoad: requireSession` à la route (voir `/notes` dans `src/app/router.tsx`). Sans session, l'utilisateur est renvoyé vers `/login`, puis vers la page demandée une fois connecté. La vraie protection reste l'API.
+- **Session** : `sessionQueryOptions()` (TanStack Query) ; elle est relue au chargement, ce qui prolonge aussi le cookie. Un 401 de l'API vide la session et renvoie vers la connexion.
+- **Messages** : toujours génériques (« si un compte existe… ») : le front ne révèle jamais si une adresse est inscrite.
+- **Avec la vraie API** : le front et l'API DOIVENT être sur le même domaine (ex. `app.example.com` et `api.app.example.com`), sinon le navigateur n'envoie pas le cookie de session. L'origine du front doit être dans `CORS_ORIGINS` de l'API.
+- **Mises à jour** : `better-auth` n'est jamais fusionné automatiquement par Renovate ; garder la même version que l'API.
 
 ## Déploiement
 

@@ -12,6 +12,7 @@ Ce projet suit [engineering-guidelines](https://github.com/soodidi/engineering-g
 - Aucun texte affiché en dur : ajouter les clés dans `src/i18n/fr.ts` et `en.ts` (GLB-007).
 - Pas de `useMemo` / `useCallback` manuels : le React Compiler s'en charge (FE-008).
 - Tests : Testing Library avec des requêtes par rôle, réseau mocké via MSW (`src/mocks/handlers.ts`), pas de mock de modules internes (FE-007).
+- Auth (BE-006) : une route privée a `beforeLoad: requireSession` ; les appels d'auth passent par `src/features/auth/api` (client Better Auth), jamais par `fetch` direct ; messages d'erreur génériques, sans révéler si un compte existe. Dans les tests, `signInAsDemo()` (`src/mocks/db.ts`) pour démarrer connecté.
 - `npm run verify` doit passer avant de proposer une PR.
 
 ## Travail avec l'IA (GLB-011)

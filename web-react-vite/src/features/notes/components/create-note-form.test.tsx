@@ -1,13 +1,18 @@
 import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw/http';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
+import { signInAsDemo } from '@/mocks/db';
 import { db } from '@/mocks/db';
 import { server } from '@/mocks/server';
 import { renderWithProviders } from '@/test/render';
 import { CreateNoteForm } from './create-note-form';
 
 describe('CreateNoteForm', () => {
+  beforeEach(() => {
+    signInAsDemo();
+  });
+
   it('refuse un titre vide et met le focus sur le champ en erreur', async () => {
     const user = userEvent.setup();
     renderWithProviders(<CreateNoteForm />);

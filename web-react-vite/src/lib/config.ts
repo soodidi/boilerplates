@@ -4,15 +4,19 @@ import { z } from 'zod';
  * Configuration d'exécution, lue dans /config.json au démarrage (OPS-004 : « build once, deploy many »).
  * Le pipeline de déploiement écrit un config.json différent par environnement.
  */
-const configSchema = z.object({
-  environment: z.enum(['development', 'staging', 'production']),
-  /** URL de l'API sans slash final. Vide = même origine. */
-  apiUrl: z.union([z.literal(''), z.url()]),
-  /** DSN Sentry (public par nature, FE-009). Vide = Sentry désactivé. */
-  sentryDsn: z.string().default(''),
-  /** Active les mocks MSW (développement et E2E uniquement). */
-  enableMocks: z.boolean().default(false),
-});
+const configSchema = z
+  .object({
+    environment: z.enum(['development', 'staging', 'production']),
+    /** URL de l'API sans slash final. Vide = même origine. */
+    apiUrl: z.union([z.literal(''), z.url()]),
+    /** DSN Sentry (public par nature, FE-009). Vide = Sentry désactivé. */
+    sentryDsn: z.string().default(''),
+    /** Active les mocks MSW (développement et E2E uniquement). */
+    enableMocks: z.boolean().default(false),
+  })
+  .refine((config) => !(config.environment === 'production' && config.enableMocks), {
+    message: 'enableMocks est interdit en production',
+  });
 
 export type AppConfig = z.infer<typeof configSchema>;
 

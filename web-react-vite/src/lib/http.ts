@@ -2,10 +2,15 @@ import { type z } from 'zod';
 import { ProblemDetailsError, parseProblemDetails } from './problem-details';
 
 let baseUrl = '';
+let onUnauthorized: (() => void) | undefined;
 
-/** Appelé une fois au démarrage avec l'URL de l'API (config.json). */
-export function configureHttp(options: { baseUrl: string }) {
+/**
+ * Appelé une fois au démarrage avec l'URL de l'API (config.json).
+ * `onUnauthorized` : session expirée ou révoquée (401), par exemple pour renvoyer vers la connexion.
+ */
+export function configureHttp(options: { baseUrl: string; onUnauthorized?: () => void }) {
   baseUrl = options.baseUrl.replace(/\/$/, '');
+  onUnauthorized = options.onUnauthorized;
 }
 
 type RequestOptions<TSchema extends z.ZodType> = {
@@ -35,6 +40,7 @@ export async function request<TSchema extends z.ZodType>(
   });
 
   if (!response.ok) {
+    if (response.status === 401) onUnauthorized?.();
     const payload: unknown = await response.json().catch(() => null);
     throw new ProblemDetailsError(
       parseProblemDetails(payload) ?? {
