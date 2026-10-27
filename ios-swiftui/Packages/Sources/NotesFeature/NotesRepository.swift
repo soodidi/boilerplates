@@ -18,7 +18,9 @@ public struct LiveNotesRepository: NotesRepository {
 
     public func list(query: String) async throws(APIError) -> [Note] {
         var items = [URLQueryItem(name: "limit", value: "20")]
-        if !query.isEmpty { items.append(URLQueryItem(name: "q", value: query)) }
+        if !query.isEmpty {
+            items.append(URLQueryItem(name: "q", value: query))
+        }
         let page: NotePageDTO = try await client.get("v1/notes", query: items)
         return page.data.map(\.domain)
     }
@@ -35,7 +37,9 @@ struct NoteDTO: Decodable {
     let content: String
     let createdAt: Date
 
-    var domain: Note { Note(id: id, title: title, content: content, createdAt: createdAt) }
+    var domain: Note {
+        Note(id: id, title: title, content: content, createdAt: createdAt)
+    }
 }
 
 struct NotePageDTO: Decodable {

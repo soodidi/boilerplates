@@ -112,8 +112,8 @@ private struct MessageBanner: View {
 
     var body: some View {
         if let message {
-            let text = Text(Self.key(for: message), bundle: .module)
-            text
+            let text = String(localized: Self.key(for: message), bundle: .module)
+            Text(verbatim: text)
                 .padding(Spacing.medium)
                 .background(.thinMaterial, in: .capsule)
                 .padding(Spacing.large)
@@ -126,7 +126,7 @@ private struct MessageBanner: View {
         }
     }
 
-    private static func key(for message: NotesViewModel.Message) -> LocalizedStringKey {
+    private static func key(for message: NotesViewModel.Message) -> String.LocalizationValue {
         switch message {
         case .noteAdded: "notes.added"
         case .addFailed: "notes.addError"
@@ -144,7 +144,9 @@ private struct PreviewNotesRepository: NotesRepository {
     var fails = false
 
     func list(query _: String) async throws(APIError) -> [Note] {
-        if fails { throw .network }
+        if fails {
+            throw .network
+        }
         return notes
     }
 
