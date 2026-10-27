@@ -24,7 +24,9 @@ private actor FakeNotesRepository: NotesRepository {
     }
 
     func create(title: String) async throws(APIError) -> Note {
-        if let createError { throw createError }
+        if let createError {
+            throw createError
+        }
         let note = Note(id: "\(notes.count + 1)", title: title, content: "", createdAt: .now)
         notes.append(note)
         return note
@@ -97,6 +99,11 @@ struct NotesViewModelTests {
 }
 
 private struct FailingRepository: NotesRepository {
-    func list(query _: String) async throws(APIError) -> [Note] { throw .network }
-    func create(title _: String) async throws(APIError) -> Note { throw .network }
+    func list(query _: String) async throws(APIError) -> [Note] {
+        throw .network
+    }
+
+    func create(title _: String) async throws(APIError) -> Note {
+        throw .network
+    }
 }

@@ -29,7 +29,7 @@ public final class APIClient: Sendable {
         try await send(makeRequest(method: "GET", path: path, query: query))
     }
 
-    public func post<Body: Encodable, Response: Decodable>(_ path: String, body: Body) async throws(APIError) -> Response {
+    public func post<Response: Decodable>(_ path: String, body: some Encodable) async throws(APIError) -> Response {
         var request = makeRequest(method: "POST", path: path)
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = try? encoder.encode(body)
@@ -38,7 +38,9 @@ public final class APIClient: Sendable {
 
     private func makeRequest(method: String, path: String, query: [URLQueryItem] = []) -> URLRequest {
         var components = URLComponents(url: baseURL.appending(path: path), resolvingAgainstBaseURL: false)
-        if !query.isEmpty { components?.queryItems = query }
+        if !query.isEmpty {
+            components?.queryItems = query
+        }
         var request = URLRequest(url: components?.url ?? baseURL, timeoutInterval: 20)
         request.httpMethod = method
         request.setValue("application/json", forHTTPHeaderField: "Accept")

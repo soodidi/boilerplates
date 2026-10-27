@@ -28,6 +28,8 @@ test('la page Notes respecte WCAG 2.2 AA', async ({ page }) => {
 
 test('navigation au clavier : le lien d’évitement mène au contenu', async ({ page }) => {
   await page.goto('/');
+  // The app renders after an async bootstrap (config + MSW): wait for it before pressing Tab.
+  await expect(page.getByRole('main')).toBeAttached();
   await page.keyboard.press('Tab');
   await expect(page.getByRole('link', { name: 'Aller au contenu' })).toBeFocused();
 });
