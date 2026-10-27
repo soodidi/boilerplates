@@ -1,4 +1,5 @@
 import { NestFactory } from '@nestjs/core';
+import * as Sentry from '@sentry/nestjs';
 import { type NestFastifyApplication } from '@nestjs/platform-fastify';
 import { Logger } from 'nestjs-pino';
 import { AppModule } from './app.module.js';
@@ -19,7 +20,16 @@ const env = await configureApp(app);
 // garde l'ancienne version en service.
 const logger = app.get(Logger);
 logger.log('Applying database migrations', 'Migrations');
-await runMigrations(env.DATABASE_URL);
+try {
+  await runMigrations(env.DATABASE_URL);
+} catch (error) {
+  // Dans les logs JSON et dans Sentry, plutôt qu'une pile brute sur stderr.
+  logger.error({ err: error }, 'Database migrations failed', 'Migrations');
+  Sentry.captureException(error);
+  await Sentry.flush(2000);
+  await app.close();
+  process.exit(1);
+}
 logger.log('Database migrations applied', 'Migrations');
 
 // BE-007 : arrêt propre sur SIGTERM (requêtes en cours terminées, connexions fermées).

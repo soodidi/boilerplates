@@ -31,9 +31,9 @@ output "deploy_secret_keys" {
 }
 
 # Lus par staging et production pour autoriser l'écriture dans le bucket du front (bucket policy).
-output "web_writer_application_ids" {
-  description = "Applications IAM autorisées à écrire dans les buckets du front : CI infra et deploy-web"
-  value       = [module.ci.application_id, module.deploy["web"].application_id]
+output "web_bucket_application_ids" {
+  description = "Applications IAM citées dans la bucket policy du front : CI infra, plans des PR, deploy-web"
+  value       = [module.ci.application_id, module.ci_plan.application_id, module.deploy["web"].application_id]
 }
 
 output "ci_plan_access_key" {

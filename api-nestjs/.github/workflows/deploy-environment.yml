@@ -47,7 +47,7 @@ jobs:
             sleep 10
             info=$(scw container container get "$CONTAINER_ID" -o json)
             status=$(echo "$info" | jq -r .status)
-            image=$(echo "$info" | jq -r '.image // .registry_image')
+            image=$(echo "$info" | jq -r .image)
             echo "status: $status, image: $image"
             [ "$status" = "error" ] && echo "::error::$(echo "$info" | jq -r .error_message)" && exit 1
             [ "$status" = "ready" ] && [ "$image" = "$IMAGE" ] && exit 0

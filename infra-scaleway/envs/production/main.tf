@@ -128,6 +128,6 @@ module "web" {
   source                 = "../../modules/static-site"
   bucket_name            = "${local.name}-web"
   domain                 = var.web_domain
-  writer_application_ids = data.terraform_remote_state.iam.outputs.web_writer_application_ids
+  bucket_application_ids = data.terraform_remote_state.iam.outputs.web_bucket_application_ids
   tags                   = local.tags
 }

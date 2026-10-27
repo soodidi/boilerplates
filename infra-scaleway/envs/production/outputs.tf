@@ -26,3 +26,8 @@ output "api_dns_target" {
   description = "CNAME à créer : domaine de l'API → cette valeur (avant l'apply qui crée le domaine)"
   value       = module.api.dns_target
 }
+
+output "web_dns_target" {
+  description = "CNAME à créer après l'apply : domaine du front → cette valeur (Edge Services)"
+  value       = module.web.dns_target
+}

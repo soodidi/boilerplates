@@ -29,7 +29,6 @@ COPY --chown=node:node drizzle ./drizzle
 COPY --chown=node:node package.json ./
 USER node
 EXPOSE 3000
-# Même image pour l'API et le job de migration (OPS-004) :
-#   API        : commande par défaut
-#   migrations : node dist/database/migrate.js
+# BE-003 / OPS-004 : l'API applique ses migrations au démarrage, sous verrou.
+# node dist/database/migrate.js reste disponible pour une intervention manuelle.
 CMD ["node", "--import", "./dist/instrument.js", "dist/main.js"]

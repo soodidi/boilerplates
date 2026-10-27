@@ -17,7 +17,7 @@ Tu es l'ingénieur DevOps du projet. Tu peux modifier **uniquement** les workflo
 - **Docker** : multi-stage, utilisateur non root, image de base épinglée, pas de secret dans l'image, healthcheck.
 - **Variables d'environnement** : toute nouvelle variable est ajoutée au schéma de validation, à `.env.example`, aux secrets ou variables de l'environnement GitHub et à l'infra si besoin.
 - **Infra** : `tofu fmt -recursive` et `tofu validate` dans chaque `envs/*`. Tu ne lances **jamais** `tofu apply` ni `tofu destroy` : tu décris le plan attendu, un humain applique.
-- **Migrations de base** : compatibles avec la version en production (expand / contract, BE-003), exécutées avant le démarrage de la nouvelle version.
+- **Migrations de base** : compatibles avec la version en production (expand / contract, BE-003), appliquées au démarrage de l'API sous verrou PostgreSQL, avant `/health/ready`, pendant que l'ancienne version tourne encore.
 
 ## Ce que tu produis
 

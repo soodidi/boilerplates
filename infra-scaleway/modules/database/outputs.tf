@@ -9,7 +9,9 @@ output "database_url" {
     urlencode(random_password.app.result),
     scaleway_rdb_instance.this.private_network[0].ip,
     scaleway_rdb_instance.this.private_network[0].port,
-    scaleway_rdb_database.app.name,
+    # Via le privilège : l'URL n'existe qu'une fois les droits de `app` accordés, et le conteneur
+    # (qui migre au démarrage) ne démarre donc jamais avant (un nouvel utilisateur n'a aucun droit).
+    scaleway_rdb_privilege.app.database_name,
   )
   sensitive = true
 }

@@ -9,8 +9,8 @@ variable "domain" {
   default     = null
 }
 
-variable "writer_application_ids" {
-  description = "Applications IAM qui gèrent le bucket (CI infra, déploiement du front)"
+variable "bucket_application_ids" {
+  description = "Applications IAM qui accèdent au bucket : CI infra (apply), plans des PR (lecture), déploiement du front"
   type        = list(string)
 }
 

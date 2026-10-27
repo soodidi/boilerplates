@@ -70,9 +70,12 @@ envs/
    - Sinon, mettre `mail_dns_autoconfig = true` : SPF, DKIM et DMARC sont créés automatiquement.
 7. Pour chaque environnement : copier `terraform.tfvars.example` en `<env>.auto.tfvars`, compléter, puis appliquer.
    - **Prérequis** : un abonnement Edge Services actif sur le projet (CDN et HTTPS du front), et le domaine acheté (BE-006 : `api_url` et `web_domain` sur le même domaine).
-   - **Premier apply sans le domaine de l'API**, pour obtenir la cible du CNAME : `tofu -chdir=envs/staging apply -target=module.api.scaleway_container.this`, puis `tofu -chdir=envs/staging output api_dns_target`. Créer chez le registrar le CNAME `api.<domaine>` → cette valeur, et le CNAME du front vers Edge Services. Ensuite seulement, l'apply complet (Scaleway vérifie le DNS et émet les certificats).
-
-   ```bash
+   - **Ordre, pour staging puis pour production** :
+     1. apply ciblé du conteneur, pour obtenir la cible du CNAME de l'API : `tofu -chdir=envs/<env> apply -target=module.api.scaleway_container.this`, puis `tofu -chdir=envs/<env> output api_dns_target` ;
+     2. créer chez le registrar le CNAME `api.<domaine>` → cette valeur ;
+     3. apply complet (Scaleway vérifie le DNS et émet le certificat de l'API) ;
+     4. créer le CNAME du front → `tofu -chdir=envs/<env> output web_dns_target` (Edge Services émet ensuite le certificat).
+   - Projet déjà en place : ré-appliquer d'abord `envs/iam`, dont staging et production lisent les sorties.
 
    ```bash
    tofu -chdir=envs/staging init
@@ -80,7 +83,7 @@ envs/
    tofu -chdir=envs/staging apply
    ```
 
-   Au premier démarrage, l'API applique elle-même les migrations (BE-003) : aucun accès à la base n'est nécessaire depuis GitHub.
+   Au premier démarrage, l'API applique elle-même les migrations (BE-003) : aucun accès à la base n'est nécessaire depuis GitHub. La sonde de démarrage laisse 150 s : une migration plus longue (backfill, index sur une grosse table) se découpe en étapes courtes ou se fait par une intervention manuelle, sinon l'instance redémarre en boucle et le déploiement échoue (l'ancienne version reste en service).
 
 8. Reporter les sorties dans GitHub (voir les commentaires en tête des workflows `deploy.yml` des boilerplates) :
    - repo API : `CONTAINER_ID` (`tofu output -raw api_container_id`, UUID seul) ;
@@ -93,7 +96,8 @@ Commiter le fichier `.terraform.lock.hcl` créé par `tofu init` (versions des p
 - La console Scaleway sert à **observer**. Toute modification manuelle d'urgence est reportée dans le code le jour même (OPS-003).
 - L'image de l'API est déployée par la CI de l'API : OpenTofu ignore les changements d'image (`lifecycle.ignore_changes`).
 - Les sorties sensibles (`database_url`) ne s'affichent qu'avec `tofu output -raw`. `database_url` ne sert qu'aux interventions manuelles : la base n'est joignable que depuis le réseau privé, et les migrations tournent dans l'API (BE-003).
-- Bucket du front : dès qu'une bucket policy existe, Scaleway n'autorise que les principaux qu'elle cite. Elle liste donc la CI infra et la clé `deploy-web` (sorties de `envs/iam`), en plus de la lecture publique.
+- Plans des PR : la clé `ci-plan` est en lecture seule, mais avec `TF_STATE_PASSPHRASE` le code d'une PR peut lire et déchiffrer les states, dont celui de `envs/iam` (clés CI, déploiement, SMTP). Compromis accepté tant qu'une seule personne pousse sur le repo infra ; avec des contributeurs externes, réserver les plans aux branches de confiance.
+- Bucket du front : dès qu'une bucket policy existe, Scaleway n'autorise que les principaux qu'elle cite. Elle liste donc la CI infra, la clé des plans et la clé `deploy-web` (sorties de `envs/iam`), en plus de la lecture publique.
 - Le state contient des secrets générés (mot de passe de la base, clés API, secret d'auth) : il est chiffré par OpenTofu (`encryption`, passphrase `TF_VAR_state_passphrase`), en plus du chiffrement du bucket (OPS-006).
 - Auth (BE-006) : `BETTER_AUTH_SECRET` est généré par environnement (`random_password`). `api_url` DOIT être sur le même domaine que le front (ex. `api.app.example.com` et `app.example.com`) : sinon le navigateur n'envoie pas le cookie de session.
 - E-mails (BE-009) : chaque environnement a sa propre clé API, limitée à l'envoi SMTP (`TransactionalEmailEmailSmtpCreate`), créée par `envs/iam` et injectée dans l'API comme secret `SMTP_URL`. En staging, `mail_allowed_recipients` est obligatoire : aucun e-mail ne part vers d'autres adresses.
