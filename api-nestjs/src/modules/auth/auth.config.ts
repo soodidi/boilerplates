@@ -1,10 +1,12 @@
 import { Logger } from '@nestjs/common';
 import { hash, verify } from '@node-rs/argon2';
 import { betterAuth } from 'better-auth';
+import { APIError, createAuthMiddleware } from 'better-auth/api';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { bearer } from 'better-auth/plugins';
 import { v7 as uuidv7 } from 'uuid';
 import { CLIENT_IP_HEADER } from '../../common/client-ip.js';
+import { type UserDataRegistry } from '../../common/user-data/index.js';
 import { type Env } from '../../config/env.js';
 import { type Database } from '../../database/database.module.js';
 import {
@@ -35,10 +37,10 @@ export function capSessionExpiry(expiresAt: Date, createdAt: Date): Date {
   return expiresAt > limit ? limit : expiresAt;
 }
 
-type AuthDependencies = { env: Env; db: Database; mailer: Mailer };
+type AuthDependencies = { env: Env; db: Database; mailer: Mailer; userData: UserDataRegistry };
 
 /** BE-006 : configuration complète de Better Auth. Toute modification se relit avec l'ADR. */
-export function createAuth({ env, db, mailer }: AuthDependencies) {
+export function createAuth({ env, db, mailer, userData }: AuthDependencies) {
   const logger = new Logger('BetterAuth');
   const appName = env.APP_NAME;
 
@@ -94,6 +96,27 @@ export function createAuth({ env, db, mailer }: AuthDependencies) {
         return Promise.resolve();
       },
     },
+    user: {
+      deleteUser: {
+        enabled: true,
+        // GLB-013 : les données des modules sont effacées dans une transaction, avant le compte.
+        // Si elle échoue, Better Auth s'arrête là et le compte reste.
+        beforeDelete: (user) => userData.eraseAll(user.id),
+      },
+    },
+    hooks: {
+      // GLB-013 : Better Auth accepte /delete-user sans mot de passe si la session a moins d'un
+      // jour. On exige toujours sa ressaisie (une chaîne vide compte comme absente pour Better Auth).
+      before: createAuthMiddleware((ctx) => {
+        const body = ctx.body as { password?: unknown } | undefined;
+        if (ctx.path === '/delete-user' && (typeof body?.password !== 'string' || !body.password)) {
+          throw new APIError('BAD_REQUEST', { message: 'Password is required' });
+        }
+        return Promise.resolve();
+      }),
+    },
+    // Suppression par lien e-mail : non utilisée (GLB-013), la route reste fermée.
+    disabledPaths: ['/delete-user/callback'],
     session: {
       expiresIn: SESSION_EXPIRES_IN_SECONDS,
       updateAge: SESSION_UPDATE_AGE_SECONDS,
@@ -129,6 +152,8 @@ export function createAuth({ env, db, mailer }: AuthDependencies) {
         '/sign-up/email': { window: 60, max: 5 },
         '/request-password-reset': { window: 300, max: 3 },
         '/send-verification-email': { window: 300, max: 3 },
+        // Ressaisie du mot de passe depuis une session volée : peu d'essais.
+        '/delete-user': { window: 60, max: 5 },
       },
     },
     // Mobile : token de session dans `Authorization: Bearer`, reçu signé dans `set-auth-token`.
