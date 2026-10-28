@@ -13,6 +13,7 @@ Ce projet suit [engineering-guidelines](https://github.com/soodidi/engineering-g
 - Logs via le `Logger` NestJS (pino), jamais `console.log`, jamais de token ni de donnée personnelle (BE-007).
 - Tests : service avec un fake du repository ; repository et endpoints contre PostgreSQL réel (`*.integration.spec.ts`, `test/*.e2e-spec.ts`). Jamais de mock de la base (BE-008).
 - Auth (BE-006) : toute route est protégée par défaut ; `@Public()` uniquement pour une route réellement ouverte. Toute donnée d'un utilisateur est filtrée par `session.user.id` dans le repository, et chaque endpoint protégé a un test e2e d'accès refusé. Ne pas modifier `auth.config.ts` sans relire BE-006.
+- Données personnelles (GLB-013) : toute table avec une colonne `user_id` est couverte par un `UserDataContributor` du module (`@ContributesUserData()`, voir `notes.user-data.ts`), qui l'exporte et l'efface avec le compte. Jamais de clé étrangère ni d'événement entre modules pour ça.
 - E-mails (BE-009) : injecter `Mailer` (jamais nodemailer) ; dans les tests, `InMemoryMailer`.
 - Toute nouvelle variable d'environnement va dans `env.ts` **et** dans `.env.example`, avec une valeur de dev qui marche telle quelle : `npm run setup` la recopie. Un secret de dev à générer s'ajoute à `GENERATED` dans `scripts/env-file.mjs`. Les variables propres au conteneur local vont dans `compose.yaml`.
 - `npm run verify` doit passer avant de proposer une PR.

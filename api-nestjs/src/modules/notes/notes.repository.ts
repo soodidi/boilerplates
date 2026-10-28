@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { and, desc, eq, ilike, type SQL, sql } from 'drizzle-orm';
-import { DB, type Database } from '../../database/database.module.js';
+import { DB, type Database, type Transaction } from '../../database/database.module.js';
 import { type NewNote, type Note, notes } from './notes.table.js';
 
 export type NoteCursor = { createdAt: Date; id: string };
@@ -45,6 +45,20 @@ export class NotesRepository {
     const [note] = await this.db.insert(notes).values(values).returning();
     if (!note) throw new Error('Insert into notes returned no row');
     return note;
+  }
+
+  /** GLB-013 : toutes les notes de l'utilisateur, pour l'export de ses données. */
+  findAllByUser(userId: string): Promise<Note[]> {
+    return this.db
+      .select()
+      .from(notes)
+      .where(eq(notes.userId, userId))
+      .orderBy(desc(notes.createdAt), desc(notes.id));
+  }
+
+  /** GLB-013 : effacement dans la transaction de suppression du compte. */
+  async deleteByUser(userId: string, tx: Transaction): Promise<void> {
+    await tx.delete(notes).where(eq(notes.userId, userId));
   }
 }
 

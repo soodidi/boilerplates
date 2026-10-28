@@ -5,12 +5,14 @@ import { SentryModule } from '@sentry/nestjs/setup';
 import { LoggerModule } from 'nestjs-pino';
 import { CsrfGuard } from './common/csrf.guard.js';
 import { ProblemDetailsFilter } from './common/problem-details.filter.js';
+import { UserDataModule } from './common/user-data/index.js';
 import { createValidationPipe } from './common/validation.js';
 import { ENV, type Env } from './config/env.js';
 import { EnvModule } from './config/env.module.js';
 import { DatabaseModule } from './database/database.module.js';
 import { HealthModule } from './health/health.module.js';
 import { MailModule } from './mail/index.js';
+import { AccountModule } from './modules/account/index.js';
 import { AuthModule } from './modules/auth/index.js';
 import { NotesModule } from './modules/notes/index.js';
 
@@ -54,7 +56,9 @@ export function redactUrlTokens<T extends { url?: string }>(request: T): T {
     DatabaseModule,
     MailModule,
     HealthModule,
+    UserDataModule,
     AuthModule,
+    AccountModule,
     NotesModule,
   ],
   providers: [
