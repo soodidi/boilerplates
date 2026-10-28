@@ -1,6 +1,7 @@
 // BE-007 / FE-009 : Sentry doit être initialisé avant tout autre import.
 // Chargé avec `node --import ./dist/instrument.js dist/main.js` (scripts `start` et `dev`).
 import * as Sentry from '@sentry/nestjs';
+import { redactErrorEvent, redactSpan } from './common/sentry-redaction.js';
 
 const dsn = process.env.SENTRY_DSN;
 
@@ -14,8 +15,16 @@ if (dsn) {
     dataCollection: {
       userInfo: false,
       cookies: false,
+      // GLB-013 : ni navigateur, ni origine, ni referer ; seulement le format de la requête.
+      httpHeaders: {
+        request: { allow: ['accept', 'content-type', 'content-length'] },
+        response: false,
+      },
       httpBodies: [],
       databaseQueryData: false,
     },
+    // BE-007 : le lien de réinitialisation (`/reset-password/<token>`) ne part jamais chez Sentry.
+    beforeSend: redactErrorEvent,
+    beforeSendSpan: redactSpan,
   });
 }

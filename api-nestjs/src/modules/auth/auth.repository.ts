@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { desc, eq } from 'drizzle-orm';
+import { desc, eq, lt } from 'drizzle-orm';
 import { DB, type Database } from '../../database/database.module.js';
 import { accounts, sessions, users } from './auth.table.js';
 
@@ -50,5 +50,14 @@ export class AuthRepository {
       })
       .from(accounts)
       .where(eq(accounts.userId, userId));
+  }
+
+  /** GLB-013 : Better Auth n'efface une session expirée que si on la lui présente à nouveau. */
+  async deleteExpiredSessions(now: Date): Promise<number> {
+    const deleted = await this.db
+      .delete(sessions)
+      .where(lt(sessions.expiresAt, now))
+      .returning({ id: sessions.id });
+    return deleted.length;
   }
 }
