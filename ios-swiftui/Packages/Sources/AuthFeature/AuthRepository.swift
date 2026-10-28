@@ -1,6 +1,7 @@
 import CoreAuth
 import CoreNetworking
 import Foundation
+import OSLog
 
 /// Échecs que l'UI sait expliquer. Jamais « compte inconnu » : la réponse ne le révèle pas (BE-006).
 public enum AuthFailure: Error, Sendable, Equatable {
@@ -28,6 +29,7 @@ public struct LiveAuthRepository: AuthRepository {
     private let client: APIClient
     private let session: SessionStore
     private let webBaseURL: URL
+    private static let logger = Logger(subsystem: "AuthFeature", category: "auth")
 
     /// `webBaseURL` : front web, où mènent les liens des e-mails (vérification, nouveau mot de passe).
     /// Il doit figurer dans `CORS_ORIGINS` de l'API.
@@ -59,7 +61,14 @@ public struct LiveAuthRepository: AuthRepository {
         // Hors ligne : la session expirera côté serveur ; l'appareil, lui, l'oublie tout de suite.
         // Révoquer avant d'effacer : si l'effacement du Keychain échoue, la copie restante est déjà
         // refusée par l'API, et le premier `401` l'efface.
-        _ = try? await client.postRaw("v1/auth/sign-out", body: EmptyDTO())
+        do {
+            let response = try await client.postRaw("v1/auth/sign-out", body: EmptyDTO())
+            if !response.isSuccess {
+                Self.logger.notice("Révocation de la session refusée : HTTP \(response.status)")
+            }
+        } catch {
+            Self.logger.notice("Révocation de la session impossible : réseau")
+        }
         session.clear()
     }
 

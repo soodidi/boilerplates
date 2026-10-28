@@ -148,6 +148,16 @@ struct AuthRepositoryTests {
         #expect(session.state == .signedOut)
     }
 
+    @Test("déconnexion refusée par le serveur (500) : la session est quand même oubliée")
+    func signOutServerError() async {
+        let session = SessionStore(storage: MemoryStorage())
+        session.save("token")
+
+        await repository(StubAPI(status: 500), session: session).signOut()
+
+        #expect(session.state == .signedOut)
+    }
+
     @Test("déconnexion hors ligne : la session est quand même oubliée")
     func signOutOffline() async {
         let session = SessionStore(storage: MemoryStorage())

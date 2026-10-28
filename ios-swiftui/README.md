@@ -56,7 +56,7 @@ Une nouvelle feature = un nouveau target `XxxFeature` dans `Package.swift`, qui 
 | Client HTTP typé, erreurs Problem Details, ATS strict (exception locale en Debug) | `CoreNetworking`, `App/Info*.plist` | IOS-004 |
 | Authentification : connexion, inscription et mot de passe oublié natifs, liens des e-mails vers le front web, messages génériques, déconnexion qui révoque la session | `AuthFeature`, `App/AppMain.swift` | BE-006, IOS-004 |
 | Session : token signé dans le Keychain (`AfterFirstUnlockThisDeviceOnly`), `Bearer` vers l'API seulement, URLSession sans cookies, `401` → session effacée | `CoreAuth`, `CoreNetworking` | IOS-004, BE-006 |
-| Textes dans un String Catalog fr/en | `NotesFeature/Resources/Localizable.xcstrings` | GLB-007 |
+| Textes dans un String Catalog fr/en, un par module | `NotesFeature/Resources/`, `AuthFeature/Resources/` | GLB-007 |
 | Swift Testing avec fakes, SwiftLint + SwiftFormat, CI macOS | `Packages/Tests`, `.swiftlint.yml`, `.github/workflows/ios.yml` | IOS-005 |
 
 ## À ajouter selon le projet

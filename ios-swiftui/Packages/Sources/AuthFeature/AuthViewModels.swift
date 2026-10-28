@@ -8,6 +8,10 @@ import Observation
 public final class SignInViewModel {
     public var email = "" {
         didSet {
+            // SwiftUI réécrit la même valeur en fin d'édition : seul un vrai changement efface les erreurs.
+            guard email != oldValue else {
+                return
+            }
             emailError = nil
             failure = nil
         }
@@ -15,6 +19,10 @@ public final class SignInViewModel {
 
     public var password = "" {
         didSet {
+            // SwiftUI réécrit la même valeur en fin d'édition : seul un vrai changement efface les erreurs.
+            guard password != oldValue else {
+                return
+            }
             passwordError = nil
             failure = nil
         }
@@ -44,6 +52,8 @@ public final class SignInViewModel {
             return
         }
         isSubmitting = true
+        // Un message identique au précédent est réaffiché et réannoncé.
+        failure = nil
         defer { isSubmitting = false }
         do throws(AuthFailure) {
             try await repository.signIn(email: email, password: password)
@@ -60,6 +70,10 @@ public final class SignInViewModel {
 public final class SignUpViewModel {
     public var name = "" {
         didSet {
+            // SwiftUI réécrit la même valeur en fin d'édition : seul un vrai changement efface les erreurs.
+            guard name != oldValue else {
+                return
+            }
             nameError = nil
             failure = nil
         }
@@ -67,6 +81,10 @@ public final class SignUpViewModel {
 
     public var email = "" {
         didSet {
+            // SwiftUI réécrit la même valeur en fin d'édition : seul un vrai changement efface les erreurs.
+            guard email != oldValue else {
+                return
+            }
             emailError = nil
             failure = nil
         }
@@ -74,6 +92,10 @@ public final class SignUpViewModel {
 
     public var password = "" {
         didSet {
+            // SwiftUI réécrit la même valeur en fin d'édition : seul un vrai changement efface les erreurs.
+            guard password != oldValue else {
+                return
+            }
             passwordError = nil
             failure = nil
         }
@@ -105,6 +127,8 @@ public final class SignUpViewModel {
             return
         }
         isSubmitting = true
+        // Un message identique au précédent est réaffiché et réannoncé.
+        failure = nil
         defer { isSubmitting = false }
         do throws(AuthFailure) {
             try await repository.signUp(name: name, email: email, password: password)
@@ -121,6 +145,10 @@ public final class SignUpViewModel {
 public final class ForgotPasswordViewModel {
     public var email = "" {
         didSet {
+            // SwiftUI réécrit la même valeur en fin d'édition : seul un vrai changement efface les erreurs.
+            guard email != oldValue else {
+                return
+            }
             emailError = nil
             failure = nil
         }
@@ -148,6 +176,8 @@ public final class ForgotPasswordViewModel {
             return
         }
         isSubmitting = true
+        // Un message identique au précédent est réaffiché et réannoncé.
+        failure = nil
         defer { isSubmitting = false }
         do throws(AuthFailure) {
             try await repository.requestPasswordReset(email: email)

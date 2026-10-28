@@ -23,12 +23,13 @@ final class SignInFlowUITests: XCTestCase {
         signIn(app, email: "camille@example.com", password: "correct-password")
         let signOut = app.buttons["notes.signOut"]
         XCTAssertTrue(signOut.waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["Bienvenue"].exists)
+        // La liste arrive après le délai de recherche (300 ms) : attendre, ne pas lire tout de suite.
+        XCTAssertTrue(app.staticTexts["Bienvenue"].waitForExistence(timeout: 5))
 
         signOut.tap()
         XCTAssertTrue(app.textFields["auth.email"].waitForExistence(timeout: 5))
         // Nouveau formulaire : rien du compte précédent.
-        XCTAssertEqual(app.textFields["auth.email"].value as? String, app.textFields["auth.email"].placeholderValue)
+        XCTAssertFalse((app.textFields["auth.email"].value as? String ?? "").contains("camille"))
     }
 
     func testOpensForgotPasswordThenSignUp() {

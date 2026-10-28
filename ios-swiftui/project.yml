@@ -33,6 +33,8 @@ targets:
       - package: Packages
         product: CoreModels
       - package: Packages
+        product: DesignSystem
+      - package: Packages
         product: CoreNetworking
     # Les tests du package local sont aussi lancés par `xcodebuild test` sur simulateur (IOS-005).
     scheme:

@@ -1,6 +1,7 @@
 import AuthFeature
 import CoreAuth
 import CoreNetworking
+import DesignSystem
 import NotesFeature
 import SwiftUI
 
@@ -21,6 +22,7 @@ struct AppMain: App {
 private struct RootView: View {
     let dependencies: AppDependencies
     @State private var model: SessionModel
+    @Environment(\.scenePhase) private var scenePhase
 
     init(dependencies: AppDependencies) {
         self.dependencies = dependencies
@@ -40,7 +42,14 @@ private struct RootView: View {
                 AuthFlowView(repository: dependencies.authRepository)
             }
         }
+        // GLB-012 : couleur du thème pour les boutons et les liens de toute l'app.
+        .tint(AppColor.primary)
         .task { await model.observe() }
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active {
+                model.refresh()
+            }
+        }
     }
 }
 
@@ -56,6 +65,12 @@ private final class SessionModel {
     init(session: SessionStore, authRepository: any AuthRepository) {
         self.session = session
         self.authRepository = authRepository
+        state = session.state
+    }
+
+    /// Relit la session : si le Keychain était illisible au lancement (avant le premier déverrouillage),
+    /// la session revient dès qu'il l'est.
+    func refresh() {
         state = session.state
     }
 

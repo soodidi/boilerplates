@@ -7,13 +7,37 @@ private actor FakeAuthRepository: AuthRepository {
     private(set) var signUps: [(name: String, email: String)] = []
     private(set) var resets: [String] = []
     private var failure: AuthFailure?
+    private var gate: CheckedContinuation<Void, Never>?
+    private var isGated = false
 
     init(failure: AuthFailure? = nil) {
         self.failure = failure
     }
 
+    func setFailure(_ failure: AuthFailure?) {
+        self.failure = failure
+    }
+
+    /// La prochaine connexion attend `release()` : l'état « en cours d'envoi » devient observable.
+    func holdNextSignIn() {
+        isGated = true
+    }
+
+    var isHolding: Bool {
+        gate != nil
+    }
+
+    func release() {
+        gate?.resume()
+        gate = nil
+    }
+
     func signIn(email: String, password: String) async throws(AuthFailure) {
         signIns.append((email, password))
+        if isGated {
+            isGated = false
+            await withCheckedContinuation { gate = $0 }
+        }
         if let failure {
             throw failure
         }
@@ -103,18 +127,63 @@ struct SignInViewModelTests {
         #expect(viewModel.failure == nil)
     }
 
-    @Test("un double appui n'envoie qu'une requête")
+    @Test("pendant l'envoi : état « en cours », et un second appui n'envoie rien")
     func ignoresDoubleSubmit() async {
         let repository = FakeAuthRepository()
+        await repository.holdNextSignIn()
         let viewModel = SignInViewModel(repository: repository)
         viewModel.email = "camille@example.com"
         viewModel.password = "secret"
 
-        async let first: Void = viewModel.submit()
-        async let second: Void = viewModel.submit()
-        _ = await (first, second)
+        let first = Task { await viewModel.submit() }
+        while await !repository.isHolding {
+            await Task.yield()
+        }
+        #expect(viewModel.isSubmitting)
+        await viewModel.submit()
+        await repository.release()
+        await first.value
 
         #expect(await repository.signIns.count == 1)
+        #expect(!viewModel.isSubmitting)
+    }
+
+    @Test("un nouvel envoi efface l'ancien message, même sans modifier les champs")
+    func resubmitClearsFailure() async {
+        let repository = FakeAuthRepository(failure: .network)
+        let viewModel = SignInViewModel(repository: repository)
+        viewModel.email = "camille@example.com"
+        viewModel.password = "secret"
+        await viewModel.submit()
+        #expect(viewModel.failure == .network)
+
+        await repository.setFailure(nil)
+        await viewModel.submit()
+
+        #expect(viewModel.failure == nil)
+    }
+
+    @Test("une valeur réécrite à l'identique (fin d'édition) garde le message")
+    func sameValueKeepsFailure() async {
+        let viewModel = SignInViewModel(repository: FakeAuthRepository(failure: .invalidCredentials))
+        viewModel.email = "camille@example.com"
+        viewModel.password = "wrong"
+        await viewModel.submit()
+
+        viewModel.password = "wrong"
+
+        #expect(viewModel.failure == .invalidCredentials)
+    }
+
+    @Test("modifier l'adresse efface son erreur")
+    func editingEmailClearsItsError() async {
+        let viewModel = SignInViewModel(repository: FakeAuthRepository())
+        await viewModel.submit()
+        #expect(viewModel.emailError == .required)
+
+        viewModel.email = "c"
+
+        #expect(viewModel.emailError == nil)
     }
 }
 
@@ -135,6 +204,16 @@ struct SignUpViewModelTests {
         #expect(viewModel.emailError == .emailInvalid)
         #expect(viewModel.passwordError == .passwordTooShort)
         #expect(await repository.signUps.isEmpty)
+    }
+
+    @Test("nom fait d'espaces : obligatoire ; 100 caractères : accepté")
+    func nameBounds() async {
+        let viewModel = SignUpViewModel(repository: FakeAuthRepository())
+        viewModel.name = "   "
+        await viewModel.submit()
+        #expect(viewModel.nameError == .required)
+
+        #expect(AuthValidation.nameError(String(repeating: "a", count: 100)) == nil)
     }
 
     @Test("mot de passe trop long")
@@ -225,6 +304,8 @@ struct AuthValidationTests {
         #expect(AuthValidation.newPasswordError(String(repeating: "🔒", count: 6)) == nil)
         #expect(AuthValidation.newPasswordError(String(repeating: "a", count: 11)) == .passwordTooShort)
         #expect(AuthValidation.newPasswordError(String(repeating: "a", count: 128)) == nil)
+        // 65 émojis = 130 unités UTF-16 : refusé, même si Swift n'y voit que 65 caractères.
+        #expect(AuthValidation.newPasswordError(String(repeating: "🔒", count: 65)) == .passwordTooLong)
     }
 
     @Test("adresse : forme seulement")
@@ -232,5 +313,6 @@ struct AuthValidationTests {
         #expect(AuthValidation.emailError("camille@example.com") == nil)
         #expect(AuthValidation.emailError("camille example@example.com") == .emailInvalid)
         #expect(AuthValidation.emailError("   ") == .required)
+        #expect(AuthValidation.emailError("a@b") == .emailInvalid)
     }
 }

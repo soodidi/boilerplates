@@ -35,25 +35,3 @@ public struct AuthFlowView: View {
         }
     }
 }
-
-// MARK: - Previews
-
-struct PreviewAuthRepository: AuthRepository {
-    var failure: AuthFailure?
-
-    func signIn(email _: String, password _: String) async throws(AuthFailure) {
-        if let failure {
-            throw failure
-        }
-    }
-
-    func signUp(name _: String, email _: String, password _: String) async throws(AuthFailure) {}
-
-    func requestPasswordReset(email _: String) async throws(AuthFailure) {}
-
-    func signOut() async {}
-}
-
-#Preview("Parcours") {
-    AuthFlowView(repository: PreviewAuthRepository())
-}

@@ -1,25 +1,59 @@
 import DesignSystem
 import SwiftUI
 
+/// Champs des formulaires d'auth : la touche Retour passe au suivant, puis envoie.
+enum AuthField: Hashable {
+    case name
+    case email
+    case password
+}
+
+/// Champ de nom. L'erreur est lue par VoiceOver avec le champ.
+struct NameField: View {
+    @Binding var text: String
+    let error: FieldError?
+    let focus: FocusState<AuthField?>.Binding
+
+    var body: some View {
+        TextField(text: $text) {
+            Text("auth.name", bundle: .module)
+        }
+        .nameInput()
+        .focused(focus, equals: .name)
+        .submitLabel(.next)
+        .fieldError(error)
+        .accessibilityIdentifier("auth.name")
+    }
+}
+
 /// Champ d'adresse e-mail : clavier, remplissage automatique, sans majuscule ni correction.
 struct EmailField: View {
     @Binding var text: String
-    var isNewAccount = false
+    let error: FieldError?
+    let focus: FocusState<AuthField?>.Binding
+    var submitLabel: SubmitLabel = .next
 
     var body: some View {
         TextField(text: $text) {
             Text("auth.email", bundle: .module)
         }
-        .emailInput(isNewAccount: isNewAccount)
+        .emailInput()
+        .focused(focus, equals: .email)
+        .submitLabel(submitLabel)
+        .fieldError(error)
         .accessibilityIdentifier("auth.email")
     }
 }
 
 /// Mot de passe masqué par défaut, avec un bouton pour l'afficher.
+/// Il est masqué de nouveau quand l'app passe en arrière-plan (capture du sélecteur d'apps).
 struct PasswordField: View {
     @Binding var text: String
+    let error: FieldError?
+    let focus: FocusState<AuthField?>.Binding
     var isNewPassword = false
     @State private var isVisible = false
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
         HStack {
@@ -31,15 +65,25 @@ struct PasswordField: View {
                 }
             }
             .passwordInput(isNewPassword: isNewPassword)
+            .focused(focus, equals: .password)
+            .submitLabel(.go)
+            .fieldError(error)
             .accessibilityIdentifier("auth.password")
 
             Button {
                 isVisible.toggle()
             } label: {
                 Image(systemName: isVisible ? "eye.slash" : "eye")
+                    .frame(minWidth: 44, minHeight: 44)
+                    .contentShape(.rect)
                     .accessibilityLabel(Text(isVisible ? "auth.password.hide" : "auth.password.show", bundle: .module))
             }
             .buttonStyle(.borderless)
+        }
+        .onChange(of: scenePhase) { _, phase in
+            if phase != .active {
+                isVisible = false
+            }
         }
     }
 
@@ -48,7 +92,7 @@ struct PasswordField: View {
     }
 }
 
-/// Message d'erreur sous un champ.
+/// Message d'erreur sous un champ. VoiceOver le lit déjà avec le champ (`fieldError`) : masqué ici.
 struct FieldErrorText: View {
     let error: FieldError?
 
@@ -57,6 +101,7 @@ struct FieldErrorText: View {
             Text(Self.key(for: error), bundle: .module)
                 .font(.footnote)
                 .foregroundStyle(AppColor.destructive)
+                .accessibilityHidden(true)
         }
     }
 
@@ -96,7 +141,8 @@ struct FailureText: View {
     }
 }
 
-/// Bouton d'envoi : il garde son libellé pendant l'envoi (VoiceOver), avec un indicateur à côté.
+/// Bouton d'envoi aux couleurs du thème (GLB-012). Il garde son libellé pendant l'envoi (VoiceOver),
+/// avec un indicateur à côté.
 struct SubmitButton: View {
     let title: LocalizedStringKey
     let isSubmitting: Bool
@@ -110,18 +156,25 @@ struct SubmitButton: View {
                 Text(title, bundle: .module)
                 if isSubmitting {
                     ProgressView()
+                        .tint(AppColor.primaryForeground)
                 }
             }
-            .frame(maxWidth: .infinity)
+            .foregroundStyle(AppColor.primaryForeground)
+            .frame(maxWidth: .infinity, minHeight: 44)
         }
         .buttonStyle(.borderedProminent)
+        .tint(AppColor.primary)
         .disabled(isSubmitting)
         .accessibilityIdentifier("auth.submit")
     }
 }
 
-/// Réglages de saisie propres à iOS (le package compile aussi pour macOS, pour `swift test`).
 extension View {
+    /// L'erreur d'un champ est lue par VoiceOver avec lui, comme sur Android (`semantics { error }`).
+    func fieldError(_ error: FieldError?) -> some View {
+        accessibilityHint(error.map { Text(FieldErrorText.key(for: $0), bundle: .module) } ?? Text(verbatim: ""))
+    }
+
     func nameInput() -> some View {
         #if os(iOS)
             textContentType(.name)
@@ -130,9 +183,11 @@ extension View {
         #endif
     }
 
-    fileprivate func emailInput(isNewAccount: Bool) -> some View {
+    /// Réglages de saisie propres à iOS (le package compile aussi pour macOS, pour `swift test`).
+    /// `.username` à la connexion comme à l'inscription : le trousseau associe le mot de passe à l'adresse.
+    fileprivate func emailInput() -> some View {
         #if os(iOS)
-            textContentType(isNewAccount ? .emailAddress : .username)
+            textContentType(.username)
                 .keyboardType(.emailAddress)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
