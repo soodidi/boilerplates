@@ -39,6 +39,7 @@ src/
 ├── features/
 │   ├── auth/       # connexion, inscription, mot de passe oublié, garde des routes (BE-006)
 │   ├── home/
+│   ├── legal/      # mentions légales, confidentialité, CGU (GLB-013)
 │   └── notes/      # feature d'exemple complète, privée
 │       ├── api/        # requêtes + hooks TanStack Query
 │       ├── components/
@@ -62,6 +63,7 @@ La feature `notes` est là pour montrer les patterns : la supprimer (et sa route
 | Données serveur avec TanStack Query, query keys par feature                                                                                        | `src/features/notes/api`                                                                 | FE-004           |
 | Formulaire RHF + Zod, erreurs API reportées sur les champs, ARIA                                                                                   | `src/features/notes/components/create-note-form.tsx`, `src/components/ui/form-field.tsx` | FE-006           |
 | Auth Better Auth : connexion, inscription, vérification d'e-mail, mot de passe oublié, déconnexion, routes privées (`beforeLoad`), 401 → connexion | `src/features/auth/`, `src/app/router.tsx`, `src/main.tsx`                               | BE-006           |
+| Pages légales modèles (mentions légales, confidentialité, CGU), liées dans le pied de page                                                         | `src/features/legal/`                                                                    | GLB-013          |
 | Client HTTP qui valide les réponses et lève des `ProblemDetailsError`                                                                              | `src/lib/http.ts`                                                                        | FE-002, BE-004   |
 | Tailwind avec tokens sémantiques, mode sombre, `cn()` + `cva`                                                                                      | `src/styles.css`, `src/components/ui`                                                    | FE-005           |
 | React Compiler                                                                                                                                     | `vite.config.ts`                                                                         | FE-008           |
@@ -80,6 +82,12 @@ La feature `notes` est là pour montrer les patterns : la supprimer (et sa route
 - **Messages** : toujours génériques (« si un compte existe… ») : le front ne révèle jamais si une adresse est inscrite.
 - **Avec la vraie API** : le front et l'API DOIVENT être sur le même domaine (ex. `app.example.com` et `api.app.example.com`), sinon le navigateur n'envoie pas le cookie de session. L'origine du front doit être dans `CORS_ORIGINS` de l'API.
 - **Mises à jour** : `better-auth` n'est jamais fusionné automatiquement par Renovate ; garder la même version que l'API.
+
+## Pages légales (GLB-013)
+
+- **À compléter avant la mise en ligne** : les champs entre crochets de `src/features/legal/legal-info.ts` (éditeur, adresse, contact, directeur de la publication, date de mise à jour). C'est le seul fichier à remplir ; les textes fr et en s'en servent.
+- **À relire** : les textes de `src/features/legal/content/` décrivent l'app telle que livrée (compte, sessions, notes ; Scaleway, Sentry, Apple et Google). Toute nouvelle donnée personnelle, tout nouveau sous-traitant ou traceur s'y ajoute dans la même PR (GLB-013).
+- Les textes longs ne sont pas dans `src/i18n/` : ils sont chargés avec leurs pages, pour ne pas alourdir le bundle initial (FE-008).
 
 ## Déploiement
 

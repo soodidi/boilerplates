@@ -93,6 +93,13 @@ export const fr = {
       passwordTooShort: (min: number) => `${min} caractères minimum.`,
     },
   },
+  legal: {
+    footerLabel: 'Informations légales',
+    notice: 'Mentions légales',
+    privacy: 'Politique de confidentialité',
+    terms: "Conditions d'utilisation",
+    lastUpdated: (date: string) => `Dernière mise à jour : ${date}`,
+  },
   validation: {
     required: 'Ce champ est obligatoire.',
     tooLong: (max: number) => `${max} caractères maximum.`,

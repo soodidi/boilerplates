@@ -93,6 +93,13 @@ export const en: Messages = {
       passwordTooShort: (min: number) => `At least ${min} characters.`,
     },
   },
+  legal: {
+    footerLabel: 'Legal information',
+    notice: 'Legal notice',
+    privacy: 'Privacy policy',
+    terms: 'Terms of use',
+    lastUpdated: (date: string) => `Last updated: ${date}`,
+  },
   validation: {
     required: 'This field is required.',
     tooLong: (max: number) => `${max} characters maximum.`,

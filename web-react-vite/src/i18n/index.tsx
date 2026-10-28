@@ -23,15 +23,25 @@ export function detectLocale(): Locale {
 }
 
 const MessagesContext = createContext<Messages>(catalogs[DEFAULT_LOCALE]);
+const LocaleContext = createContext<Locale>(DEFAULT_LOCALE);
 
 export function I18nProvider({ locale, children }: { locale: Locale; children: ReactNode }) {
   useEffect(() => {
     document.documentElement.lang = locale;
   }, [locale]);
 
-  return <MessagesContext value={catalogs[locale]}>{children}</MessagesContext>;
+  return (
+    <LocaleContext value={locale}>
+      <MessagesContext value={catalogs[locale]}>{children}</MessagesContext>
+    </LocaleContext>
+  );
 }
 
 export function useMessages(): Messages {
   return use(MessagesContext);
+}
+
+/** Langue courante, pour les contenus longs chargés à la demande hors des catalogues (pages légales). */
+export function useLocale(): Locale {
+  return use(LocaleContext);
 }
