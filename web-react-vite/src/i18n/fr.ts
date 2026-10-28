@@ -65,6 +65,13 @@ export const fr = {
       checkInbox: (email: string) =>
         `Si l'adresse ${email} peut être utilisée, un e-mail vient d'y être envoyé. Ouvrez le lien qu'il contient pour continuer.`,
       backToLogin: 'Retour à la connexion',
+      consent: {
+        before: 'En créant un compte, vous acceptez les ',
+        terms: "conditions d'utilisation",
+        between: ' et prenez connaissance de la ',
+        privacy: 'politique de confidentialité',
+        after: '.',
+      },
     },
     forgot: {
       title: 'Mot de passe oublié',
@@ -92,6 +99,13 @@ export const fr = {
       email: 'Adresse e-mail invalide.',
       passwordTooShort: (min: number) => `${min} caractères minimum.`,
     },
+  },
+  legal: {
+    footerLabel: 'Informations légales',
+    notice: 'Mentions légales',
+    privacy: 'Politique de confidentialité',
+    terms: "Conditions d'utilisation",
+    lastUpdated: (date: string) => `Dernière mise à jour : ${date}`,
   },
   validation: {
     required: 'Ce champ est obligatoire.',

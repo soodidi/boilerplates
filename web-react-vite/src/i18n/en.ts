@@ -66,6 +66,13 @@ export const en: Messages = {
       checkInbox: (email: string) =>
         `If ${email} can be used, an email has just been sent to it. Open the link inside to continue.`,
       backToLogin: 'Back to sign in',
+      consent: {
+        before: 'By creating an account, you accept the ',
+        terms: 'terms of use',
+        between: ' and acknowledge the ',
+        privacy: 'privacy policy',
+        after: '.',
+      },
     },
     forgot: {
       title: 'Forgot password',
@@ -92,6 +99,13 @@ export const en: Messages = {
       email: 'Invalid email address.',
       passwordTooShort: (min: number) => `At least ${min} characters.`,
     },
+  },
+  legal: {
+    footerLabel: 'Legal information',
+    notice: 'Legal notice',
+    privacy: 'Privacy policy',
+    terms: 'Terms of use',
+    lastUpdated: (date: string) => `Last updated: ${date}`,
   },
   validation: {
     required: 'This field is required.',

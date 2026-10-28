@@ -30,7 +30,11 @@ export function initSentry(config: AppConfig, router: AppRouter) {
   });
 }
 
-/** Identifie l'utilisateur par son identifiant interne uniquement, jamais son e-mail (FE-009). */
+/**
+ * Identifie l'utilisateur par son identifiant interne uniquement, jamais son e-mail (FE-009).
+ * Non appelée par défaut : l'appeler oblige à mettre à jour la politique de confidentialité
+ * (`src/features/legal/content/`, GLB-013), qui annonce des rapports d'erreurs sans identifiant.
+ */
 export function setSentryUser(userId: string | null) {
   Sentry.setUser(userId ? { id: userId } : null);
 }

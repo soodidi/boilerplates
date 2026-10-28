@@ -1,5 +1,6 @@
 import { Link, Outlet } from '@tanstack/react-router';
 import { AccountMenu } from '@/features/auth';
+import { LegalFooter } from '@/features/legal';
 import { useMessages } from '@/i18n';
 
 const navLinkClass =
@@ -9,7 +10,7 @@ export function RootLayout() {
   const m = useMessages();
 
   return (
-    <div className="min-h-dvh">
+    <div className="flex min-h-dvh flex-col">
       {/* FE-008 : lien d'évitement pour la navigation au clavier. */}
       <a
         href="#main"
@@ -43,9 +44,14 @@ export function RootLayout() {
           </div>
         </nav>
       </header>
-      <main id="main" tabIndex={-1} className="mx-auto max-w-4xl px-4 py-8 focus:outline-none">
+      <main
+        id="main"
+        tabIndex={-1}
+        className="mx-auto w-full max-w-4xl flex-1 px-4 py-8 focus:outline-none"
+      >
         <Outlet />
       </main>
+      <LegalFooter />
     </div>
   );
 }

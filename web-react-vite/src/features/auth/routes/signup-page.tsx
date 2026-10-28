@@ -11,6 +11,8 @@ import { AuthLayout, authLinkClass } from '../components/auth-layout';
 import { FormMessage } from '../components/form-message';
 import { PASSWORD_MIN, signUpFormSchema } from '../schemas/auth';
 
+const consentLinkClass = 'underline underline-offset-4 hover:text-foreground';
+
 export function SignupPage() {
   const m = useMessages();
   const signUp = useSignUp();
@@ -65,6 +67,19 @@ export function SignupPage() {
         </FormField>
 
         <FormMessage error={signUp.isError ? authErrorMessage(signUp.error, m) : undefined} />
+
+        {/* GLB-013 : les conditions sont acceptées à l'inscription : elles sont donc présentées ici. */}
+        <p className="text-sm text-muted-foreground">
+          {m.auth.signup.consent.before}
+          <Link to="/legal/terms" className={consentLinkClass}>
+            {m.auth.signup.consent.terms}
+          </Link>
+          {m.auth.signup.consent.between}
+          <Link to="/legal/privacy" className={consentLinkClass}>
+            {m.auth.signup.consent.privacy}
+          </Link>
+          {m.auth.signup.consent.after}
+        </p>
 
         <Button type="submit" disabled={isSubmitting}>
           {isSubmitting ? m.auth.signup.submitting : m.auth.signup.submit}
