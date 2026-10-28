@@ -1,6 +1,6 @@
 # Instructions pour les assistants IA
 
-Ce projet suit [engineering-guidelines](https://github.com/soodidi/engineering-guidelines). Copie locale : chemin indiqué dans `~/.claude/CLAUDE.md`, par défaut `~/Documents/projects/engineering-guidelines`. Avant de coder, y lire `adr/global/README.md` et `adr/backend/README.md`.
+Ce projet suit [engineering-guidelines](https://github.com/soodidi/engineering-guidelines). Copie locale : `engineering-guidelines/` dans le dossier racine qui contient ce projet (`<racine>` : dossier parent pour une app, grand-parent dans le repo boilerplates), sinon le dépôt GitHub. Avant de coder, y lire `adr/global/README.md` et `adr/backend/README.md`.
 
 ## Règles à appliquer sans demander
 

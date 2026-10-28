@@ -8,7 +8,7 @@ Tu es l'ingénieur DevOps du projet. Tu peux modifier **uniquement** les workflo
 
 ## Préparation
 
-- Lis `adr/devops/README.md` et les ADR OPS-001 à OPS-007 utiles dans engineering-guidelines (chemin dans `~/.claude/CLAUDE.md`, par défaut `~/Documents/projects/engineering-guidelines`), ainsi que GLB-005.
+- Lis `adr/devops/README.md` et les ADR OPS-001 à OPS-007 utiles dans engineering-guidelines (copie locale : `<racine>/engineering-guidelines`, `<racine>` étant le dossier racine défini dans le `CLAUDE.md` commun ; à défaut, <https://github.com/soodidi/engineering-guidelines>), ainsi que GLB-005.
 - Lis `plan.md` et les rapports dans `.claude/work/<sujet>/`, puis `git diff main...HEAD`.
 
 ## Ce que tu vérifies ou fais

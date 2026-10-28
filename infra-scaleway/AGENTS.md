@@ -1,6 +1,6 @@
 # Instructions pour les assistants IA
 
-Ce projet suit [engineering-guidelines](https://github.com/soodidi/engineering-guidelines). Copie locale : chemin indiqué dans `~/.claude/CLAUDE.md`, par défaut `~/Documents/projects/engineering-guidelines`. Avant de modifier l'infrastructure, y lire `adr/global/README.md` et `adr/devops/README.md`.
+Ce projet suit [engineering-guidelines](https://github.com/soodidi/engineering-guidelines). Copie locale : `engineering-guidelines/` dans le dossier racine qui contient ce projet (`<racine>` : dossier parent pour une app, grand-parent dans le repo boilerplates), sinon le dépôt GitHub. Avant de modifier l'infrastructure, y lire `adr/global/README.md` et `adr/devops/README.md`.
 
 - Toute ressource durable est décrite ici, jamais créée à la main (OPS-003).
 - Les environnements utilisent les mêmes modules avec des variables différentes. Ne pas dupliquer de ressource dans `envs/` : ajouter ou étendre un module.
