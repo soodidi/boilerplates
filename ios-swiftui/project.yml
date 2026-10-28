@@ -27,10 +27,15 @@ targets:
       - package: Packages
         product: NotesFeature
       - package: Packages
+        product: CoreAuth
+      - package: Packages
         product: CoreNetworking
     # Les tests du package local sont aussi lancés par `xcodebuild test` sur simulateur (IOS-005).
     scheme:
       testTargets:
+        # Tests hébergés par l'app : le Keychain demande un trousseau d'app (IOS-004).
+        - iOSAppTests
+        - package: Packages/CoreAuthTests
         - package: Packages/CoreNetworkingTests
         - package: Packages/NotesFeatureTests
     settings:
@@ -47,3 +52,16 @@ targets:
           INFOPLIST_FILE: App/Info-Debug.plist
         Release:
           API_BASE_URL: https://api.example.com
+  iOSAppTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - AppTests
+    dependencies:
+      - target: iOSApp
+      - package: Packages
+        product: CoreAuth
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.example.app.tests
+        GENERATE_INFOPLIST_FILE: YES

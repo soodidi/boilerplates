@@ -29,12 +29,14 @@ App/                     # point d'entrée, injection des dépendances, Info.pli
 Packages/                # package local : un target = un module
 ├── Package.swift
 ├── Sources/
+│   ├── CoreAuth/        # session : token en mémoire, copie dans le Keychain
 │   ├── CoreModels/      # modèles du domaine
-│   ├── CoreNetworking/  # client HTTP, Problem Details, APIError
+│   ├── CoreNetworking/  # client HTTP sans cookies, Bearer, Problem Details, APIError
 │   ├── DesignSystem/    # espacements, composants partagés
 │   └── NotesFeature/    # feature d'exemple : repository, ViewModel, vue, String Catalog
 └── Tests/               # Swift Testing
 docs/smoke-test.md       # checklist avant soumission (GLB-009)
+scripts/test-simulator.sh  # tests du schéma iOSApp sur un simulateur iPhone
 ```
 
 Une nouvelle feature = un nouveau target `XxxFeature` dans `Package.swift`, qui dépend des modules `Core*` et jamais d'une autre feature. La feature `notes` utilise le même contrat d'API que les boilerplates `api-nestjs`, `web-react-vite` et `android-compose`.
@@ -49,12 +51,12 @@ Une nouvelle feature = un nouveau target `XxxFeature` dans `Package.swift`, qui 
 | Modules SPM, frontières vérifiées par le compilateur | `Packages/Package.swift` | IOS-002, IOS-003 |
 | Privacy Manifest | `App/PrivacyInfo.xcprivacy` | IOS-003 |
 | Client HTTP typé, erreurs Problem Details, ATS strict (exception locale en Debug) | `CoreNetworking`, `App/Info*.plist` | IOS-004 |
+| Session : token signé dans le Keychain (`AfterFirstUnlockThisDeviceOnly`), `Bearer` vers l'API seulement, URLSession sans cookies, `401` → session effacée | `CoreAuth`, `CoreNetworking` | IOS-004, BE-006 |
 | Textes dans un String Catalog fr/en | `NotesFeature/Resources/Localizable.xcstrings` | GLB-007 |
 | Swift Testing avec fakes, SwiftLint + SwiftFormat, CI macOS | `Packages/Tests`, `.swiftlint.yml`, `.github/workflows/ios.yml` | IOS-005 |
 
 ## À ajouter selon le projet
 
-- **Authentification** : tokens dans le Keychain, renouvellement protégé par un acteur (IOS-004, BE-006).
 - **Persistance locale** : SwiftData (IOS-004).
 - **Client généré** depuis la spec OpenAPI avec swift-openapi-generator (IOS-004).
 - **Publication** : Fastlane (`match`, TestFlight, publication progressive) (IOS-005).

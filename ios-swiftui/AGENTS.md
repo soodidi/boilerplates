@@ -12,7 +12,7 @@ Ce projet suit [engineering-guidelines](https://github.com/soodidi/engineering-g
 - Les DTO restent dans le module de la feature ; les vues ne manipulent que les modèles de `CoreModels`.
 - Pas de `print` : `Logger` (OSLog) avec la confidentialité par défaut ; jamais de token ni de donnée personnelle (IOS-004).
 - Ne pas modifier le `.xcodeproj` à la main : il est généré par `xcodegen generate` depuis `project.yml`.
-- Avant de proposer une PR : `swiftformat --lint .`, `swiftlint --strict`, `swift test --package-path Packages`.
+- Avant de proposer une PR : `swiftformat --lint .`, `swiftlint --strict`, `swift test --package-path Packages`, puis `xcodegen generate && scripts/test-simulator.sh` (tests sur simulateur, dont le Keychain).
 
 ## Travail avec l'IA (GLB-011)
 

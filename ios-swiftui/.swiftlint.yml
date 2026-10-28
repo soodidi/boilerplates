@@ -1,6 +1,7 @@
 # IOS-005 : règles d'analyse. Le formatage est géré par SwiftFormat.
 included:
   - App
+  - AppTests
   - Packages/Sources
   - Packages/Tests
 excluded:

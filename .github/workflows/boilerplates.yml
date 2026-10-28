@@ -105,7 +105,5 @@ jobs:
       - run: brew install swiftlint swiftformat xcodegen
       - run: swiftformat --lint . && swiftlint --strict
       - run: swift test --package-path Packages
-      - run: |
-          xcodegen generate
-          xcodebuild build -project iOSApp.xcodeproj -scheme iOSApp \
-            -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO
+      # Tests sur simulateur (Keychain) : construit aussi l'app complète.
+      - run: xcodegen generate && scripts/test-simulator.sh
