@@ -73,7 +73,7 @@ export const en: LegalContent = (info) => ({
           [
             'account and content: until you delete your account;',
             'sessions: valid for 30 days after their last use and at most 90 days after sign-in, then erased within 24 hours;',
-            'IP address used to limit attempts: 24 hours;',
+            'IP address used to limit attempts: at most 48 hours after the last attempt;',
             'links sent by email: until they expire, one hour at most, then erased within 24 hours;',
             `server technical logs (requested addresses, results, without IP address or browser): ${info.logRetentionDays} days;`,
             `technical error reports: ${info.errorRetentionDays} days;`,

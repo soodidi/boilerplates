@@ -23,7 +23,7 @@ export const legalInfo = {
   backupRetentionDays: 14,
   /** Rétention des logs de l'API dans Cockpit : 7 jours par défaut chez Scaleway, à vérifier dans la console. */
   logRetentionDays: 7,
-  /** Rétention des événements Sentry : dépend de l'offre (90 jours sur les offres courantes), à vérifier. */
+  /** Rétention des événements Sentry : dépend de l'offre (30 jours en gratuit, 90 sur les offres payantes), à vérifier. */
   errorRetentionDays: 90,
 };
 

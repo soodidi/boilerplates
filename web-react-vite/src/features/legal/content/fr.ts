@@ -73,7 +73,7 @@ export const fr: LegalContent = (info) => ({
           [
             'compte et contenus : jusqu’à la suppression de votre compte ;',
             'sessions : valables 30 jours après leur dernière utilisation et 90 jours au plus après la connexion, puis effacées dans les 24 heures ;',
-            'adresse IP utilisée pour limiter les tentatives : 24 heures ;',
+            'adresse IP utilisée pour limiter les tentatives : 48 heures au plus après la dernière tentative ;',
             'liens envoyés par e-mail : jusqu’à leur expiration, une heure au plus, puis effacés dans les 24 heures ;',
             `journaux techniques du serveur (adresses demandées, résultats, sans adresse IP ni navigateur) : ${info.logRetentionDays} jours ;`,
             `rapports d’erreurs techniques : ${info.errorRetentionDays} jours ;`,
