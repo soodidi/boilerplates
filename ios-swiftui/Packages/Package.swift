@@ -13,21 +13,24 @@ let package = Package(
         .macOS("15.0"),
     ],
     products: [
+        .library(name: "CoreAuth", targets: ["CoreAuth"]),
         .library(name: "CoreModels", targets: ["CoreModels"]),
         .library(name: "CoreNetworking", targets: ["CoreNetworking"]),
         .library(name: "DesignSystem", targets: ["DesignSystem"]),
         .library(name: "NotesFeature", targets: ["NotesFeature"]),
     ],
     targets: [
+        .target(name: "CoreAuth"),
         .target(name: "CoreModels"),
-        .target(name: "CoreNetworking", dependencies: ["CoreModels"]),
+        .target(name: "CoreNetworking", dependencies: ["CoreAuth", "CoreModels"]),
         .target(name: "DesignSystem"),
         .target(
             name: "NotesFeature",
             dependencies: ["CoreModels", "CoreNetworking", "DesignSystem"],
             resources: [.process("Resources")]
         ),
-        .testTarget(name: "CoreNetworkingTests", dependencies: ["CoreNetworking"]),
+        .testTarget(name: "CoreAuthTests", dependencies: ["CoreAuth"]),
+        .testTarget(name: "CoreNetworkingTests", dependencies: ["CoreNetworking", "CoreAuth"]),
         .testTarget(name: "NotesFeatureTests", dependencies: ["NotesFeature", "CoreModels", "CoreNetworking"]),
     ],
     // IOS-001 : mode de langage Swift 6 (concurrence stricte).
