@@ -1,6 +1,7 @@
 name: boilerplates
 
-# GLB-010 : chaque boilerplate est vérifié sur chaque PR.
+# GLB-010 : chaque boilerplate est vérifié sur chaque PR qui le touche (OPS-002 : jobs filtrés par
+# chemins, voir scripts/ci-changes.sh), et tous le sont à chaque push sur main.
 # Les workflows situés dans les sous-dossiers ne s'exécutent qu'une fois le boilerplate copié dans son propre repo.
 
 on:
@@ -16,6 +17,31 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Boilerplates touchés par la PR. Un job sauté compte comme réussi pour les checks requis : si ce
+  # job échoue, les jobs suivants tournent tous (`!cancelled()`), plutôt que d'être sautés.
+  changes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      web-react-vite: ${{ steps.filter.outputs.web-react-vite }}
+      api-nestjs: ${{ steps.filter.outputs.api-nestjs }}
+      infra-scaleway: ${{ steps.filter.outputs.infra-scaleway }}
+      android-compose: ${{ steps.filter.outputs.android-compose }}
+      ios-swiftui: ${{ steps.filter.outputs.ios-swiftui }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 2
+      # Sur une PR, HEAD est le commit de fusion : son premier parent est la branche cible.
+      - id: filter
+        env:
+          EVENT: ${{ github.event_name }}
+        run: |
+          if [ "$EVENT" = pull_request ]; then git diff --name-only HEAD^1 HEAD; fi \
+            | scripts/ci-changes.sh "$EVENT" "$GITHUB_OUTPUT"
+          cat "$GITHUB_OUTPUT"
+
   shared:
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -28,6 +54,8 @@ jobs:
       - run: bash -n _shared/claude/hooks/after-edit.sh
 
   node:
+    needs: changes
+    if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     timeout-minutes: 25
     strategy:
@@ -37,25 +65,38 @@ jobs:
     defaults:
       run:
         working-directory: ${{ matrix.project }}
+    # Matrice : le job tourne toujours (sinon les checks « node (…) » requis ne seraient jamais
+    # rapportés), mais ses étapes sont sautées si le projet n'est pas touché.
+    env:
+      RUN: ${{ needs.changes.result != 'success' || needs.changes.outputs[matrix.project] == 'true' }}
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - if: env.RUN != 'true'
+        working-directory: .
+        run: echo '${{ matrix.project }} non modifié par cette PR, vérification sautée.'
+      - if: env.RUN == 'true'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      - if: env.RUN == 'true'
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: ${{ matrix.project }}/.nvmrc
           cache: npm
           cache-dependency-path: ${{ matrix.project }}/package-lock.json
-      - run: npm ci
-      - run: npm run verify
+      - if: env.RUN == 'true'
+        run: npm ci
+      - if: env.RUN == 'true'
+        run: npm run verify
       # API : la stack de dev dans l'image de production (setup, migrations, inscription, e-mail).
-      - if: matrix.project == 'api-nestjs'
+      - if: env.RUN == 'true' && matrix.project == 'api-nestjs'
         id: stack
         run: npm run setup && npm run stack && npm run stack:smoke
       - if: failure() && steps.stack.outcome == 'failure'
         run: docker compose --profile app logs
 
   infra:
+    needs: changes
+    if: ${{ !cancelled() && (needs.changes.result != 'success' || needs.changes.outputs.infra-scaleway == 'true') }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     defaults:
@@ -76,6 +117,8 @@ jobs:
           done
 
   android:
+    needs: changes
+    if: ${{ !cancelled() && (needs.changes.result != 'success' || needs.changes.outputs.android-compose == 'true') }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     defaults:
@@ -93,6 +136,8 @@ jobs:
       - run: ./gradlew ktlintCheck lintDebug testDebugUnitTest assembleDebug
 
   ios:
+    needs: changes
+    if: ${{ !cancelled() && (needs.changes.result != 'success' || needs.changes.outputs.ios-swiftui == 'true') }}
     runs-on: macos-latest
     timeout-minutes: 30
     defaults:
