@@ -8,7 +8,7 @@ import Testing
 @Suite("KeychainTokenStorage", .serialized)
 struct KeychainTokenStorageTests {
     /// Un service par test : aucun élément partagé avec l'app ni entre les tests.
-    private let service = "CoreAuthTests.\(UUID().uuidString)"
+    private let service = "iOSAppTests.\(UUID().uuidString)"
 
     @Test("écrit, relit, remplace puis efface le token")
     func roundTrip() throws {
@@ -26,7 +26,11 @@ struct KeychainTokenStorageTests {
 
     @Test("effacer une session absente n'est pas une erreur")
     func clearsMissingItem() throws {
-        try KeychainTokenStorage(service: service).write(nil)
+        let storage = KeychainTokenStorage(service: service)
+
+        try storage.write(nil)
+
+        #expect(try storage.read() == nil)
     }
 
     @Test("élément lisible seulement sur cet appareil, après le premier déverrouillage")

@@ -16,6 +16,8 @@ public enum SessionState: Sendable, Equatable {
 public final class SessionStore: Sendable {
     private struct Session {
         var token: String?
+        /// La lecture du Keychain a échoué : elle est retentée au prochain accès.
+        var needsRead = false
         var observers: [UUID: AsyncStream<SessionState>.Continuation] = [:]
 
         var state: SessionState {
@@ -29,36 +31,41 @@ public final class SessionStore: Sendable {
 
     public init(storage: any TokenStorage) {
         self.storage = storage
-        let stored: String?
-        do {
-            stored = try storage.read()
-        } catch {
-            // Appareil verrouillé avant le premier déverrouillage, ou Keychain indisponible :
-            // l'utilisateur se reconnecte ; la copie n'est pas effacée, elle sera remplacée.
-            Self.logger.error("Session illisible dans le Keychain : \(String(describing: error))")
-            stored = nil
-        }
-        locked = Mutex(Session(token: stored))
+        var session = Session()
+        Self.read(from: storage, into: &session)
+        locked = Mutex(session)
     }
 
     public var state: SessionState {
-        locked.withLock { $0.state }
+        locked.withLock { session in
+            retryRead(&session)
+            return session.state
+        }
+    }
+
+    /// Nombre d'abonnés à `states()`, pour les tests.
+    var observerCount: Int {
+        locked.withLock { $0.observers.count }
     }
 
     /// Lu par le client HTTP, sur ses propres fils.
     public func currentToken() -> String? {
-        locked.withLock { $0.token }
+        locked.withLock { session in
+            retryRead(&session)
+            return session.token
+        }
     }
 
-    /// Émet l'état courant, puis chaque changement.
+    /// Émet l'état courant, puis chaque changement (rares : aucun n'est perdu).
     public func states() -> AsyncStream<SessionState> {
-        let (stream, continuation) = AsyncStream.makeStream(of: SessionState.self, bufferingPolicy: .bufferingNewest(1))
+        let (stream, continuation) = AsyncStream.makeStream(of: SessionState.self)
         let id = UUID()
         // Posé avant l'enregistrement : appelé tout de suite, il prendrait le verrou qu'on tient.
         continuation.onTermination = { [weak self] _ in
             self?.locked.withLock { _ = $0.observers.removeValue(forKey: id) }
         }
         locked.withLock { session in
+            retryRead(&session)
             session.observers[id] = continuation
             continuation.yield(session.state)
         }
@@ -81,7 +88,9 @@ public final class SessionStore: Sendable {
 
     /// Sous le verrou, pour que la dernière écriture dans le Keychain soit toujours la bonne.
     /// Un échec d'écriture n'est pas propagé : la session reste valable en mémoire
-    /// et sera simplement perdue à la fermeture de l'app.
+    /// et sera simplement perdue à la fermeture de l'app. Si c'est l'effacement qui échoue,
+    /// la copie revient au lancement suivant : la déconnexion révoque d'abord la session côté
+    /// serveur, et ce token périmé reçoit alors un `401`, qui l'efface.
     private func update(to token: String?, onlyIfCurrent expected: String? = nil) {
         locked.withLock { session in
             if let expected, session.token != expected {
@@ -89,16 +98,44 @@ public final class SessionStore: Sendable {
             }
             let previous = session.state
             session.token = token
+            session.needsRead = false
             do {
                 try storage.write(token)
             } catch {
                 Self.logger.error("Écriture de la session dans le Keychain impossible : \(String(describing: error))")
             }
             if session.state != previous {
-                for observer in session.observers.values {
-                    observer.yield(session.state)
-                }
+                notify(session)
             }
+        }
+    }
+
+    /// Keychain indisponible, par exemple quand le système lance l'app en avance (prewarming) avant
+    /// le premier déverrouillage : session vue comme déconnectée, et la copie n'est pas effacée.
+    private static func read(from storage: any TokenStorage, into session: inout Session) {
+        do {
+            session.token = try storage.read()
+            session.needsRead = false
+        } catch {
+            logger.error("Session illisible dans le Keychain : \(String(describing: error))")
+            session.needsRead = true
+        }
+    }
+
+    private func retryRead(_ session: inout Session) {
+        guard session.needsRead else {
+            return
+        }
+        let previous = session.state
+        Self.read(from: storage, into: &session)
+        if session.state != previous {
+            notify(session)
+        }
+    }
+
+    private func notify(_ session: Session) {
+        for observer in session.observers.values {
+            observer.yield(session.state)
         }
     }
 }

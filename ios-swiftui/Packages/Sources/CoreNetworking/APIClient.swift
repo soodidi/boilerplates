@@ -40,7 +40,21 @@ public final class APIClient: Sendable {
         return configuration
     }
 
-    private static let urlSession = URLSession(configuration: makeConfiguration())
+    private static let urlSession = URLSession(configuration: makeConfiguration(), delegate: NoRedirects(), delegateQueue: nil)
+
+    /// IOS-004 : URLSession suit les redirections en recopiant les en-têtes, `Authorization` compris :
+    /// une redirection vers un autre hôte lui enverrait le token. Une API JSON n'en a pas besoin,
+    /// elles sont donc toutes refusées : la réponse 3xx remonte comme une erreur.
+    final class NoRedirects: NSObject, URLSessionTaskDelegate, Sendable {
+        func urlSession(
+            _: URLSession,
+            task _: URLSessionTask,
+            willPerformHTTPRedirection _: HTTPURLResponse,
+            newRequest _: URLRequest
+        ) async -> URLRequest? {
+            nil
+        }
+    }
 
     public func get<Response: Decodable>(_ path: String, query: [URLQueryItem] = []) async throws(APIError) -> Response {
         try await send(makeRequest(method: "GET", path: path, query: query))
@@ -107,7 +121,7 @@ public final class APIClient: Sendable {
             throw .network
         }
         guard let http = response as? HTTPURLResponse else {
-            throw .decoding
+            throw .network
         }
         if let token, http.statusCode == 401 {
             // Seulement ce token : un `401` arrivé après une reconnexion ne déconnecte pas la nouvelle session.

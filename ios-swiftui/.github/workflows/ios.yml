@@ -33,6 +33,6 @@ jobs:
           persist-credentials: false
       # IOS-005 : tests des modules (Swift Testing), rapides, sans simulateur.
       - run: swift test --package-path Packages
-      # Tests sur simulateur (Keychain), sans signature : construit aussi l'app complète.
+      # Tests sur simulateur (Keychain), signature ad hoc sans équipe : construit aussi l'app complète.
       - run: brew install xcodegen && xcodegen generate
       - run: scripts/test-simulator.sh

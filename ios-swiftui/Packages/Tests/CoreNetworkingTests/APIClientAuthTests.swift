@@ -48,7 +48,7 @@ private final class MemoryStorage: TokenStorage {
     }
 }
 
-@Suite("APIClient : session")
+@Suite("APIClient : session", .timeLimit(.minutes(1)))
 struct APIClientAuthTests {
     let baseURL = URL(string: "https://api.example.com")!
 
@@ -87,16 +87,95 @@ struct APIClientAuthTests {
         #expect(recorder.request?.value(forHTTPHeaderField: "Authorization") == nil)
     }
 
+    private func httpError(_ status: Int) -> APIError {
+        .http(ProblemDetails(title: HTTPURLResponse.localizedString(forStatusCode: status), status: status))
+    }
+
     @Test("un 401 efface la session")
     func unauthorizedClearsSession() async {
         let session = signedIn()
         let client = APIClient(baseURL: baseURL, session: session, transport: RecordingTransport(status: 401).transport)
 
-        await #expect(throws: APIError.self) {
+        await #expect(throws: httpError(401)) {
             let _: Empty = try await client.get("v1/notes")
         }
 
         #expect(session.state == .signedOut)
+    }
+
+    @Test("POST : Bearer envoyé, et un 401 efface la session")
+    func postSendsBearerAndHandlesUnauthorized() async {
+        let session = signedIn()
+        let recorder = RecordingTransport(status: 401)
+        let client = APIClient(baseURL: baseURL, session: session, transport: recorder.transport)
+
+        await #expect(throws: httpError(401)) {
+            let _: Empty = try await client.post("v1/notes", body: Empty())
+        }
+
+        #expect(recorder.request?.value(forHTTPHeaderField: "Authorization") == "Bearer token")
+        #expect(session.state == .signedOut)
+    }
+
+    @Test("postRaw : Bearer envoyé, et un 401 efface la session sans lever d'erreur")
+    func postRawHandlesUnauthorized() async throws {
+        let session = signedIn()
+        let recorder = RecordingTransport(status: 401)
+        let client = APIClient(baseURL: baseURL, session: session, transport: recorder.transport)
+
+        let response = try await client.postRaw("v1/auth/sign-out", body: Empty())
+
+        #expect(response.status == 401)
+        #expect(recorder.request?.value(forHTTPHeaderField: "Authorization") == "Bearer token")
+        #expect(session.state == .signedOut)
+    }
+
+    @Test("postRaw : erreur réseau typée, session conservée")
+    func postRawNetworkError() async {
+        let session = signedIn()
+        let client = APIClient(baseURL: baseURL, session: session) { _ in throw URLError(.notConnectedToInternet) }
+
+        await #expect(throws: APIError.network) {
+            _ = try await client.postRaw("v1/auth/sign-out", body: Empty())
+        }
+
+        #expect(session.state == .signedIn)
+    }
+
+    @Test("une réponse qui n'est pas HTTP est une erreur réseau")
+    func nonHTTPResponse() async throws {
+        let url = try #require(URL(string: "https://api.example.com/v1/notes"))
+        let client = APIClient(baseURL: baseURL) { _ in
+            (Data(), URLResponse(url: url, mimeType: nil, expectedContentLength: 0, textEncodingName: nil))
+        }
+
+        await #expect(throws: APIError.network) {
+            let _: Empty = try await client.get("v1/notes")
+        }
+    }
+
+    @Test("refuse toute redirection : le Bearer ne suit pas vers un autre hôte (IOS-004)")
+    func refusesRedirects() async throws {
+        let original = try #require(URL(string: "https://api.example.com/v1/notes"))
+        let target = try #require(URL(string: "https://evil.example.org/collect"))
+        let redirect = try #require(HTTPURLResponse(
+            url: original,
+            statusCode: 302,
+            httpVersion: nil,
+            headerFields: ["Location": target.absoluteString]
+        ))
+        let session = URLSession(configuration: APIClient.makeConfiguration())
+        var next = URLRequest(url: target)
+        next.setValue("Bearer token", forHTTPHeaderField: "Authorization")
+
+        let followed = await APIClient.NoRedirects().urlSession(
+            session,
+            task: session.dataTask(with: original),
+            willPerformHTTPRedirection: redirect,
+            newRequest: next
+        )
+
+        #expect(followed == nil)
     }
 
     @Test("un 401 arrivé après une reconnexion garde la nouvelle session")
@@ -106,7 +185,7 @@ struct APIClientAuthTests {
         let recorder = RecordingTransport(status: 401) { session.save("new") }
         let client = APIClient(baseURL: baseURL, session: session, transport: recorder.transport)
 
-        await #expect(throws: APIError.self) {
+        await #expect(throws: httpError(401)) {
             let _: Empty = try await client.get("v1/notes")
         }
 
@@ -119,7 +198,7 @@ struct APIClientAuthTests {
         let session = signedIn()
         let client = APIClient(baseURL: baseURL, session: session, transport: RecordingTransport(status: 403).transport)
 
-        await #expect(throws: APIError.self) {
+        await #expect(throws: httpError(403)) {
             let _: Empty = try await client.get("v1/notes")
         }
 
