@@ -79,7 +79,7 @@ describe('AccountMenu', () => {
     const user = userEvent.setup();
     const { router } = renderRoute('/notes');
 
-    expect(await screen.findByText(DEMO_USER.email)).toBeInTheDocument();
+    expect(await screen.findByRole('link', { name: 'Mon compte' })).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Se déconnecter' }));
 
     await expect.poll(() => router.state.location.pathname).toBe('/');

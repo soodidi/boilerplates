@@ -72,6 +72,35 @@ export const handlers = [
     return HttpResponse.json({ success: true });
   }),
 
+  // GLB-013 : suppression du compte, mot de passe exigé (même contrat que l'API).
+  http.post('*/v1/auth/delete-user', async ({ request }) => {
+    const user = currentUser();
+    if (!user) return authError(401, 'UNAUTHORIZED');
+    const { password } = (await request.json()) as { password?: unknown };
+    if (typeof password !== 'string' || password === '') return authError(400, 'BAD_REQUEST');
+    if (password !== user.password) return authError(400, 'INVALID_PASSWORD');
+    db.users = db.users.filter((candidate) => candidate.id !== user.id);
+    db.notes = db.notes.filter((note) => note.ownerId !== user.id);
+    db.sessionUserId = null;
+    return HttpResponse.json({ success: true, message: 'User deleted' });
+  }),
+
+  // GLB-013 : export des données de l'utilisateur connecté, une section par module.
+  http.get('*/v1/account/export', () => {
+    const user = currentUser();
+    if (!user) return problem(401, { title: 'Unauthorized' });
+    const notes = db.notes
+      .filter((note) => note.ownerId === user.id)
+      .map(({ ownerId: _ownerId, ...note }) => ({ ...note, updatedAt: note.createdAt }));
+    return HttpResponse.json(
+      {
+        exportedAt: new Date().toISOString(),
+        data: { account: { user: publicUser(user), sessions: [], signInMethods: [] }, notes },
+      },
+      { headers: { 'Content-Disposition': 'attachment; filename="account-export.json"' } },
+    );
+  }),
+
   http.get('*/v1/notes', ({ request }) => {
     if (!currentUser()) return problem(401, { title: 'Unauthorized' });
     const query = new URL(request.url).searchParams.get('q')?.toLowerCase() ?? '';

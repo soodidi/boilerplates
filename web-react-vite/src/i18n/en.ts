@@ -20,6 +20,7 @@ export const en: Messages = {
     description:
       'This boilerplate follows the engineering-guidelines repo. The Notes page shows a complete feature: queries, URL filters and a form.',
     cta: 'See notes',
+    accountDeleted: 'Your account and your data have been deleted.',
   },
   notes: {
     title: 'Notes',
@@ -98,6 +99,32 @@ export const en: Messages = {
     validation: {
       email: 'Invalid email address.',
       passwordTooShort: (min: number) => `At least ${min} characters.`,
+    },
+  },
+  account: {
+    title: 'My account',
+    signedInAs: (email: string) => `Signed in as ${email}`,
+    privacyLink: 'Privacy policy',
+    export: {
+      title: 'Export my data',
+      description:
+        'Download a file with all the data of your account: profile, sessions and content.',
+      submit: 'Download my data',
+      submitting: 'Preparing…',
+      done: 'File downloaded.',
+      error: 'The export could not be prepared. Try again.',
+    },
+    delete: {
+      title: 'Delete my account',
+      description: (days: number) =>
+        `Deletion is immediate and permanent: your account and all your data are erased. Only backups keep them, for ${days} days at most.`,
+      password: 'Current password',
+      confirm: 'I understand that my account and my data will be permanently deleted.',
+      confirmRequired: 'Tick this box to confirm.',
+      submit: 'Delete my account',
+      submitting: 'Deleting…',
+      wrongPassword: 'Wrong password.',
+      sessionExpired: 'Your session has expired. Sign in again to delete your account.',
     },
   },
   legal: {

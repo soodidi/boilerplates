@@ -16,6 +16,7 @@ export const PUBLIC_PAGES: Record<string, string> = {
 /** Private routes: opened after signing in with the demo account. */
 export const PRIVATE_PAGES: Record<string, string> = {
   '/notes': '/notes',
+  '/account': '/account',
 };
 
 export const NOT_FOUND_PAGE = '/page-inexistante';

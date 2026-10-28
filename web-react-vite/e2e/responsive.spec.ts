@@ -1,6 +1,6 @@
 import { expect, type Page, test } from '@playwright/test';
 import { signInAndOpen } from './helpers';
-import { NOT_FOUND_PAGE, PUBLIC_PAGES } from './pages';
+import { NOT_FOUND_PAGE, PRIVATE_PAGES, PUBLIC_PAGES } from './pages';
 
 // FE-008 : chaque écran est utilisable de 320 px au grand écran, sans défilement horizontal.
 const WIDTHS = [320, 768, 1280];
@@ -39,12 +39,15 @@ for (const width of WIDTHS) {
     }
   });
 
-  test(`la page Notes ne défile pas horizontalement à ${width} px`, async ({ page }) => {
-    await page.setViewportSize({ width, height: 800 });
-    await signInAndOpen(page);
-    await expect(page.getByRole('list', { name: 'Liste des notes' })).toBeVisible();
-    await expectNoHorizontalScroll(page, `/notes à ${width} px`);
-  });
+  for (const path of Object.values(PRIVATE_PAGES)) {
+    test(`la page privée ${path} ne défile pas horizontalement à ${width} px`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 800 });
+      // Les mocks gardent la session en mémoire : on ouvre la page par la connexion, sans recharger.
+      await signInAndOpen(page, path);
+      await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+      await expectNoHorizontalScroll(page, `${path} à ${width} px`);
+    });
+  }
 }
 
 test('les champs font au moins 16 px sur mobile (sinon iOS zoome à la saisie)', async ({
@@ -103,16 +106,17 @@ test.describe('contenu long sans espace', () => {
     await expectNoHorizontalScroll(page, 'e-mail long après inscription à 320 px');
   });
 
-  for (const width of [768, 1280]) {
-    test(`un e-mail long dans l'en-tête à ${width} px`, async ({ page }) => {
+  for (const width of WIDTHS) {
+    test(`un e-mail long dans « Mon compte » à ${width} px`, async ({ page }) => {
       await page.setViewportSize({ width, height: 800 });
       await signUp(page);
       await page.getByRole('link', { name: 'Retour à la connexion' }).click();
       await page.getByRole('textbox', { name: 'Adresse e-mail' }).fill(LONG_EMAIL);
       await page.getByLabel('Mot de passe').fill('a long enough password');
       await page.getByRole('button', { name: 'Se connecter' }).click();
-      await expect(page.getByText(LONG_EMAIL)).toBeVisible();
-      await expectNoHorizontalScroll(page, `en-tête avec e-mail long à ${width} px`);
+      await page.getByRole('link', { name: 'Mon compte' }).click();
+      await expect(page.getByText(`Connecté avec ${LONG_EMAIL}`)).toBeVisible();
+      await expectNoHorizontalScroll(page, `« Mon compte » avec e-mail long à ${width} px`);
     });
   }
 });

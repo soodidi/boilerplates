@@ -11,6 +11,8 @@ const buttonVariants = cva(
         primary: 'bg-primary text-primary-foreground hover:bg-primary/90',
         secondary: 'border border-border bg-background hover:bg-muted',
         ghost: 'hover:bg-muted',
+        // Action irréversible (suppression).
+        destructive: 'bg-destructive text-destructive-foreground hover:bg-destructive/90',
       },
       size: {
         sm: 'h-8 px-3',

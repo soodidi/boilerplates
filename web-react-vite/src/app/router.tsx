@@ -15,6 +15,7 @@ import {
   resetPasswordSearchSchema,
   SignupPage,
 } from '@/features/auth';
+import { AccountPage } from '@/features/account';
 import { HomePage } from '@/features/home';
 import { LegalNoticePage, PrivacyPolicyPage, TermsOfUsePage } from '@/features/legal';
 import { NotesPage, notesQueryOptions, notesSearchSchema } from '@/features/notes';
@@ -80,6 +81,14 @@ const notesRoute = createRoute({
   component: NotesPage,
 });
 
+// GLB-013 : export des données et suppression du compte. Page privée.
+const accountRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/account',
+  beforeLoad: requireSession,
+  component: AccountPage,
+});
+
 // GLB-013 : pages légales, publiques.
 const legalNoticeRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -106,6 +115,7 @@ const routeTree = rootRoute.addChildren([
   forgotPasswordRoute,
   resetPasswordRoute,
   notesRoute,
+  accountRoute,
   legalNoticeRoute,
   privacyPolicyRoute,
   termsOfUseRoute,
@@ -130,6 +140,15 @@ export function createAppRouter({ queryClient, history }: CreateAppRouterOptions
 }
 
 export type AppRouter = ReturnType<typeof createAppRouter>;
+
+// État d'historique (jamais dans l'URL) : un lien ne peut pas le reproduire.
+declare module '@tanstack/history' {
+  // eslint-disable-next-line @typescript-eslint/consistent-type-definitions
+  interface HistoryState {
+    /** GLB-013 : retour sur l'accueil après la suppression du compte. */
+    accountDeleted?: boolean;
+  }
+}
 
 // Augmentation des types du router : seule une `interface` peut être fusionnée.
 declare module '@tanstack/react-router' {
