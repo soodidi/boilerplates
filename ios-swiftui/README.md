@@ -17,18 +17,21 @@ xcodegen generate        # crée iOSApp.xcodeproj (non versionné)
 open iOSApp.xcodeproj
 ```
 
-À personnaliser : `name`, `bundleIdPrefix` et `PRODUCT_BUNDLE_IDENTIFIER` dans `project.yml`, `CFBundleDisplayName` dans `App/Info*.plist`, `API_BASE_URL` (Release) dans `project.yml`, `DEVELOPMENT_TEAM` pour signer.
+À personnaliser : `name`, `bundleIdPrefix` et `PRODUCT_BUNDLE_IDENTIFIER` dans `project.yml`, `CFBundleDisplayName` dans `App/Info*.plist`, `API_BASE_URL` et `WEB_BASE_URL` (Release) dans `project.yml`, `DEVELOPMENT_TEAM` pour signer.
 
-En Debug, l'app appelle l'API locale (`http://localhost:3000`, boilerplate `api-nestjs`).
+En Debug, l'app appelle l'API locale (`http://localhost:3000`, boilerplate `api-nestjs`, lancée avec `npm run setup && npm run stack`). Les liens des e-mails (vérification, nouveau mot de passe) ouvrent le front web (`WEB_BASE_URL`, `http://localhost:5173` en Debug), qui doit figurer dans `CORS_ORIGINS` de l'API ; les e-mails locaux arrivent dans Mailpit (`http://localhost:8025`).
 
 ## Organisation (IOS-002)
 
 ```
 project.yml              # définition du projet Xcode (XcodeGen)
-App/                     # point d'entrée, injection des dépendances, Info.plist, Privacy Manifest
+App/                     # point d'entrée, bascule auth / app selon la session, Info.plist, Privacy Manifest
+AppTests/                # tests hébergés par l'app (Keychain)
+AppUITests/              # XCUITest : parcours de connexion, avec les doublures de l'app (-ui-testing)
 Packages/                # package local : un target = un module
 ├── Package.swift
 ├── Sources/
+│   ├── AuthFeature/     # connexion, inscription, mot de passe oublié (Better Auth)
 │   ├── CoreAuth/        # session : token en mémoire, copie dans le Keychain
 │   ├── CoreModels/      # modèles du domaine
 │   ├── CoreNetworking/  # client HTTP sans cookies, Bearer, Problem Details, APIError
@@ -51,8 +54,9 @@ Une nouvelle feature = un nouveau target `XxxFeature` dans `Package.swift`, qui 
 | Modules SPM, frontières vérifiées par le compilateur | `Packages/Package.swift` | IOS-002, IOS-003 |
 | Privacy Manifest | `App/PrivacyInfo.xcprivacy` | IOS-003 |
 | Client HTTP typé, erreurs Problem Details, ATS strict (exception locale en Debug) | `CoreNetworking`, `App/Info*.plist` | IOS-004 |
+| Authentification : connexion, inscription et mot de passe oublié natifs, liens des e-mails vers le front web, messages génériques, déconnexion qui révoque la session | `AuthFeature`, `App/AppMain.swift` | BE-006, IOS-004 |
 | Session : token signé dans le Keychain (`AfterFirstUnlockThisDeviceOnly`), `Bearer` vers l'API seulement, URLSession sans cookies, `401` → session effacée | `CoreAuth`, `CoreNetworking` | IOS-004, BE-006 |
-| Textes dans un String Catalog fr/en | `NotesFeature/Resources/Localizable.xcstrings` | GLB-007 |
+| Textes dans un String Catalog fr/en, un par module | `NotesFeature/Resources/`, `AuthFeature/Resources/` | GLB-007 |
 | Swift Testing avec fakes, SwiftLint + SwiftFormat, CI macOS | `Packages/Tests`, `.swiftlint.yml`, `.github/workflows/ios.yml` | IOS-005 |
 
 ## À ajouter selon le projet

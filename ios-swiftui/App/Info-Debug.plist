@@ -27,6 +27,8 @@
 	</array>
 	<key>APIBaseURL</key>
 	<string>$(API_BASE_URL)</string>
+	<key>WebBaseURL</key>
+	<string>$(WEB_BASE_URL)</string>
 	<key>UILaunchScreen</key>
 	<dict/>
 	<key>UIApplicationSceneManifest</key>

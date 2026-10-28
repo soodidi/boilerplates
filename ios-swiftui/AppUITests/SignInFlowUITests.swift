@@ -1,0 +1,74 @@
+import XCTest
+
+/// IOS-005 : parcours critique, avec les doublures de l'app (argument `-ui-testing`, Debug) :
+/// connexion refusée, connexion, notes, déconnexion.
+@MainActor
+final class SignInFlowUITests: XCTestCase {
+    private func launch() -> XCUIApplication {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launchArguments = ["-ui-testing"]
+        app.launch()
+        return app
+    }
+
+    func testSignInThenSignOut() {
+        let app = launch()
+        let email = app.textFields["auth.email"]
+        XCTAssertTrue(email.waitForExistence(timeout: 10))
+
+        signIn(app, email: "camille@example.com", password: "wrong-password")
+        XCTAssertTrue(app.staticTexts["auth.failure"].waitForExistence(timeout: 5))
+
+        signIn(app, email: "camille@example.com", password: "correct-password")
+        let signOut = app.buttons["notes.signOut"]
+        XCTAssertTrue(signOut.waitForExistence(timeout: 5))
+        // La liste arrive après le délai de recherche (300 ms) : attendre, ne pas lire tout de suite.
+        XCTAssertTrue(app.staticTexts["Bienvenue"].waitForExistence(timeout: 5))
+
+        signOut.tap()
+        XCTAssertTrue(app.textFields["auth.email"].waitForExistence(timeout: 5))
+        // Nouveau formulaire : rien du compte précédent.
+        XCTAssertFalse((app.textFields["auth.email"].value as? String ?? "").contains("camille"))
+    }
+
+    func testOpensForgotPasswordThenSignUp() {
+        let app = launch()
+        XCTAssertTrue(app.buttons["auth.forgotPassword"].waitForExistence(timeout: 10))
+
+        app.buttons["auth.forgotPassword"].tap()
+        let email = app.textFields["auth.email"]
+        XCTAssertTrue(email.waitForExistence(timeout: 5))
+        email.tap()
+        email.typeText("camille@example.com")
+        app.buttons["auth.submit"].tap()
+        XCTAssertTrue(app.staticTexts["auth.sent"].waitForExistence(timeout: 5))
+        app.buttons["auth.backToSignIn"].tap()
+
+        // Le bouton retour de la barre de navigation n'est pas exposé comme bouton (iOS 27) :
+        // on revient par « Retour à la connexion », puis on ouvre l'inscription.
+        XCTAssertTrue(app.buttons["auth.signUp"].waitForExistence(timeout: 5))
+        app.buttons["auth.signUp"].tap()
+        XCTAssertTrue(app.textFields["auth.name"].waitForExistence(timeout: 5))
+    }
+
+    private func signIn(_ app: XCUIApplication, email: String, password: String) {
+        let emailField = app.textFields["auth.email"]
+        emailField.tap()
+        emailField.clearAndType(email)
+        let passwordField = app.secureTextFields["auth.password"]
+        passwordField.tap()
+        passwordField.clearAndType(password)
+        app.buttons["auth.submit"].tap()
+    }
+}
+
+@MainActor
+private extension XCUIElement {
+    func clearAndType(_ text: String) {
+        if let current = value as? String, !current.isEmpty, current != placeholderValue {
+            typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: current.count))
+        }
+        typeText(text)
+    }
+}

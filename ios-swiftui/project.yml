@@ -25,9 +25,15 @@ targets:
       - App
     dependencies:
       - package: Packages
+        product: AuthFeature
+      - package: Packages
         product: NotesFeature
       - package: Packages
         product: CoreAuth
+      - package: Packages
+        product: CoreModels
+      - package: Packages
+        product: DesignSystem
       - package: Packages
         product: CoreNetworking
     # Les tests du package local sont aussi lancés par `xcodebuild test` sur simulateur (IOS-005).
@@ -35,6 +41,9 @@ targets:
       testTargets:
         # Tests hébergés par l'app : le Keychain demande un trousseau d'app (IOS-004).
         - iOSAppTests
+        # Parcours critique de connexion, avec les doublures de l'app (IOS-005).
+        - iOSAppUITests
+        - package: Packages/AuthFeatureTests
         - package: Packages/CoreAuthTests
         - package: Packages/CoreNetworkingTests
         - package: Packages/NotesFeatureTests
@@ -46,12 +55,15 @@ targets:
         TARGETED_DEVICE_FAMILY: "1,2"
       configs:
         Debug:
-          # Simulateur → API locale (boilerplate api-nestjs).
+          # Simulateur → API locale (boilerplate api-nestjs) et front web local (web-react-vite).
           API_BASE_URL: http://localhost:3000
+          # Liens des e-mails (vérification, nouveau mot de passe) : doit figurer dans CORS_ORIGINS de l'API.
+          WEB_BASE_URL: http://localhost:5173
           # IOS-004 : seule exception ATS, en Debug uniquement (réseau local).
           INFOPLIST_FILE: App/Info-Debug.plist
         Release:
           API_BASE_URL: https://api.example.com
+          WEB_BASE_URL: https://app.example.com
   iOSAppTests:
     type: bundle.unit-test
     platform: iOS
@@ -64,4 +76,15 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.example.app.tests
+        GENERATE_INFOPLIST_FILE: YES
+  iOSAppUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - AppUITests
+    dependencies:
+      - target: iOSApp
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.example.app.uitests
         GENERATE_INFOPLIST_FILE: YES

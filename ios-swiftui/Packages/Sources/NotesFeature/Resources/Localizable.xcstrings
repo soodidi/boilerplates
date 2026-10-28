@@ -55,6 +55,12 @@
         "fr" : { "stringUnit" : { "state" : "translated", "value" : "Rechercher une note" } }
       }
     },
+    "notes.signOut" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Sign out" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Se déconnecter" } }
+      }
+    },
     "notes.title" : {
       "localizations" : {
         "en" : { "stringUnit" : { "state" : "translated", "value" : "Notes" } },

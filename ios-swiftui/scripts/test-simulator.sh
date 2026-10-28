@@ -29,7 +29,11 @@ if [[ -z $udid ]]; then
   exit 1
 fi
 
+# Résultats détaillés (logs, captures des tests UI) : publiés par la CI en cas d'échec.
+result=build/TestResults.xcresult
+rm -rf "$result"
+
 # Signature locale (« Sign to Run Locally », sans équipe) : l'app hôte des tests a besoin
 # d'un trousseau, donc de ses entitlements. CODE_SIGNING_ALLOWED=NO donnerait -34018.
 xcodebuild test -quiet -project iOSApp.xcodeproj -scheme iOSApp \
-  -destination "id=$udid" CODE_SIGN_IDENTITY=-
+  -destination "id=$udid" -resultBundlePath "$result" CODE_SIGN_IDENTITY=-
