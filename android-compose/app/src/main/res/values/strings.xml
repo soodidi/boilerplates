@@ -13,4 +13,32 @@
     <string name="notes_added">Note ajoutée.</string>
     <string name="notes_add_error">La note n\'a pas pu être ajoutée.</string>
     <string name="validation_required">Ce champ est obligatoire.</string>
+    <string name="auth_sign_in_title">Connexion</string>
+    <string name="auth_sign_in_submit">Se connecter</string>
+    <string name="auth_sign_up_link">Créer un compte</string>
+    <string name="auth_forgot_password_link">Mot de passe oublié ?</string>
+    <string name="auth_sign_up_title">Créer un compte</string>
+    <string name="auth_sign_up_submit">Créer mon compte</string>
+    <string name="auth_sign_up_sent">Si cette adresse peut être utilisée, un e-mail vient d\'être envoyé à %1$s. Ouvrez le lien qu\'il contient, puis revenez vous connecter.</string>
+    <string name="auth_forgot_password_title">Mot de passe oublié</string>
+    <string name="auth_forgot_password_intro">Saisissez votre adresse e-mail : vous recevrez un lien pour choisir un nouveau mot de passe.</string>
+    <string name="auth_forgot_password_submit">Recevoir le lien</string>
+    <string name="auth_forgot_password_sent">Si un compte existe pour %1$s, un e-mail avec un lien vient d\'être envoyé. Choisissez votre nouveau mot de passe, puis revenez vous connecter.</string>
+    <string name="auth_back_to_sign_in">Retour à la connexion</string>
+    <string name="auth_sign_out">Se déconnecter</string>
+    <string name="auth_name_label">Nom</string>
+    <string name="auth_email_label">Adresse e-mail</string>
+    <string name="auth_password_label">Mot de passe</string>
+    <string name="auth_password_show">Afficher le mot de passe</string>
+    <string name="auth_password_hide">Masquer le mot de passe</string>
+    <string name="auth_email_invalid">Adresse e-mail invalide.</string>
+    <!-- Même valeur que PASSWORD_MIN_LENGTH (AuthValidation.kt) et que l'API. -->
+    <string name="auth_password_too_short">12 caractères minimum.</string>
+    <string name="auth_password_too_long">128 caractères maximum.</string>
+    <string name="auth_name_too_long">100 caractères maximum.</string>
+    <string name="auth_error_invalid_credentials">Adresse e-mail ou mot de passe incorrect.</string>
+    <string name="auth_error_email_not_verified">Confirmez d\'abord votre adresse avec le lien reçu par e-mail.</string>
+    <string name="auth_error_too_many_attempts">Trop de tentatives. Réessayez dans quelques minutes.</string>
+    <string name="auth_error_network">Connexion au serveur impossible. Vérifiez votre réseau.</string>
+    <string name="auth_error_generic">Une erreur est survenue. Réessayez.</string>
 </resources>

@@ -43,7 +43,10 @@ import java.time.Instant
 
 /** Écran relié au ViewModel : seul composable qui connaît Hilt et le cycle de vie (AND-001). */
 @Composable
-fun NotesRoute(viewModel: NotesViewModel = hiltViewModel()) {
+fun NotesRoute(
+    onSignOut: () -> Unit,
+    viewModel: NotesViewModel = hiltViewModel(),
+) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     NotesScreen(
         state = state,
@@ -52,6 +55,7 @@ fun NotesRoute(viewModel: NotesViewModel = hiltViewModel()) {
         onSubmit = viewModel::onSubmit,
         onRetry = viewModel::refresh,
         onUserMessageShown = viewModel::onUserMessageShown,
+        onSignOut = onSignOut,
     )
 }
 
@@ -65,6 +69,7 @@ fun NotesScreen(
     onSubmit: () -> Unit,
     onRetry: () -> Unit,
     onUserMessageShown: () -> Unit,
+    onSignOut: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
@@ -78,7 +83,12 @@ fun NotesScreen(
 
     Scaffold(
         modifier = modifier,
-        topBar = { TopAppBar(title = { Text(stringResource(R.string.notes_title)) }) },
+        topBar = {
+            TopAppBar(
+                title = { Text(stringResource(R.string.notes_title)) },
+                actions = { TextButton(onClick = onSignOut) { Text(stringResource(R.string.auth_sign_out)) } },
+            )
+        },
         snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { padding ->
         Column(
@@ -180,7 +190,7 @@ private val previewNotes =
 @Composable
 private fun NotesScreenPreview() {
     AppTheme {
-        NotesScreen(NotesUiState(notes = previewNotes, isLoading = false), {}, {}, {}, {}, {})
+        NotesScreen(NotesUiState(notes = previewNotes, isLoading = false), {}, {}, {}, {}, {}, {})
     }
 }
 
@@ -190,6 +200,7 @@ private fun NotesScreenErrorPreview() {
     AppTheme {
         NotesScreen(
             NotesUiState(isLoading = false, loadFailed = true, draftTitleError = R.string.validation_required),
+            {},
             {},
             {},
             {},

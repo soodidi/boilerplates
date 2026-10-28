@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- AND-004 : le token chiffré et son keyset ne sont pas sauvegardés (Android 11 et moins). -->
 <full-backup-content>
     <exclude domain="file" path="datastore/secure.preferences_pb" />
+    <exclude domain="sharedpref" path="secure_keyset.xml" />
 </full-backup-content>

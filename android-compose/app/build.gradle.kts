@@ -29,6 +29,9 @@ android {
         debug {
             // Émulateur → API locale (10.0.2.2 = localhost de la machine hôte).
             buildConfigField("String", "API_BASE_URL", "\"http://10.0.2.2:3000/\"")
+            // Front web : les liens des e-mails (vérification, nouveau mot de passe) y mènent.
+            // Il doit figurer dans CORS_ORIGINS de l'API, sinon elle refuse l'adresse de retour.
+            buildConfigField("String", "WEB_BASE_URL", "\"http://localhost:5173/\"")
         }
         release {
             // AND-004 : R8 (minification + obfuscation) en release.
@@ -36,6 +39,7 @@ android {
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             buildConfigField("String", "API_BASE_URL", "\"https://api.example.com/\"")
+            buildConfigField("String", "WEB_BASE_URL", "\"https://app.example.com/\"")
         }
     }
 
@@ -92,8 +96,8 @@ dependencies {
     implementation(libs.okhttp)
     debugImplementation(libs.okhttp.logging)
 
-    // AND-004 : cache hors-ligne (Room), préférences (DataStore), chiffrement des tokens (Tink + Keystore).
-    // Prêts à l'emploi, pas encore utilisés par l'exemple.
+    // AND-004 : cache hors-ligne (Room, prêt mais pas encore utilisé), préférences (DataStore),
+    // chiffrement du token de session (Tink + Keystore).
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
@@ -103,6 +107,7 @@ dependencies {
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.turbine)
+    testImplementation(libs.okhttp.mockwebserver)
 
     androidTestImplementation(platform(libs.compose.bom))
     androidTestImplementation(libs.compose.ui.test.junit4)
