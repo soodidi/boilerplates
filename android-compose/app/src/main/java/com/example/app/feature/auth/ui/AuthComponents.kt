@@ -89,6 +89,7 @@ internal fun AuthTextField(
     imeAction: ImeAction = ImeAction.Next,
     onImeAction: () -> Unit = {},
     isPassword: Boolean = false,
+    enabled: Boolean = true,
 ) {
     val errorText = error?.let { stringResource(it) }
     var passwordVisible by rememberSaveable { mutableStateOf(false) }
@@ -96,6 +97,7 @@ internal fun AuthTextField(
         value = value,
         onValueChange = onValueChange,
         label = { Text(stringResource(label)) },
+        enabled = enabled,
         isError = errorText != null,
         supportingText = errorText?.let { { Text(it) } },
         singleLine = true,

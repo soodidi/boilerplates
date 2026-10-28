@@ -7,6 +7,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
@@ -30,8 +31,10 @@ class AccountScreenTest {
 
     private fun string(id: Int) = InstrumentationRegistry.getInstrumentation().targetContext.getString(id)
 
-    // Le titre de la section porte le même texte que le bouton : on cible le nœud cliquable.
-    private val deleteButton get() = composeRule.onNode(hasText(string(R.string.account_delete_submit)) and hasClickAction())
+    // Le titre de la section porte le même texte que le bouton : on cible le nœud cliquable. Pendant
+    // l'envoi, le bouton n'affiche qu'un indicateur : son libellé reste dans contentDescription.
+    private val deleteButton
+        get() = composeRule.onNode(hasContentDescription(string(R.string.account_delete_submit)) and hasClickAction())
 
     private fun setScreen(
         state: AccountUiState,
@@ -40,11 +43,12 @@ class AccountScreenTest {
         onDelete: () -> Unit = {},
         onOpenPrivacyPolicy: () -> Unit = {},
         onOpenExport: () -> Unit = {},
+        onSignOut: () -> Unit = {},
         onBack: () -> Unit = {},
     ) {
         composeRule.setContent {
             AppTheme {
-                AccountScreen(state, onPasswordChange, onConfirmChange, onDelete, onOpenPrivacyPolicy, onOpenExport, onBack)
+                AccountScreen(state, onPasswordChange, onConfirmChange, onDelete, onOpenPrivacyPolicy, onOpenExport, onSignOut, onBack)
             }
         }
     }
@@ -89,30 +93,45 @@ class AccountScreenTest {
     }
 
     @Test
-    fun disablesTheButtonWhileDeleting() {
+    fun locksTheScreenWhileDeleting() {
         setScreen(AccountUiState(password = "secret", confirmed = true, isDeleting = true))
 
+        // Quitter l'écran annulerait l'appel alors que le compte est peut-être déjà supprimé.
+        composeRule.onNode(hasText(string(R.string.account_back)) and hasClickAction()).assertIsNotEnabled()
+        composeRule.onNode(hasText(string(R.string.auth_sign_out)) and hasClickAction()).assertIsNotEnabled()
+        composeRule.onNodeWithText(string(R.string.account_delete_password)).performScrollTo().assertIsNotEnabled()
         deleteButton.performScrollTo().assertIsNotEnabled()
     }
 
     @Test
-    fun opensTheWebPagesAndGoesBack() {
+    fun showsTheLinkErrorNearTheLinks() {
+        setScreen(AccountUiState(linkError = R.string.account_link_unavailable))
+
+        composeRule.onNodeWithText(string(R.string.account_link_unavailable)).performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
+    fun forwardsTheLinksSignOutAndBack() {
         var privacy = false
         var export = false
+        var signedOut = false
         var back = false
         setScreen(
             AccountUiState(),
             onOpenPrivacyPolicy = { privacy = true },
             onOpenExport = { export = true },
+            onSignOut = { signedOut = true },
             onBack = { back = true },
         )
 
         composeRule.onNodeWithText(string(R.string.account_privacy_link)).performClick()
         composeRule.onNodeWithText(string(R.string.account_export_open)).performScrollTo().performClick()
+        composeRule.onNodeWithText(string(R.string.auth_sign_out)).performScrollTo().performClick()
         composeRule.onNodeWithText(string(R.string.account_back)).performClick()
 
         assertTrue(privacy)
         assertTrue(export)
+        assertTrue(signedOut)
         assertTrue(back)
     }
 }

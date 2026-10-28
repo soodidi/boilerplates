@@ -133,7 +133,8 @@ jobs:
           distribution: temurin
           java-version: '17'
       - uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
-      - run: ./gradlew ktlintCheck lintDebug testDebugUnitTest assembleDebug
+      # compileDebugAndroidTestKotlin : les tests UI ne tournent pas en CI (pas d'émulateur), mais ils compilent.
+      - run: ./gradlew ktlintCheck lintDebug testDebugUnitTest assembleDebug compileDebugAndroidTestKotlin
 
   ios:
     needs: changes

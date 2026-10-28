@@ -1,5 +1,6 @@
 package com.example.app.feature.auth.ui
 
+import androidx.activity.compose.BackHandler
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -13,12 +14,14 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.autofill.ContentType
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.integerResource
 import androidx.compose.ui.res.pluralStringResource
@@ -39,6 +42,7 @@ import com.example.app.core.designsystem.Spacing
 @Composable
 fun AccountRoute(
     onBack: () -> Unit,
+    onSignOut: () -> Unit,
     onAccountDeleted: () -> Unit,
     viewModel: AccountViewModel = hiltViewModel(),
 ) {
@@ -65,6 +69,7 @@ fun AccountRoute(
         onDelete = viewModel::onDelete,
         onOpenPrivacyPolicy = { open(viewModel.privacyPolicyUrl) },
         onOpenExport = { open(viewModel.exportUrl) },
+        onSignOut = onSignOut,
         onBack = onBack,
     )
 }
@@ -77,21 +82,31 @@ fun AccountScreen(
     onDelete: () -> Unit,
     onOpenPrivacyPolicy: () -> Unit,
     onOpenExport: () -> Unit,
+    onSignOut: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    // Quitter l'écran annulerait l'appel alors que l'API a peut-être déjà supprimé le compte :
+    // l'utilisateur croirait avoir annulé. Le retour attend donc la réponse.
+    BackHandler(enabled = state.isDeleting) {}
     AuthScaffold(
         title = R.string.account_title,
         modifier = modifier,
-        navigationIcon = { TextButton(onClick = onBack) { Text(stringResource(R.string.account_back)) } },
+        navigationIcon = {
+            TextButton(onClick = onBack, enabled = !state.isDeleting) { Text(stringResource(R.string.account_back)) }
+        },
     ) {
         TextButton(onClick = onOpenPrivacyPolicy) { Text(stringResource(R.string.account_privacy_link)) }
+        OutlinedButton(onClick = onSignOut, enabled = !state.isDeleting, modifier = Modifier.fillMaxWidth()) {
+            Text(stringResource(R.string.auth_sign_out))
+        }
 
         SectionTitle(R.string.account_export_title)
         Text(stringResource(R.string.account_export_description), style = MaterialTheme.typography.bodyMedium)
         OutlinedButton(onClick = onOpenExport, modifier = Modifier.fillMaxWidth()) {
             Text(stringResource(R.string.account_export_open))
         }
+        state.linkError?.let { AuthMessage(stringResource(it)) }
 
         HorizontalDivider()
 
@@ -124,6 +139,7 @@ private fun DeleteAccountSection(
         pluralStringResource(R.plurals.account_delete_description, retentionDays, retentionDays),
         style = MaterialTheme.typography.bodyMedium,
     )
+    val focusManager = LocalFocusManager.current
     AuthTextField(
         value = state.password,
         onValueChange = onPasswordChange,
@@ -132,7 +148,10 @@ private fun DeleteAccountSection(
         contentType = ContentType.Password,
         keyboardType = KeyboardType.Password,
         imeAction = ImeAction.Done,
+        // « Terminé » ferme le clavier : la suppression se confirme encore avec la case.
+        onImeAction = { focusManager.clearFocus() },
         isPassword = true,
+        enabled = !state.isDeleting,
     )
     ConfirmCheckbox(state, onConfirmChange)
     state.errorMessage?.let { AuthMessage(stringResource(it)) }
@@ -162,10 +181,16 @@ private fun ConfirmCheckbox(
             modifier =
                 Modifier
                     .fillMaxWidth()
-                    .toggleable(value = state.confirmed, role = Role.Checkbox, onValueChange = onConfirmChange)
-                    .semantics { if (errorText != null) error(errorText) },
+                    // La case n'a pas de zone de clic à elle : la ligne garde les 48 dp d'une cible tactile.
+                    .minimumInteractiveComponentSize()
+                    .toggleable(
+                        value = state.confirmed,
+                        enabled = !state.isDeleting,
+                        role = Role.Checkbox,
+                        onValueChange = onConfirmChange,
+                    ).semantics { if (errorText != null) error(errorText) },
         ) {
-            Checkbox(checked = state.confirmed, onCheckedChange = null)
+            Checkbox(checked = state.confirmed, onCheckedChange = null, enabled = !state.isDeleting)
             Text(stringResource(R.string.account_delete_confirm), style = MaterialTheme.typography.bodyMedium)
         }
         errorText?.let { AuthMessage(it) }
@@ -176,7 +201,7 @@ private fun ConfirmCheckbox(
 @Composable
 private fun AccountScreenPreview() {
     AppTheme {
-        AccountScreen(AccountUiState(), {}, {}, {}, {}, {}, {})
+        AccountScreen(AccountUiState(), {}, {}, {}, {}, {}, {}, {})
     }
 }
 
@@ -190,6 +215,7 @@ private fun AccountScreenErrorPreview() {
                 confirmed = true,
                 errorMessage = R.string.account_delete_wrong_password,
             ),
+            {},
             {},
             {},
             {},

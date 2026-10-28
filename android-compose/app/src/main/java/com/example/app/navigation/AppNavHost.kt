@@ -89,14 +89,12 @@ fun AppNavHost(viewModel: SessionViewModel = hiltViewModel()) {
         navigation<MainGraph>(startDestination = NotesDestination) {
             composable<NotesDestination> {
                 // dropUnlessResumed : un double appui n'ouvre pas deux écrans « Mon compte ».
-                NotesRoute(
-                    onOpenAccount = dropUnlessResumed { navController.navigate(AccountDestination) },
-                    onSignOut = viewModel::signOut,
-                )
+                NotesRoute(onOpenAccount = dropUnlessResumed { navController.navigate(AccountDestination) })
             }
             composable<AccountDestination> {
                 AccountRoute(
                     onBack = dropUnlessResumed { navController.popBackStack() },
+                    onSignOut = viewModel::signOut,
                     onAccountDeleted = viewModel::onAccountDeleted,
                 )
             }

@@ -65,6 +65,32 @@ class AccountViewModelTest {
         }
 
     @Test
+    fun deleteRequiresTheConfirmationEvenWithThePassword() =
+        runTest(dispatcher) {
+            val viewModel = viewModel()
+            viewModel.onPasswordChange("correct-horse-battery")
+
+            viewModel.onDelete()
+
+            assertEquals(R.string.account_delete_confirm_required, viewModel.uiState.value.confirmError)
+            assertNull(viewModel.uiState.value.passwordError)
+            assertTrue(repository.calls.isEmpty())
+        }
+
+    @Test
+    fun deleteRequiresThePasswordEvenWithTheConfirmation() =
+        runTest(dispatcher) {
+            val viewModel = viewModel()
+            viewModel.onConfirmChange(true)
+
+            viewModel.onDelete()
+
+            assertEquals(R.string.validation_required, viewModel.uiState.value.passwordError)
+            assertNull(viewModel.uiState.value.confirmError)
+            assertTrue(repository.calls.isEmpty())
+        }
+
+    @Test
     fun deleteSendsThePasswordOnceAndReportsTheDeletion() =
         runTest(dispatcher) {
             val gate = CompletableDeferred<Unit>()
@@ -137,6 +163,7 @@ class AccountViewModelTest {
 
         viewModel.onLinkUnavailable()
 
-        assertEquals(R.string.account_link_unavailable, viewModel.uiState.value.errorMessage)
+        assertEquals(R.string.account_link_unavailable, viewModel.uiState.value.linkError)
+        assertNull(viewModel.uiState.value.errorMessage)
     }
 }

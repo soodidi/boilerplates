@@ -45,7 +45,6 @@ import java.time.Instant
 @Composable
 fun NotesRoute(
     onOpenAccount: () -> Unit,
-    onSignOut: () -> Unit,
     viewModel: NotesViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -57,7 +56,6 @@ fun NotesRoute(
         onRetry = viewModel::refresh,
         onUserMessageShown = viewModel::onUserMessageShown,
         onOpenAccount = onOpenAccount,
-        onSignOut = onSignOut,
     )
 }
 
@@ -72,7 +70,6 @@ fun NotesScreen(
     onRetry: () -> Unit,
     onUserMessageShown: () -> Unit,
     onOpenAccount: () -> Unit,
-    onSignOut: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
@@ -89,10 +86,9 @@ fun NotesScreen(
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.notes_title)) },
-                actions = {
-                    TextButton(onClick = onOpenAccount) { Text(stringResource(R.string.account_open)) }
-                    TextButton(onClick = onSignOut) { Text(stringResource(R.string.auth_sign_out)) }
-                },
+                // Une seule action : en grande police, le titre et le bouton tiennent encore sur 320 dp.
+                // La déconnexion est dans « Mon compte ».
+                actions = { TextButton(onClick = onOpenAccount) { Text(stringResource(R.string.account_open)) } },
             )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -196,7 +192,15 @@ private val previewNotes =
 @Composable
 private fun NotesScreenPreview() {
     AppTheme {
-        NotesScreen(NotesUiState(notes = previewNotes, isLoading = false), {}, {}, {}, {}, {}, {}, {})
+        NotesScreen(NotesUiState(notes = previewNotes, isLoading = false), {}, {}, {}, {}, {}, {})
+    }
+}
+
+@Preview(showBackground = true, widthDp = 320, fontScale = 2f)
+@Composable
+private fun NotesScreenLargeFontPreview() {
+    AppTheme {
+        NotesScreen(NotesUiState(notes = previewNotes, isLoading = false), {}, {}, {}, {}, {}, {})
     }
 }
 
@@ -206,7 +210,6 @@ private fun NotesScreenErrorPreview() {
     AppTheme {
         NotesScreen(
             NotesUiState(isLoading = false, loadFailed = true, draftTitleError = R.string.validation_required),
-            {},
             {},
             {},
             {},

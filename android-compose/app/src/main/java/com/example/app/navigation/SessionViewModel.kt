@@ -7,10 +7,12 @@ import com.example.app.core.auth.SessionStore
 import com.example.app.feature.auth.data.AuthRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 /** Relie la session aux écrans : la navigation suit son état, la déconnexion part d'ici (AND-003). */
@@ -48,6 +50,7 @@ class SessionViewModel
          */
         fun onAccountDeleted() {
             _accountDeleted.value = true
-            viewModelScope.launch { sessionStore.clear() }
+            // Comme la déconnexion : l'effacement va au bout, même si l'écran se ferme entre-temps.
+            viewModelScope.launch { withContext(NonCancellable) { sessionStore.clear() } }
         }
     }

@@ -23,7 +23,12 @@ data class AccountUiState(
     @StringRes val confirmError: Int? = null,
     val isDeleting: Boolean = false,
     @StringRes val errorMessage: Int? = null,
-    /** Événement ponctuel : l'écran le transmet à la navigation, qui oublie la session. */
+    /** Affiché près des liens vers le web, quand aucun navigateur n'a pu les ouvrir. */
+    @StringRes val linkError: Int? = null,
+    /**
+     * Événement : l'écran le transmet à la navigation, qui oublie la session et quitte l'écran.
+     * Il n'est pas consommé : il bloque aussi un nouvel envoi, et le transmettre deux fois est sans effet.
+     */
     val isDeleted: Boolean = false,
 )
 
@@ -56,7 +61,7 @@ class AccountViewModel
 
         /** Aucun navigateur n'a pu ouvrir le lien. */
         fun onLinkUnavailable() {
-            _uiState.update { it.copy(errorMessage = R.string.account_link_unavailable) }
+            _uiState.update { it.copy(linkError = R.string.account_link_unavailable) }
         }
 
         fun onDelete() {

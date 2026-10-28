@@ -175,6 +175,7 @@ class AuthRepositoryTest {
             assertTrue(repository.deleteAccount("correct-horse-battery").isSuccess)
 
             val request = server.takeRequest()
+            assertEquals("POST", request.method)
             assertEquals("/v1/auth/delete-user", request.url.encodedPath)
             val body = json.parseToJsonElement(request.body!!.utf8()).jsonObject
             assertEquals("correct-horse-battery", body["password"]!!.jsonPrimitive.content)

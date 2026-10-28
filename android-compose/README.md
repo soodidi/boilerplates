@@ -19,10 +19,13 @@ Puis ouvrir le dossier dans Android Studio (JDK 17), et :
 1. Renommer le package `com.example.app` (*Refactor → Rename* sur le package) et mettre à jour `namespace` / `applicationId` dans `app/build.gradle.kts`.
 2. Changer `app_name` dans `res/values*/strings.xml` et les URL de production (`API_BASE_URL` et `WEB_BASE_URL`, buildType `release`). `WEB_BASE_URL` est le front web : il DOIT figurer dans `CORS_ORIGINS` de l'API, sinon l'inscription et le mot de passe oublié sont refusés (`INVALID_CALLBACK_URL`).
 3. Lancer l'API locale (boilerplate `api-nestjs`, `npm run setup && npm run stack`) : l'émulateur la joint sur `http://10.0.2.2:3000`. Les e-mails arrivent dans Mailpit (`http://localhost:8025`), et leurs liens s'ouvrent dans le navigateur de la machine.
+4. Reporter dans `res/values/legal.xml` la durée de conservation des sauvegardes (`legal_backup_retention_days`) : même valeur que `backupRetentionDays` du web (`legal-info.ts`) et que l'infra de production. Elle est annoncée à l'utilisateur avant la suppression de son compte.
+
+Les liens de « Mon compte » (politique de confidentialité, export) s'ouvrent dans le navigateur de l'émulateur, où `localhost` désigne l'émulateur lui-même. En debug, rediriger le port du front web : `adb reverse tcp:5173 tcp:5173`.
 
 ```bash
 ./gradlew ktlintFormat              # applique le style
-./gradlew ktlintCheck lintDebug testDebugUnitTest assembleDebug   # ce que vérifie la CI
+./gradlew ktlintCheck lintDebug testDebugUnitTest assembleDebug compileDebugAndroidTestKotlin   # ce que vérifie la CI
 ./gradlew connectedDebugAndroidTest # tests UI (émulateur ou appareil)
 ```
 
@@ -40,7 +43,7 @@ app/src/main/java/com/example/app/
 │   ├── model/          # modèles du domaine
 │   └── network/        # Retrofit, OkHttp, erreurs Problem Details
 ├── feature/
-│   ├── auth/           # connexion, inscription, mot de passe oublié
+│   ├── auth/           # connexion, inscription, mot de passe oublié, « Mon compte »
 │   └── notes/
 │       ├── data/       # API, DTO, repository (+ module Hilt)
 │       └── ui/         # ViewModel + écran Compose
@@ -55,6 +58,12 @@ app/src/main/java/com/example/app/
 - **Fin de session** : il n'y a pas de refresh token. Un `401` efface le token, et la navigation revient à la connexion. La déconnexion révoque la session côté serveur si le réseau le permet, et l'oublie localement dans tous les cas. Changer de graphe vide la pile de navigation : les ViewModels de l'utilisateur précédent sont détruits.
 - **Inscription et mot de passe oublié** : les formulaires sont dans l'app. Les liens des e-mails ouvrent le front web (`WEB_BASE_URL` + `login` ou `reset-password`), puis l'utilisateur revient se connecter dans l'app. Il n'y a pas de deep links.
 - **Logs debug** : les routes `/v1/auth/` ne journalisent que leurs en-têtes, masqués (`Authorization`, `set-auth-token`, cookies). Elles ne journalisent jamais leur corps.
+
+## Mon compte (GLB-013)
+
+- Ouvert depuis la barre des notes. On s'y déconnecte, on y ouvre la politique de confidentialité du web (`WEB_BASE_URL` + `legal/privacy`).
+- **Export** : il se fait sur le web (`WEB_BASE_URL` + `account`), comme GLB-013 le permet aux apps mobiles.
+- **Suppression du compte** (exigée par Google Play et l'App Store) : mot de passe actuel et case de confirmation, puis `POST /v1/auth/delete-user`. La suppression est immédiate. L'API révoque la session ; l'app l'efface à son tour et revient à la connexion, qui confirme la suppression. Pendant l'envoi, l'écran ne se quitte pas : l'appel ne doit pas être annulé alors que le compte est peut-être déjà supprimé.
 
 La feature `notes` utilise le même contrat d'API que les boilerplates `api-nestjs` et `web-react-vite`.
 
