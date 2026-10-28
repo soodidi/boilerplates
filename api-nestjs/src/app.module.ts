@@ -5,6 +5,8 @@ import { SentryModule } from '@sentry/nestjs/setup';
 import { LoggerModule } from 'nestjs-pino';
 import { CsrfGuard } from './common/csrf.guard.js';
 import { ProblemDetailsFilter } from './common/problem-details.filter.js';
+import { serializeRequest } from './common/redact-url.js';
+import { serializeError } from './common/scrub-error.js';
 import { UserDataModule } from './common/user-data/index.js';
 import { createValidationPipe } from './common/validation.js';
 import { ENV, type Env } from './config/env.js';
@@ -15,15 +17,6 @@ import { MailModule } from './mail/index.js';
 import { AccountModule } from './modules/account/index.js';
 import { AuthModule } from './modules/auth/index.js';
 import { NotesModule } from './modules/notes/index.js';
-
-/** BE-007 : masque les tokens d'URL (`?token=…`, `/reset-password/<token>`) dans les logs. */
-export function redactUrlTokens<T extends { url?: string }>(request: T): T {
-  if (!request.url) return request;
-  const url = request.url
-    .replace(/([?&]token=)[^&]+/g, '$1[redacted]')
-    .replace(/(\/reset-password\/)[^/?]+/, '$1[redacted]');
-  return { ...request, url };
-}
 
 @Module({
   imports: [
@@ -36,17 +29,14 @@ export function redactUrlTokens<T extends { url?: string }>(request: T): T {
         pinoHttp: {
           level: env.LOG_LEVEL,
           transport: env.NODE_ENV === 'development' ? { target: 'pino-pretty' } : undefined,
-          redact: {
-            paths: [
-              'req.headers.authorization',
-              'req.headers.cookie',
-              'res.headers["set-cookie"]',
-              'res.headers["set-auth-token"]',
-            ],
-            remove: true,
+          // GLB-013 : requête réduite à id, méthode et URL (tokens masqués), réponse à son statut :
+          // ni IP, ni en-têtes (cookie, `set-auth-token`, `location` d'une redirection avec token).
+          // Les erreurs perdent les valeurs des requêtes SQL.
+          serializers: {
+            req: serializeRequest,
+            res: ({ statusCode }: { statusCode: number }) => ({ statusCode }),
+            err: serializeError,
           },
-          // Les liens de vérification et de réinitialisation portent un token dans l'URL.
-          serializers: { req: redactUrlTokens },
           customProps: () => ({ version: env.APP_VERSION }),
         },
       }),

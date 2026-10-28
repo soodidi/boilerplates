@@ -7,6 +7,7 @@ import { Mailer } from '../../mail/index.js';
 import { createAuth } from './auth.config.js';
 import { AuthRepository } from './auth.repository.js';
 import { AuthUserData } from './auth.user-data.js';
+import { ExpiredAuthDataPurge } from './expired-auth-data.purge.js';
 
 /**
  * BE-006 : routes Better Auth sous /v1/auth et guard global.
@@ -21,6 +22,6 @@ import { AuthUserData } from './auth.user-data.js';
       }),
     }),
   ],
-  providers: [AuthRepository, AuthUserData],
+  providers: [AuthRepository, AuthUserData, ExpiredAuthDataPurge],
 })
 export class AuthModule {}

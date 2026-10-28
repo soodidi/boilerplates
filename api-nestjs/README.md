@@ -110,6 +110,9 @@ En local, l'e-mail de vérification arrive dans Mailpit (http://localhost:8025).
 
 - **Export** : `GET /v1/account/export` renvoie en JSON le compte, ses sessions et les données de chaque module (`data.<clé>`). Limité à 5 appels par minute et par IP, compté par instance (en mémoire).
 - **Suppression** : `POST /v1/auth/delete-user` avec `{ "password": "…" }`. Le mot de passe est toujours exigé (Better Auth ne le demande pas pour une session récente). Les données des modules sont effacées dans une transaction, puis Better Auth supprime le compte et ses sessions.
+- **Purge** (`expired-auth-data.purge.ts`) : sessions et jetons expirés, compteurs de rate limiting de plus de 24 heures (clé : IP) effacés au démarrage de l'API puis toutes les 24 heures. Better Auth ne le fait pas. Le rythme quotidien suppose une instance toujours active (`min_scale >= 1`, cas de la production) ; un échec part dans Sentry.
+- **Logs** : une requête n'est journalisée qu'avec son identifiant, sa méthode et son URL (tokens masqués), une réponse avec son statut : ni IP, ni en-têtes. Les erreurs SQL perdent les valeurs de la requête (`src/common/redact-url.ts`, `src/common/scrub-error.ts`).
+- **Sentry** : dans les erreurs, seules les valeurs des en-têtes `content-type` et `content-length` partent (les autres arrivent en `[Filtered]`) ; les spans perdent tous les en-têtes, le navigateur et l'adresse du client ; les tokens des liens d'e-mail et les valeurs SQL sont masqués (`src/common/sentry-redaction.ts`).
 - **Nouveau module avec des données d'utilisateur** : ajouter un provider `@ContributesUserData()` qui implémente `UserDataContributor` (`key`, `tables`, `schema`, `export`, `erase`), sur le modèle de `notes.user-data.ts`. Un test e2e échoue si une table avec une colonne `user_id` n'est couverte par aucun contributeur.
 
 ## E-mails (BE-009)
