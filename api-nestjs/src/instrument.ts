@@ -15,9 +15,10 @@ if (dsn) {
     dataCollection: {
       userInfo: false,
       cookies: false,
-      // GLB-013 : ni navigateur, ni origine, ni referer ; seulement le format de la requête.
+      // GLB-013 : les autres en-têtes partent avec la valeur `[Filtered]`. La liste compare par
+      // sous-chaîne : `accept` laisserait passer `accept-language`.
       httpHeaders: {
-        request: { allow: ['accept', 'content-type', 'content-length'] },
+        request: { allow: ['content-type', 'content-length'] },
         response: false,
       },
       httpBodies: [],

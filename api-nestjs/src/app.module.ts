@@ -6,6 +6,7 @@ import { LoggerModule } from 'nestjs-pino';
 import { CsrfGuard } from './common/csrf.guard.js';
 import { ProblemDetailsFilter } from './common/problem-details.filter.js';
 import { serializeRequest } from './common/redact-url.js';
+import { serializeError } from './common/scrub-error.js';
 import { UserDataModule } from './common/user-data/index.js';
 import { createValidationPipe } from './common/validation.js';
 import { ENV, type Env } from './config/env.js';
@@ -28,12 +29,14 @@ import { NotesModule } from './modules/notes/index.js';
         pinoHttp: {
           level: env.LOG_LEVEL,
           transport: env.NODE_ENV === 'development' ? { target: 'pino-pretty' } : undefined,
-          redact: {
-            paths: ['res.headers["set-cookie"]', 'res.headers["set-auth-token"]'],
-            remove: true,
+          // GLB-013 : requête réduite à id, méthode et URL (tokens masqués), réponse à son statut :
+          // ni IP, ni en-têtes (cookie, `set-auth-token`, `location` d'une redirection avec token).
+          // Les erreurs perdent les valeurs des requêtes SQL.
+          serializers: {
+            req: serializeRequest,
+            res: ({ statusCode }: { statusCode: number }) => ({ statusCode }),
+            err: serializeError,
           },
-          // GLB-013 : requête réduite à id, méthode et URL (tokens masqués) : ni IP ni en-têtes.
-          serializers: { req: serializeRequest },
           customProps: () => ({ version: env.APP_VERSION }),
         },
       }),

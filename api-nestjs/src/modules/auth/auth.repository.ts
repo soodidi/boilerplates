@@ -1,7 +1,10 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { desc, eq, lt } from 'drizzle-orm';
 import { DB, type Database } from '../../database/database.module.js';
-import { accounts, sessions, users } from './auth.table.js';
+import { accounts, rateLimits, sessions, users, verifications } from './auth.table.js';
+
+/** Plus longue fenêtre de rate limiting (5 min, auth.config.ts) : au-delà, un compteur ne sert plus. */
+const RATE_LIMIT_RETENTION_MS = 24 * 60 * 60 * 1000;
 
 /**
  * BE-002 : lectures propres au module auth, en plus de celles de Better Auth.
@@ -52,12 +55,22 @@ export class AuthRepository {
       .where(eq(accounts.userId, userId));
   }
 
-  /** GLB-013 : Better Auth n'efface une session expirée que si on la lui présente à nouveau. */
-  async deleteExpiredSessions(now: Date): Promise<number> {
-    const deleted = await this.db
-      .delete(sessions)
-      .where(lt(sessions.expiresAt, now))
-      .returning({ id: sessions.id });
-    return deleted.length;
+  /**
+   * GLB-013 : Better Auth n'efface une session ou un jeton expiré que si on le lui présente à
+   * nouveau, et jamais ses compteurs de rate limiting (clé : IP et route).
+   */
+  async deleteExpiredAuthData(now: Date) {
+    const [expiredSessions, expiredVerifications, staleRateLimits] = await Promise.all([
+      this.db.delete(sessions).where(lt(sessions.expiresAt, now)),
+      this.db.delete(verifications).where(lt(verifications.expiresAt, now)),
+      this.db
+        .delete(rateLimits)
+        .where(lt(rateLimits.lastRequest, now.getTime() - RATE_LIMIT_RETENTION_MS)),
+    ]);
+    return {
+      sessions: expiredSessions.rowCount ?? 0,
+      verifications: expiredVerifications.rowCount ?? 0,
+      rateLimits: staleRateLimits.rowCount ?? 0,
+    };
   }
 }
