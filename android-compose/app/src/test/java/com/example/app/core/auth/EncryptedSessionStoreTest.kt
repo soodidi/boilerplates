@@ -112,6 +112,24 @@ class EncryptedSessionStoreTest {
         }
 
     @Test
+    fun keepsTheSessionInMemoryOnlyWhenEncryptionFails() =
+        runBlocking<Unit> {
+            dataStore.edit { it[key] = FakeCipher().encrypt("old-token") }
+            val failing =
+                object : TokenCipher by FakeCipher() {
+                    override fun encrypt(plaintext: String): String = error("Keystore unavailable")
+                }
+            val store = EncryptedSessionStore(dataStore, failing, storeScope, Dispatchers.IO)
+            store.loaded()
+
+            store.save("secret-token")
+
+            assertEquals("secret-token", store.currentToken())
+            assertNull(stored())
+            assertFalse(file.readText(Charsets.ISO_8859_1).contains("secret-token"))
+        }
+
+    @Test
     fun clearForgetsTheToken() =
         runBlocking<Unit> {
             val store = newStore()

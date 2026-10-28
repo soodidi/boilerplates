@@ -3,12 +3,16 @@ package com.example.app.feature.auth
 import com.example.app.feature.auth.data.AuthException
 import com.example.app.feature.auth.data.AuthFailure
 import com.example.app.feature.auth.data.AuthRepository
+import kotlinx.coroutines.CompletableDeferred
 
 /** AND-005 : un fake du repository plutôt qu'un mock. */
 class FakeAuthRepository : AuthRepository {
     var failure: AuthFailure? = null
     val calls = mutableListOf<List<String>>()
-    var signedOut = false
+    var signOutCount = 0
+
+    /** Retient la déconnexion tant qu'il n'est pas complété. */
+    var signOutGate: CompletableDeferred<Unit>? = null
 
     private fun result(): Result<Unit> = failure?.let { Result.failure(AuthException(it)) } ?: Result.success(Unit)
 
@@ -35,6 +39,7 @@ class FakeAuthRepository : AuthRepository {
     }
 
     override suspend fun signOut() {
-        signedOut = true
+        signOutCount++
+        signOutGate?.await()
     }
 }

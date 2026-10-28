@@ -13,6 +13,7 @@ import javax.inject.Singleton
 
 /** Chiffre le token de session avant son stockage (AND-004). Une interface, pour tester sans Keystore. */
 interface TokenCipher {
+    /** Lève une exception si le chiffrement est impossible : rien ne doit alors être écrit. */
     fun encrypt(plaintext: String): String
 
     fun decrypt(ciphertext: String): String
@@ -31,14 +32,20 @@ class TinkTokenCipher
         // Accès au Keystore lent : fait une seule fois, hors du fil principal (premier appel en IO).
         private val aead: Aead by lazy {
             AeadConfig.register()
-            AndroidKeysetManager
-                .Builder()
-                .withSharedPref(context, KEYSET_NAME, KEYSET_PREFS_FILE)
-                .withKeyTemplate(KeyTemplates.get("AES256_GCM"))
-                .withMasterKeyUri(MASTER_KEY_URI)
-                .build()
-                .keysetHandle
-                .getPrimitive(RegistryConfiguration.get(), Aead::class.java)
+            val manager =
+                AndroidKeysetManager
+                    .Builder()
+                    .withSharedPref(context, KEYSET_NAME, KEYSET_PREFS_FILE)
+                    .withKeyTemplate(KeyTemplates.get("AES256_GCM"))
+                    .withMasterKeyUri(MASTER_KEY_URI)
+                    .build()
+            // Keystore défaillant : Tink écrit alors le keyset en clair, sans erreur. On le supprime
+            // et on refuse de chiffrer : le token reste en mémoire, jamais sur disque.
+            if (!manager.isUsingKeystore) {
+                context.deleteSharedPreferences(KEYSET_PREFS_FILE)
+                throw IllegalStateException("Android Keystore unavailable")
+            }
+            manager.keysetHandle.getPrimitive(RegistryConfiguration.get(), Aead::class.java)
         }
 
         override fun encrypt(plaintext: String): String =

@@ -94,7 +94,7 @@ class DefaultAuthRepository
             val code = errorBody()?.string()?.let { runCatching { json.decodeFromString<AuthErrorDto>(it).code }.getOrNull() }
             throw AuthException(
                 when {
-                    code() == 401 -> AuthFailure.InvalidCredentials
+                    code() == 401 && code == "INVALID_EMAIL_OR_PASSWORD" -> AuthFailure.InvalidCredentials
                     code() == 403 && code == "EMAIL_NOT_VERIFIED" -> AuthFailure.EmailNotVerified
                     code() == 429 -> AuthFailure.TooManyAttempts
                     else -> AuthFailure.Unknown

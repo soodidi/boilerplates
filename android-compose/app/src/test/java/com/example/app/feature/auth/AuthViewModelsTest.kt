@@ -117,6 +117,35 @@ class AuthViewModelsTest {
         }
 
     @Test
+    fun signInIgnoresASecondSubmitWhileSending() =
+        runTest(dispatcher) {
+            val viewModel = SignInViewModel(repository)
+            viewModel.onEmailChange("ada@example.com")
+            viewModel.onPasswordChange("correct-horse-battery")
+
+            viewModel.onSubmit()
+            viewModel.onSubmit()
+            advanceUntilIdle()
+
+            assertEquals(1, repository.calls.size)
+        }
+
+    @Test
+    fun signUpRejectsTooLongValues() =
+        runTest(dispatcher) {
+            val viewModel = SignUpViewModel(repository)
+            viewModel.onNameChange("a".repeat(101))
+            viewModel.onEmailChange("ada@example.com")
+            viewModel.onPasswordChange("p".repeat(129))
+
+            viewModel.onSubmit()
+
+            assertEquals(R.string.auth_name_too_long, viewModel.uiState.value.nameError)
+            assertEquals(R.string.auth_password_too_long, viewModel.uiState.value.passwordError)
+            assertTrue(repository.calls.isEmpty())
+        }
+
+    @Test
     fun signUpConfirmsTheVerificationEmail() =
         runTest(dispatcher) {
             val viewModel = SignUpViewModel(repository)
@@ -159,6 +188,18 @@ class AuthViewModelsTest {
 
             assertEquals("ada@example.com", viewModel.uiState.value.sentTo)
             assertEquals(listOf("requestPasswordReset", "ada@example.com"), repository.calls.single())
+        }
+
+    @Test
+    fun forgotPasswordValidatesTheEmail() =
+        runTest(dispatcher) {
+            val viewModel = ForgotPasswordViewModel(repository)
+            viewModel.onEmailChange("ada@")
+
+            viewModel.onSubmit()
+
+            assertEquals(R.string.auth_email_invalid, viewModel.uiState.value.emailError)
+            assertTrue(repository.calls.isEmpty())
         }
 
     @Test

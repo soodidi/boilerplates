@@ -17,7 +17,7 @@ data class ForgotPasswordUiState(
     @StringRes val emailError: Int? = null,
     val isSubmitting: Boolean = false,
     @StringRes val errorMessage: Int? = null,
-    /** Adresse à laquelle le lien a été envoyé, si elle correspond à un compte. */
+    /** Adresse saisie, une fois la demande acceptée ; l'API répond pareil qu'un compte existe ou non. */
     val sentTo: String? = null,
 )
 

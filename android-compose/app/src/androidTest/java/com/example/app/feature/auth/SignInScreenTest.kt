@@ -1,6 +1,8 @@
 package com.example.app.feature.auth
 
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -37,7 +39,8 @@ class SignInScreenTest {
         }
 
         composeRule.onNodeWithText(string(R.string.auth_error_invalid_credentials)).assertIsDisplayed()
-        composeRule.onNodeWithText(string(R.string.auth_sign_in_submit), useUnmergedTree = true).performClick()
+        // Le titre porte le même texte que le bouton : on cible le nœud cliquable.
+        composeRule.onNode(hasText(string(R.string.auth_sign_in_submit)) and hasClickAction()).performClick()
         assertTrue(submitted)
     }
 

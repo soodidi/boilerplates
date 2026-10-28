@@ -63,6 +63,23 @@ class AuthInterceptorTest {
     }
 
     @Test
+    fun neverSendsTheTokenToAnotherPort() {
+        server.enqueue(MockResponse.Builder().code(200).build())
+        val store = FakeSessionStore("token-1")
+        // Même hôte, autre port : l'intercepteur doit le traiter comme une autre origine.
+        val client =
+            OkHttpClient
+                .Builder()
+                .addInterceptor(
+                    AuthInterceptor(store, apiUrl.newBuilder().port(apiUrl.port + 1).build()),
+                ).build()
+
+        client.get()
+
+        assertNull(server.takeRequest().headers["Authorization"])
+    }
+
+    @Test
     fun unauthorizedResponseEndsTheSession() {
         server.enqueue(MockResponse.Builder().code(401).build())
         val store = FakeSessionStore("token-1")

@@ -115,14 +115,31 @@ class EncryptedSessionStore
                 null
             }
 
-        /** Écrit la valeur courante : quel que soit l'ordre des appels, la dernière écriture est juste. */
-        private suspend fun persist() =
+        /**
+         * Écrit la valeur courante : quel que soit l'ordre des appels, la dernière écriture est juste.
+         * Ne lève jamais d'exception (appelé aussi en tâche de fond) : en cas d'échec (Keystore ou
+         * disque), la session reste valable en mémoire et sera simplement perdue à la fermeture de l'app.
+         */
+        private suspend fun persist() {
             writeMutex.withLock {
-                val value = currentToken()
-                val encrypted = value?.let { withContext(ioDispatcher) { cipher.encrypt(it) } }
-                dataStore.edit { preferences ->
-                    if (encrypted == null) preferences.remove(TOKEN_KEY) else preferences[TOKEN_KEY] = encrypted
+                runCatchingNonCancellable {
+                    val value = currentToken()
+                    // Chiffrement impossible : l'ancienne valeur est effacée, et le token n'est jamais écrit en clair.
+                    val encrypted = value?.let { runCatchingNonCancellable { withContext(ioDispatcher) { cipher.encrypt(it) } } }
+                    dataStore.edit { preferences ->
+                        if (encrypted == null) preferences.remove(TOKEN_KEY) else preferences[TOKEN_KEY] = encrypted
+                    }
                 }
+            }
+        }
+
+        private inline fun <T> runCatchingNonCancellable(block: () -> T): T? =
+            try {
+                block()
+            } catch (exception: CancellationException) {
+                throw exception
+            } catch (_: Exception) {
+                null
             }
 
         private companion object {

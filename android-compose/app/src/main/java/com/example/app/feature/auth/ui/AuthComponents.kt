@@ -8,13 +8,16 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -30,6 +33,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.autofill.ContentType
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.contentType
 import androidx.compose.ui.semantics.error
 import androidx.compose.ui.semantics.liveRegion
@@ -39,6 +43,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import com.example.app.R
 import com.example.app.core.designsystem.AppTheme
 import com.example.app.core.designsystem.Spacing
@@ -123,8 +128,23 @@ internal fun AuthSubmitButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Button(onClick = onClick, enabled = !isSubmitting, modifier = modifier.fillMaxWidth()) {
-        if (isSubmitting) CircularProgressIndicator(modifier = Modifier.padding(end = Spacing.small)) else Text(stringResource(label))
+    val text = stringResource(label)
+    // TalkBack lit le libellé même pendant l'envoi, quand le bouton n'affiche qu'un indicateur.
+    Button(
+        onClick = onClick,
+        enabled = !isSubmitting,
+        modifier = modifier.fillMaxWidth().semantics(mergeDescendants = true) { contentDescription = text },
+    ) {
+        if (isSubmitting) {
+            // Taille d'une icône de bouton : le bouton ne change pas de hauteur pendant l'envoi.
+            CircularProgressIndicator(
+                modifier = Modifier.size(ButtonDefaults.IconSize),
+                color = LocalContentColor.current,
+                strokeWidth = 2.dp,
+            )
+        } else {
+            Text(text)
+        }
     }
 }
 

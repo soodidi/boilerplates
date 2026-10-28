@@ -64,4 +64,26 @@ class NotesScreenTest {
 
         composeRule.onNodeWithText("Coffee").assertIsDisplayed()
     }
+
+    @Test
+    fun forwardsSignOut() {
+        var signedOut = false
+        composeRule.setContent {
+            AppTheme {
+                NotesScreen(
+                    state = NotesUiState(isLoading = false),
+                    onQueryChange = {},
+                    onDraftTitleChange = {},
+                    onSubmit = {},
+                    onRetry = {},
+                    onUserMessageShown = {},
+                    onSignOut = { signedOut = true },
+                )
+            }
+        }
+
+        val label = InstrumentationRegistry.getInstrumentation().targetContext.getString(R.string.auth_sign_out)
+        composeRule.onNodeWithText(label, useUnmergedTree = true).performClick()
+        assertTrue(signedOut)
+    }
 }

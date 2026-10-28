@@ -50,7 +50,7 @@ app/src/main/java/com/example/app/
 ## Authentification (BE-006, AND-004)
 
 - **Connexion** : l'API renvoie un token de session **signé** dans l'en-tête `set-auth-token`. Le token du corps de la réponse n'est pas signé et n'est pas utilisé.
-- **Stockage** : le token est chiffré avec Tink (AES-256-GCM, keyset protégé par une clé de l'Android Keystore), puis stocké dans le DataStore `secure`. Le fichier et le keyset sont exclus des sauvegardes et des transferts : sur un nouvel appareil, l'utilisateur se reconnecte.
+- **Stockage** : le token est chiffré avec Tink (AES-256-GCM, keyset protégé par une clé de l'Android Keystore), puis stocké dans le DataStore `secure`. Le fichier et le keyset sont exclus des sauvegardes et des transferts : sur un nouvel appareil, l'utilisateur se reconnecte. Si le Keystore est inutilisable, rien n'est écrit sur disque : la session reste en mémoire jusqu'à la fermeture de l'app.
 - **Requêtes** : `AuthInterceptor` ajoute `Authorization: Bearer` aux appels vers `API_BASE_URL`, et seulement vers elle. Pas de cookies.
 - **Fin de session** : il n'y a pas de refresh token. Un `401` efface le token, et la navigation revient à la connexion. La déconnexion révoque la session côté serveur si le réseau le permet, et l'oublie localement dans tous les cas. Changer de graphe vide la pile de navigation : les ViewModels de l'utilisateur précédent sont détruits.
 - **Inscription et mot de passe oublié** : les formulaires sont dans l'app. Les liens des e-mails ouvrent le front web (`WEB_BASE_URL` + `login` ou `reset-password`), puis l'utilisateur revient se connecter dans l'app. Il n'y a pas de deep links.

@@ -29,8 +29,8 @@
     <string name="auth_name_label">Nom</string>
     <string name="auth_email_label">Adresse e-mail</string>
     <string name="auth_password_label">Mot de passe</string>
-    <string name="auth_password_show">Afficher</string>
-    <string name="auth_password_hide">Masquer</string>
+    <string name="auth_password_show">Afficher le mot de passe</string>
+    <string name="auth_password_hide">Masquer le mot de passe</string>
     <string name="auth_email_invalid">Adresse e-mail invalide.</string>
     <!-- Même valeur que PASSWORD_MIN_LENGTH (AuthValidation.kt) et que l'API. -->
     <string name="auth_password_too_short">12 caractères minimum.</string>
