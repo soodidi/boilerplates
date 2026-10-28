@@ -4,7 +4,7 @@ import { render } from '@testing-library/react';
 import { type ReactElement } from 'react';
 import { createAppRouter } from '@/app/router';
 import { configureAuthClient, createUnauthorizedHandler } from '@/features/auth';
-import { I18nProvider } from '@/i18n';
+import { I18nProvider, type Locale } from '@/i18n';
 import { configureHttp } from '@/lib/http';
 
 function createTestQueryClient() {
@@ -23,8 +23,8 @@ export function renderWithProviders(ui: ReactElement) {
   );
 }
 
-/** Rend l'app complète sur une URL donnée, avec un historique en mémoire. */
-export function renderRoute(url: string) {
+/** Rend l'app complète sur une URL donnée, avec un historique en mémoire (en français par défaut). */
+export function renderRoute(url: string, { locale = 'fr' }: { locale?: Locale } = {}) {
   const queryClient = createTestQueryClient();
   const history = createMemoryHistory({ initialEntries: [url] });
   const router = createAppRouter({ queryClient, history });
@@ -35,7 +35,7 @@ export function renderRoute(url: string) {
     onUnauthorized: createUnauthorizedHandler(queryClient, router),
   });
   const result = render(
-    <I18nProvider locale="fr">
+    <I18nProvider locale={locale}>
       <QueryClientProvider client={queryClient}>
         <RouterProvider router={router} />
       </QueryClientProvider>
