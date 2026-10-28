@@ -16,6 +16,7 @@ import {
   SignupPage,
 } from '@/features/auth';
 import { HomePage } from '@/features/home';
+import { LegalNoticePage, PrivacyPolicyPage, TermsOfUsePage } from '@/features/legal';
 import { NotesPage, notesQueryOptions, notesSearchSchema } from '@/features/notes';
 import { NotFound, RouteError } from './error-fallback';
 import { RootLayout } from './root-layout';
@@ -79,6 +80,25 @@ const notesRoute = createRoute({
   component: NotesPage,
 });
 
+// GLB-013 : pages légales, publiques.
+const legalNoticeRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/legal/notice',
+  component: LegalNoticePage,
+});
+
+const privacyPolicyRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/legal/privacy',
+  component: PrivacyPolicyPage,
+});
+
+const termsOfUseRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/legal/terms',
+  component: TermsOfUsePage,
+});
+
 const routeTree = rootRoute.addChildren([
   homeRoute,
   loginRoute,
@@ -86,6 +106,9 @@ const routeTree = rootRoute.addChildren([
   forgotPasswordRoute,
   resetPasswordRoute,
   notesRoute,
+  legalNoticeRoute,
+  privacyPolicyRoute,
+  termsOfUseRoute,
 ]);
 
 type CreateAppRouterOptions = {

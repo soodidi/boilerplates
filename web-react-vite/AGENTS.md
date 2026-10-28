@@ -9,7 +9,8 @@ Ce projet suit [engineering-guidelines](https://github.com/soodidi/engineering-g
 - Données serveur : `queryOptions` + hooks TanStack Query dans `api/`, jamais copiées dans un `useState` (FE-004). Appels HTTP via `request()` de `src/lib/http.ts` avec un schéma Zod de réponse.
 - Formulaires : React Hook Form + Zod, champs enveloppés dans `FormField` (FE-006).
 - Style : classes Tailwind avec les tokens sémantiques de `src/styles.css`, pas de couleurs brutes ni de valeurs arbitraires (FE-005).
-- Aucun texte affiché en dur : ajouter les clés dans `src/i18n/fr.ts` et `en.ts` (GLB-007).
+- Aucun texte affiché en dur : ajouter les clés dans `src/i18n/fr.ts` et `en.ts` (GLB-007). Exception : les textes longs d'une feature chargée en lazy (pages légales, `src/features/legal/content/{fr,en}.ts`) restent dans la feature, pour ne pas alourdir le bundle initial (FE-008).
+- Pages légales (GLB-013) : toute nouvelle donnée personnelle, tout nouveau sous-traitant ou traceur, ou tout changement de durée de conservation met à jour `src/features/legal/` dans la même PR.
 - Pas de `useMemo` / `useCallback` manuels : le React Compiler s'en charge (FE-008).
 - Tests : Testing Library avec des requêtes par rôle, réseau mocké via MSW (`src/mocks/handlers.ts`), pas de mock de modules internes (FE-007).
 - Auth (BE-006) : une route privée a `beforeLoad: requireSession` ; les appels d'auth passent par `src/features/auth/api` (client Better Auth), jamais par `fetch` direct ; messages d'erreur génériques, sans révéler si un compte existe. Dans les tests, `signInAsDemo()` (`src/mocks/db.ts`) pour démarrer connecté.
