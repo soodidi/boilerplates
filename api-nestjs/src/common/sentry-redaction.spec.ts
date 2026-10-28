@@ -75,18 +75,3 @@ describe('redactErrorEvent with a failed query', () => {
     expect(JSON.stringify(event)).not.toContain('my secret note');
   });
 });
-
-describe('redactErrorEvent with a failed query', () => {
-  it('drops the query values from the exception message', () => {
-    const event = redactErrorEvent({
-      type: undefined,
-      exception: {
-        values: [
-          { type: 'DrizzleQueryError', value: 'Failed query: insert\nparams: my secret note' },
-        ],
-      },
-    });
-
-    expect(JSON.stringify(event)).not.toContain('my secret note');
-  });
-});

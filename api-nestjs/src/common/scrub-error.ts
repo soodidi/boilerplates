@@ -20,7 +20,10 @@ function scrub(value: unknown): unknown {
   );
 }
 
-/** BE-007 : sérialiseur `err` des logs, sans données personnelles issues de la base. */
-export function serializeError(error: Error): unknown {
-  return scrub(stdSerializers.err(error));
+/**
+ * BE-007 : sérialiseur `err` des logs, sans données personnelles issues de la base. pino lui passe
+ * l'erreur déjà sérialisée (type, message, stack) ; une `Error` brute est sérialisée ici.
+ */
+export function serializeError(error: unknown): unknown {
+  return scrub(error instanceof Error ? stdSerializers.err(error) : error);
 }

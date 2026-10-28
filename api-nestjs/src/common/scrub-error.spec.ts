@@ -1,4 +1,5 @@
 import { DrizzleQueryError } from 'drizzle-orm/errors';
+import { stdSerializers } from 'pino';
 import { describe, expect, it } from 'vitest';
 import { scrubErrorText, serializeError } from './scrub-error.js';
 
@@ -23,6 +24,16 @@ describe('serializeError', () => {
 
   it('leaves other errors readable', () => {
     expect(serializeError(new Error('boom'))).toMatchObject({ type: 'Error', message: 'boom' });
+  });
+
+  it('keeps the error type when pino has already serialized the error', () => {
+    const viaPino = stdSerializers.wrapErrorSerializer(serializeError as never);
+    const error = new DrizzleQueryError('select 1', ['secret'], new Error('down'));
+
+    const serialized = viaPino(error);
+
+    expect(serialized).toMatchObject({ type: 'DrizzleQueryError' });
+    expect(JSON.stringify(serialized)).not.toContain('secret');
   });
 });
 
