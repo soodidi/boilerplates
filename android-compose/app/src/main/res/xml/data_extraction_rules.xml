@@ -1,10 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- AND-004 : les préférences chiffrées (tokens) ne sont ni sauvegardées ni transférées. -->
+<!-- AND-004 : le token chiffré et son keyset ne sont ni sauvegardés ni transférés. Restaurés sans la
+     clé du Keystore, ils seraient illisibles : l'utilisateur se reconnecte sur le nouvel appareil. -->
 <data-extraction-rules>
     <cloud-backup>
         <exclude domain="file" path="datastore/secure.preferences_pb" />
+        <exclude domain="sharedpref" path="secure_keyset.xml" />
     </cloud-backup>
     <device-transfer>
         <exclude domain="file" path="datastore/secure.preferences_pb" />
+        <exclude domain="sharedpref" path="secure_keyset.xml" />
     </device-transfer>
 </data-extraction-rules>

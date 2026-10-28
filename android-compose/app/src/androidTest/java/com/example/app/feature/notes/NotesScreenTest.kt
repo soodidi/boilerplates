@@ -32,6 +32,7 @@ class NotesScreenTest {
                     onSubmit = {},
                     onRetry = { retried = true },
                     onUserMessageShown = {},
+                    onSignOut = {},
                 )
             }
         }
@@ -56,6 +57,7 @@ class NotesScreenTest {
                     onSubmit = {},
                     onRetry = {},
                     onUserMessageShown = {},
+                    onSignOut = {},
                 )
             }
         }
