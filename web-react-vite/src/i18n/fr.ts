@@ -65,6 +65,13 @@ export const fr = {
       checkInbox: (email: string) =>
         `Si l'adresse ${email} peut être utilisée, un e-mail vient d'y être envoyé. Ouvrez le lien qu'il contient pour continuer.`,
       backToLogin: 'Retour à la connexion',
+      consent: {
+        before: 'En créant un compte, vous acceptez les ',
+        terms: "conditions d'utilisation",
+        between: ' et prenez connaissance de la ',
+        privacy: 'politique de confidentialité',
+        after: '.',
+      },
     },
     forgot: {
       title: 'Mot de passe oublié',

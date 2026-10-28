@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import { signInAsDemo } from '@/mocks/db';
 import { renderRoute } from '@/test/render';
+import { formatLegalDate } from '../components/legal-document';
 
 describe('Pages légales', () => {
   it.each([
@@ -93,7 +94,7 @@ describe('Pages légales', () => {
     });
     expect(processors).toHaveTextContent(/Sentry.*Union européenne/);
     expect(screen.getByRole('region', { name: 'Cookies' })).toHaveTextContent(
-      /un seul cookie : le cookie de session.*ne demande donc pas votre consentement/,
+      /un seul cookie, le cookie de session.*ne demandent donc pas votre consentement/,
     );
     const rights = screen.getByRole('region', { name: 'Vos droits' });
     expect(rights).toHaveTextContent('« Mon compte »');
@@ -116,5 +117,31 @@ describe('Pages légales', () => {
       'Scaleway SAS',
     );
     expect(screen.queryByRole('heading', { name: 'Destinataires et sous-traitants' })).toBeNull();
+  });
+});
+
+describe('formatLegalDate', () => {
+  it('affiche une date ISO dans la langue de la page', () => {
+    expect(formatLegalDate('2026-10-28', 'fr')).toBe('28 octobre 2026');
+    expect(formatLegalDate('2026-10-28', 'en')).toBe('October 28, 2026');
+  });
+
+  it('affiche tel quel un champ encore à compléter', () => {
+    expect(formatLegalDate('[AAAA-MM-JJ]', 'fr')).toBe('[AAAA-MM-JJ]');
+  });
+});
+
+describe('SignupPage', () => {
+  it('présente les conditions d’utilisation et la politique de confidentialité avant l’inscription', async () => {
+    renderRoute('/signup');
+
+    expect(await screen.findByRole('link', { name: "conditions d'utilisation" })).toHaveAttribute(
+      'href',
+      '/legal/terms',
+    );
+    expect(screen.getByRole('link', { name: 'politique de confidentialité' })).toHaveAttribute(
+      'href',
+      '/legal/privacy',
+    );
   });
 });

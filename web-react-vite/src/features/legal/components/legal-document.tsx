@@ -1,21 +1,30 @@
 import { useId } from 'react';
-import { useMessages } from '@/i18n';
+import { type Locale, useLocale, useMessages } from '@/i18n';
 import { type LegalDocument as LegalDocumentContent, type LegalSection } from '../content/types';
 import { legalInfo } from '../legal-info';
 
+/** Date AAAA-MM-JJ dans la langue de la page ; un champ encore à compléter s'affiche tel quel. */
+export function formatLegalDate(value: string, locale: Locale): string {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+  return new Intl.DateTimeFormat(locale, { dateStyle: 'long', timeZone: 'UTC' }).format(
+    new Date(`${value}T00:00:00Z`),
+  );
+}
+
 /** Page légale : titre, date de mise à jour, puis une section par titre. */
-export function LegalDocument({ document }: { document: LegalDocumentContent }) {
+export function LegalDocument({ content }: { content: LegalDocumentContent }) {
   const m = useMessages();
+  const locale = useLocale();
 
   return (
     <article className="grid max-w-prose gap-6">
       <header className="grid gap-2">
-        <h1 className="text-3xl font-semibold tracking-tight">{document.title}</h1>
+        <h1 className="text-3xl font-semibold tracking-tight">{content.title}</h1>
         <p className="text-sm text-muted-foreground">
-          {m.legal.lastUpdated(legalInfo.lastUpdated)}
+          {m.legal.lastUpdated(formatLegalDate(legalInfo.lastUpdated, locale))}
         </p>
       </header>
-      {document.sections.map((section) => (
+      {content.sections.map((section) => (
         <LegalSectionView key={section.heading} section={section} />
       ))}
     </article>

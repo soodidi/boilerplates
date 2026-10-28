@@ -1,4 +1,5 @@
-import { HOST, type LegalContent } from './types';
+import { HOST } from './host';
+import { type LegalContent } from './types';
 
 /** Modèles à relire avant la mise en ligne : ils décrivent l'app telle que livrée par le boilerplate. */
 export const fr: LegalContent = (info) => ({
@@ -9,8 +10,8 @@ export const fr: LegalContent = (info) => ({
         heading: 'Éditeur',
         blocks: [
           `Cette application est éditée par ${info.publisherName} (${info.publisherStatus}), ${info.publisherAddress}.`,
+          `Téléphone : ${info.publisherPhone}. Contact : ${info.contactEmail}.`,
           `Immatriculation : ${info.publisherRegistration}.`,
-          `Contact : ${info.contactEmail}.`,
         ],
       },
       {
@@ -46,10 +47,11 @@ export const fr: LegalContent = (info) => ({
       {
         heading: 'Données collectées',
         blocks: [
-          'Nous collectons uniquement ce qui est nécessaire au service :',
+          'L’éditeur ne collecte que ce qui est nécessaire au service :',
           [
             'votre compte : nom, adresse e-mail et mot de passe, conservé uniquement sous une forme irréversible (hachage) ;',
             'vos sessions de connexion : adresse IP et type de navigateur ou d’appareil, pour sécuriser votre compte ;',
+            'votre adresse IP, le temps de limiter les tentatives répétées de connexion ou d’inscription ;',
             'les contenus que vous créez dans l’application.',
           ],
         ],
@@ -59,8 +61,8 @@ export const fr: LegalContent = (info) => ({
         blocks: [
           [
             'fournir le service et gérer votre compte : exécution du contrat (conditions d’utilisation) ;',
-            'vous envoyer les e-mails du service (confirmation d’adresse, nouveau mot de passe) : exécution du contrat ;',
-            'protéger votre compte et l’application contre les abus : intérêt légitime.',
+            'vous envoyer les e-mails du service (confirmation d’adresse, réinitialisation du mot de passe, alerte en cas d’inscription avec votre adresse) : exécution du contrat ;',
+            'protéger votre compte et l’application contre les abus, et corriger les erreurs techniques : intérêt légitime.',
           ],
           'Vos données ne sont ni vendues, ni utilisées à des fins publicitaires.',
         ],
@@ -70,8 +72,11 @@ export const fr: LegalContent = (info) => ({
         blocks: [
           [
             'compte et contenus : jusqu’à la suppression de votre compte ;',
-            'sessions : 30 jours après leur dernière utilisation, et jamais plus de 90 jours ;',
-            'liens envoyés par e-mail : jusqu’à leur expiration, une heure au plus ;',
+            'sessions : valables 30 jours après leur dernière utilisation et 90 jours au plus après la connexion, puis effacées dans les 24 heures ;',
+            'adresse IP utilisée pour limiter les tentatives : 24 heures ;',
+            'liens envoyés par e-mail : jusqu’à leur expiration, une heure au plus, puis effacés dans les 24 heures ;',
+            `journaux techniques du serveur (adresses demandées, résultats, sans adresse IP ni navigateur) : ${info.logRetentionDays} jours ;`,
+            `rapports d’erreurs techniques : ${info.errorRetentionDays} jours ;`,
             `sauvegardes de la base de données : ${info.backupRetentionDays} jours. Une donnée supprimée disparaît des sauvegardes à l’issue de ce délai.`,
           ],
         ],
@@ -81,8 +86,8 @@ export const fr: LegalContent = (info) => ({
         blocks: [
           'Vos données ne sont accessibles qu’à l’éditeur et aux prestataires suivants, pour les seuls besoins du service :',
           [
-            `${HOST.name} (France) : hébergement de l’application et de la base de données, envoi des e-mails ;`,
-            'Sentry (Functional Software, Inc.) : détection des erreurs techniques, données hébergées dans l’Union européenne, sans donnée personnelle ;',
+            `${HOST.name} (France) : hébergement de l’application et de la base de données, journaux techniques, envoi des e-mails ; sauvegardes copiées dans une autre région de l’Union européenne ;`,
+            'Sentry (Functional Software, Inc., États-Unis) : rapports d’erreurs techniques (page consultée, navigateur et système, déroulement de l’erreur), sans nom, adresse e-mail, adresse IP ni contenu, hébergés dans l’Union européenne ; un éventuel accès depuis les États-Unis est encadré par les clauses contractuelles types de la Commission européenne ;',
             'Apple et Google : distribution des applications mobiles, si vous les utilisez.',
           ],
         ],
@@ -90,7 +95,7 @@ export const fr: LegalContent = (info) => ({
       {
         heading: 'Cookies',
         blocks: [
-          'L’application utilise un seul cookie : le cookie de session, qui vous garde connecté. Il est strictement nécessaire au service et ne demande donc pas votre consentement. Aucun traceur publicitaire ni outil de mesure d’audience n’est utilisé.',
+          'L’application utilise un seul cookie, le cookie de session qui vous garde connecté, et une donnée technique dans le stockage de votre navigateur pour synchroniser la connexion entre vos onglets. Tous deux sont strictement nécessaires au service et ne demandent donc pas votre consentement. Aucun traceur publicitaire ni outil de mesure d’audience n’est utilisé.',
         ],
       },
       {
@@ -99,9 +104,9 @@ export const fr: LegalContent = (info) => ({
           'Depuis la page « Mon compte », vous pouvez à tout moment :',
           [
             'exporter toutes vos données dans un fichier (droit d’accès et de portabilité) ;',
-            'supprimer votre compte et toutes vos données, immédiatement et définitivement (droit à l’effacement).',
+            `supprimer votre compte et toutes vos données, immédiatement et définitivement (droit à l’effacement) ; seules les sauvegardes les conservent, ${info.backupRetentionDays} jours au plus.`,
           ],
-          `Vous pouvez aussi demander la rectification de vos données, ou vous opposer à un traitement, en écrivant à ${info.contactEmail}. Si vous estimez que vos droits ne sont pas respectés, vous pouvez adresser une réclamation à la CNIL (www.cnil.fr).`,
+          `Vous pouvez aussi demander la rectification de vos données, la limitation de leur traitement, vous opposer à un traitement, ou définir des directives sur leur sort après votre décès, en écrivant à ${info.contactEmail}. Si vous estimez que vos droits ne sont pas respectés, vous pouvez adresser une réclamation à la CNIL (www.cnil.fr).`,
         ],
       },
       {
@@ -118,7 +123,7 @@ export const fr: LegalContent = (info) => ({
       {
         heading: 'Objet',
         blocks: [
-          `Les présentes conditions encadrent l’utilisation de l’application éditée par ${info.publisherName}. Créer un compte vaut acceptation de ces conditions.`,
+          `Les présentes conditions encadrent l’utilisation de l’application éditée par ${info.publisherName}. En créant un compte, vous les acceptez.`,
         ],
       },
       {
@@ -142,13 +147,13 @@ export const fr: LegalContent = (info) => ({
       {
         heading: 'Suppression du compte',
         blocks: [
-          'Vous pouvez supprimer votre compte à tout moment depuis la page « Mon compte » ; vos données sont alors effacées. L’éditeur peut suspendre ou supprimer un compte en cas de manquement grave aux présentes conditions.',
+          'Vous pouvez supprimer votre compte à tout moment depuis la page « Mon compte » ; vos données sont alors effacées. L’éditeur peut suspendre ou supprimer un compte en cas de manquement grave aux présentes conditions, après vous en avoir informé par e-mail.',
         ],
       },
       {
         heading: 'Responsabilité',
         blocks: [
-          'Le service est fourni en l’état. Dans les limites permises par la loi, l’éditeur n’est pas responsable des dommages indirects liés à son utilisation, ni de la perte de contenus : exportez régulièrement vos données si elles sont importantes pour vous.',
+          'L’éditeur met en œuvre les moyens raisonnables pour assurer le bon fonctionnement du service et la conservation de vos contenus, notamment par des sauvegardes régulières. Vous pouvez exporter vos données à tout moment depuis la page « Mon compte ».',
         ],
       },
       {
