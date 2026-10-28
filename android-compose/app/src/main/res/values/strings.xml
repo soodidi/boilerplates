@@ -41,4 +41,24 @@
     <string name="auth_error_too_many_attempts">Trop de tentatives. Réessayez dans quelques minutes.</string>
     <string name="auth_error_network">Connexion au serveur impossible. Vérifiez votre réseau.</string>
     <string name="auth_error_generic">Une erreur est survenue. Réessayez.</string>
+    <string name="account_open">Mon compte</string>
+    <string name="account_title">Mon compte</string>
+    <string name="account_back">Retour</string>
+    <string name="account_privacy_link">Politique de confidentialité</string>
+    <string name="account_link_unavailable">Aucun navigateur ne peut ouvrir ce lien.</string>
+    <string name="account_export_title">Exporter mes données</string>
+    <string name="account_export_description">Le fichier qui contient toutes les données de votre compte (profil, sessions et contenus) se télécharge sur le site web : connectez-vous, puis ouvrez « Mon compte ».</string>
+    <string name="account_export_open">Exporter depuis le site web</string>
+    <string name="account_delete_title">Supprimer mon compte</string>
+    <plurals name="account_delete_description">
+        <item quantity="one">La suppression est immédiate et définitive : votre compte et toutes vos données sont effacés. Seules les sauvegardes les conservent, %1$d jour au plus.</item>
+        <item quantity="many">La suppression est immédiate et définitive : votre compte et toutes vos données sont effacés. Seules les sauvegardes les conservent, %1$d jours au plus.</item>
+        <item quantity="other">La suppression est immédiate et définitive : votre compte et toutes vos données sont effacés. Seules les sauvegardes les conservent, %1$d jours au plus.</item>
+    </plurals>
+    <string name="account_delete_password">Mot de passe actuel</string>
+    <string name="account_delete_confirm">Je comprends que mon compte et mes données seront supprimés définitivement.</string>
+    <string name="account_delete_confirm_required">Cochez cette case pour confirmer.</string>
+    <string name="account_delete_submit">Supprimer mon compte</string>
+    <string name="account_delete_wrong_password">Mot de passe incorrect.</string>
+    <string name="account_deleted">Votre compte et vos données ont été supprimés.</string>
 </resources>

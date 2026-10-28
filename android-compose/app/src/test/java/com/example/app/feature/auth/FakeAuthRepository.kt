@@ -14,6 +14,9 @@ class FakeAuthRepository : AuthRepository {
     /** Retient la déconnexion tant qu'il n'est pas complété. */
     var signOutGate: CompletableDeferred<Unit>? = null
 
+    /** Retient la suppression du compte tant qu'il n'est pas complété. */
+    var deleteAccountGate: CompletableDeferred<Unit>? = null
+
     private fun result(): Result<Unit> = failure?.let { Result.failure(AuthException(it)) } ?: Result.success(Unit)
 
     override suspend fun signIn(
@@ -41,5 +44,11 @@ class FakeAuthRepository : AuthRepository {
     override suspend fun signOut() {
         signOutCount++
         signOutGate?.await()
+    }
+
+    override suspend fun deleteAccount(password: String): Result<Unit> {
+        calls += listOf("deleteAccount", password)
+        deleteAccountGate?.await()
+        return result()
     }
 }

@@ -1,5 +1,6 @@
 package com.example.app.feature.auth.ui
 
+import androidx.annotation.StringRes
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -19,6 +20,7 @@ import com.example.app.core.designsystem.AppTheme
 fun SignInRoute(
     onSignUp: () -> Unit,
     onForgotPassword: () -> Unit,
+    @StringRes notice: Int? = null,
     viewModel: SignInViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -29,6 +31,7 @@ fun SignInRoute(
         onSubmit = viewModel::onSubmit,
         onSignUp = onSignUp,
         onForgotPassword = onForgotPassword,
+        notice = notice,
     )
 }
 
@@ -41,8 +44,11 @@ fun SignInScreen(
     onSignUp: () -> Unit,
     onForgotPassword: () -> Unit,
     modifier: Modifier = Modifier,
+    /** Information venue d'ailleurs, par exemple après la suppression du compte. */
+    @StringRes notice: Int? = null,
 ) {
     AuthScaffold(title = R.string.auth_sign_in_title, modifier = modifier) {
+        notice?.let { AuthMessage(stringResource(it), isError = false) }
         AuthTextField(
             value = state.email,
             onValueChange = onEmailChange,
@@ -73,7 +79,7 @@ fun SignInScreen(
 @Composable
 private fun SignInScreenPreview() {
     AppTheme {
-        SignInScreen(SignInUiState(email = "ada@example.com"), {}, {}, {}, {}, {})
+        SignInScreen(SignInUiState(email = "ada@example.com"), {}, {}, {}, {}, {}, notice = R.string.account_deleted)
     }
 }
 

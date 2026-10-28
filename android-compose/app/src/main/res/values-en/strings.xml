@@ -39,4 +39,23 @@
     <string name="auth_error_too_many_attempts">Too many attempts. Try again in a few minutes.</string>
     <string name="auth_error_network">Cannot reach the server. Check your network.</string>
     <string name="auth_error_generic">Something went wrong. Try again.</string>
+    <string name="account_open">My account</string>
+    <string name="account_title">My account</string>
+    <string name="account_back">Back</string>
+    <string name="account_privacy_link">Privacy policy</string>
+    <string name="account_link_unavailable">No browser can open this link.</string>
+    <string name="account_export_title">Export my data</string>
+    <string name="account_export_description">The file with all the data of your account (profile, sessions and content) is downloaded from the website: sign in, then open “My account”.</string>
+    <string name="account_export_open">Export from the website</string>
+    <string name="account_delete_title">Delete my account</string>
+    <plurals name="account_delete_description">
+        <item quantity="one">Deletion is immediate and permanent: your account and all your data are erased. Only backups keep them, for %1$d day at most.</item>
+        <item quantity="other">Deletion is immediate and permanent: your account and all your data are erased. Only backups keep them, for %1$d days at most.</item>
+    </plurals>
+    <string name="account_delete_password">Current password</string>
+    <string name="account_delete_confirm">I understand that my account and my data will be permanently deleted.</string>
+    <string name="account_delete_confirm_required">Tick this box to confirm.</string>
+    <string name="account_delete_submit">Delete my account</string>
+    <string name="account_delete_wrong_password">Wrong password.</string>
+    <string name="account_deleted">Your account and your data have been deleted.</string>
 </resources>

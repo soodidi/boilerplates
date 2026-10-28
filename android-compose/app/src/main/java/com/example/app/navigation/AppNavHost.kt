@@ -10,6 +10,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.compose.dropUnlessResumed
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavHostController
@@ -17,7 +18,9 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navigation
+import com.example.app.R
 import com.example.app.core.auth.SessionState
+import com.example.app.feature.auth.ui.AccountRoute
 import com.example.app.feature.auth.ui.ForgotPasswordRoute
 import com.example.app.feature.auth.ui.SignInRoute
 import com.example.app.feature.auth.ui.SignUpRoute
@@ -49,9 +52,13 @@ data object MainGraph
 @Serializable
 data object NotesDestination
 
+@Serializable
+data object AccountDestination
+
 @Composable
 fun AppNavHost(viewModel: SessionViewModel = hiltViewModel()) {
     val session by viewModel.session.collectAsStateWithLifecycle()
+    val accountDeleted by viewModel.accountDeleted.collectAsStateWithLifecycle()
     val navController = rememberNavController()
 
     // La session décide du graphe affiché. En changer vide la pile : à la déconnexion (ou au
@@ -73,13 +80,26 @@ fun AppNavHost(viewModel: SessionViewModel = hiltViewModel()) {
                 SignInRoute(
                     onSignUp = { navController.navigate(SignUpDestination) },
                     onForgotPassword = { navController.navigate(ForgotPasswordDestination) },
+                    notice = if (accountDeleted) R.string.account_deleted else null,
                 )
             }
             composable<SignUpDestination> { SignUpRoute(onBackToSignIn = navController::popBackStack) }
             composable<ForgotPasswordDestination> { ForgotPasswordRoute(onBackToSignIn = navController::popBackStack) }
         }
         navigation<MainGraph>(startDestination = NotesDestination) {
-            composable<NotesDestination> { NotesRoute(onSignOut = viewModel::signOut) }
+            composable<NotesDestination> {
+                // dropUnlessResumed : un double appui n'ouvre pas deux écrans « Mon compte ».
+                NotesRoute(
+                    onOpenAccount = dropUnlessResumed { navController.navigate(AccountDestination) },
+                    onSignOut = viewModel::signOut,
+                )
+            }
+            composable<AccountDestination> {
+                AccountRoute(
+                    onBack = dropUnlessResumed { navController.popBackStack() },
+                    onAccountDeleted = viewModel::onAccountDeleted,
+                )
+            }
         }
     }
 }

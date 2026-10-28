@@ -44,6 +44,7 @@ import java.time.Instant
 /** Écran relié au ViewModel : seul composable qui connaît Hilt et le cycle de vie (AND-001). */
 @Composable
 fun NotesRoute(
+    onOpenAccount: () -> Unit,
     onSignOut: () -> Unit,
     viewModel: NotesViewModel = hiltViewModel(),
 ) {
@@ -55,6 +56,7 @@ fun NotesRoute(
         onSubmit = viewModel::onSubmit,
         onRetry = viewModel::refresh,
         onUserMessageShown = viewModel::onUserMessageShown,
+        onOpenAccount = onOpenAccount,
         onSignOut = onSignOut,
     )
 }
@@ -69,6 +71,7 @@ fun NotesScreen(
     onSubmit: () -> Unit,
     onRetry: () -> Unit,
     onUserMessageShown: () -> Unit,
+    onOpenAccount: () -> Unit,
     onSignOut: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -86,7 +89,10 @@ fun NotesScreen(
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.notes_title)) },
-                actions = { TextButton(onClick = onSignOut) { Text(stringResource(R.string.auth_sign_out)) } },
+                actions = {
+                    TextButton(onClick = onOpenAccount) { Text(stringResource(R.string.account_open)) }
+                    TextButton(onClick = onSignOut) { Text(stringResource(R.string.auth_sign_out)) }
+                },
             )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -190,7 +196,7 @@ private val previewNotes =
 @Composable
 private fun NotesScreenPreview() {
     AppTheme {
-        NotesScreen(NotesUiState(notes = previewNotes, isLoading = false), {}, {}, {}, {}, {}, {})
+        NotesScreen(NotesUiState(notes = previewNotes, isLoading = false), {}, {}, {}, {}, {}, {}, {})
     }
 }
 
@@ -200,6 +206,7 @@ private fun NotesScreenErrorPreview() {
     AppTheme {
         NotesScreen(
             NotesUiState(isLoading = false, loadFailed = true, draftTitleError = R.string.validation_required),
+            {},
             {},
             {},
             {},

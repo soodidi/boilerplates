@@ -28,6 +28,12 @@ interface AuthApi {
 
     @POST("v1/auth/sign-out")
     suspend fun signOut(): Response<Unit>
+
+    /** GLB-013 : suppression immédiate du compte ; l'API exige le mot de passe et révoque la session. */
+    @POST("v1/auth/delete-user")
+    suspend fun deleteUser(
+        @Body body: DeleteUserDto,
+    ): Response<Unit>
 }
 
 @Serializable
@@ -50,6 +56,11 @@ data class PasswordResetRequestDto(
     val email: String,
     /** Page du front web qui reçoit le jeton et demande le nouveau mot de passe. */
     val redirectTo: String,
+)
+
+@Serializable
+data class DeleteUserDto(
+    val password: String,
 )
 
 @Serializable
