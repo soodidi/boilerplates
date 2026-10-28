@@ -14,7 +14,8 @@ export const ResetPasswordPage = lazyRouteComponent(
 );
 
 export { AccountMenu } from './components/account-menu';
-export { authKeys, sessionQueryOptions } from './api/auth-api';
+export { authKeys, sessionQueryOptions, useDeleteAccount } from './api/auth-api';
+export { deleteAccountErrorMessage } from './api/auth-errors';
 export { configureAuthClient } from './api/auth-client';
 export { redirectIfSignedIn, requireSession } from './guard';
 export { createUnauthorizedHandler } from './session-expiry';

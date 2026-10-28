@@ -104,3 +104,15 @@ export function useSignOut() {
     onSettled: () => resetUserCache(queryClient, null),
   });
 }
+
+/**
+ * GLB-013 : suppression immédiate du compte, mot de passe exigé par l'API. Plus aucune donnée
+ * d'utilisateur ne reste en cache ensuite.
+ */
+export function useDeleteAccount() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (password: string) => unwrap(await authClient().deleteUser({ password })),
+    onSuccess: () => resetUserCache(queryClient, null),
+  });
+}

@@ -15,7 +15,8 @@ import {
   resetPasswordSearchSchema,
   SignupPage,
 } from '@/features/auth';
-import { HomePage } from '@/features/home';
+import { AccountPage } from '@/features/account';
+import { HomePage, homeSearchSchema } from '@/features/home';
 import { LegalNoticePage, PrivacyPolicyPage, TermsOfUsePage } from '@/features/legal';
 import { NotesPage, notesQueryOptions, notesSearchSchema } from '@/features/notes';
 import { NotFound, RouteError } from './error-fallback';
@@ -34,6 +35,7 @@ const rootRoute = createRootRouteWithContext<RouterContext>()({
 const homeRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/',
+  validateSearch: homeSearchSchema,
   component: HomePage,
 });
 
@@ -80,6 +82,14 @@ const notesRoute = createRoute({
   component: NotesPage,
 });
 
+// GLB-013 : export des données et suppression du compte. Page privée.
+const accountRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/account',
+  beforeLoad: requireSession,
+  component: AccountPage,
+});
+
 // GLB-013 : pages légales, publiques.
 const legalNoticeRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -106,6 +116,7 @@ const routeTree = rootRoute.addChildren([
   forgotPasswordRoute,
   resetPasswordRoute,
   notesRoute,
+  accountRoute,
   legalNoticeRoute,
   privacyPolicyRoute,
   termsOfUseRoute,

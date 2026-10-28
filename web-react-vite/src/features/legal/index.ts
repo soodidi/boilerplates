@@ -11,3 +11,4 @@ export const PrivacyPolicyPage = legalPage('PrivacyPolicyPage');
 export const TermsOfUsePage = legalPage('TermsOfUsePage');
 
 export { LegalFooter } from './components/legal-footer';
+export { legalInfo } from './legal-info';

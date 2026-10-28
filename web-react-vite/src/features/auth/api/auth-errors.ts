@@ -19,3 +19,12 @@ export function authErrorMessage(error: unknown, m: Messages): string {
 export function isEmailNotVerified(error: unknown): boolean {
   return error instanceof AuthError && error.code === 'EMAIL_NOT_VERIFIED';
 }
+
+/** GLB-013 : erreur de la suppression du compte (mot de passe à ressaisir). */
+export function deleteAccountErrorMessage(error: unknown, m: Messages): string {
+  if (error instanceof AuthError) {
+    if (error.code === 'INVALID_PASSWORD') return m.account.delete.wrongPassword;
+    if (error.status === 429) return m.auth.errors.tooManyAttempts;
+  }
+  return m.auth.errors.generic;
+}

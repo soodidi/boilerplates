@@ -19,6 +19,7 @@ export const fr = {
     description:
       'Ce boilerplate applique les règles du repo engineering-guidelines. La page Notes montre une feature complète : requêtes, filtres dans l’URL et formulaire.',
     cta: 'Voir les notes',
+    accountDeleted: 'Votre compte et vos données ont été supprimés.',
   },
   notes: {
     title: 'Notes',
@@ -98,6 +99,31 @@ export const fr = {
     validation: {
       email: 'Adresse e-mail invalide.',
       passwordTooShort: (min: number) => `${min} caractères minimum.`,
+    },
+  },
+  account: {
+    title: 'Mon compte',
+    signedInAs: (email: string) => `Connecté avec ${email}`,
+    privacyLink: 'Politique de confidentialité',
+    export: {
+      title: 'Exporter mes données',
+      description:
+        'Téléchargez un fichier qui contient toutes les données de votre compte : profil, sessions et contenus.',
+      submit: 'Télécharger mes données',
+      submitting: 'Préparation…',
+      done: 'Fichier téléchargé.',
+      error: "L'export n'a pas pu être préparé. Réessayez.",
+    },
+    delete: {
+      title: 'Supprimer mon compte',
+      description: (days: number) =>
+        `La suppression est immédiate et définitive : votre compte et toutes vos données sont effacés. Seules les sauvegardes les conservent, ${days} jours au plus.`,
+      password: 'Mot de passe actuel',
+      confirm: 'Je comprends que mon compte et mes données seront supprimés définitivement.',
+      confirmRequired: 'Cochez cette case pour confirmer.',
+      submit: 'Supprimer mon compte',
+      submitting: 'Suppression…',
+      wrongPassword: 'Mot de passe incorrect.',
     },
   },
   legal: {
