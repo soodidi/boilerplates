@@ -6,6 +6,8 @@ import { ENV, type Env } from '../config/env.js';
 /** Jeton d'injection du client Drizzle : `constructor(@Inject(DB) db: Database)`. */
 export const DB = Symbol('DB');
 export type Database = NodePgDatabase;
+/** Transaction Drizzle ouverte par `db.transaction()` : mêmes requêtes que `Database`. */
+export type Transaction = Parameters<Parameters<Database['transaction']>[0]>[0];
 
 const PG_POOL = Symbol('PG_POOL');
 
