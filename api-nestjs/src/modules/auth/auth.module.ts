@@ -6,7 +6,7 @@ import { DB, type Database } from '../../database/database.module.js';
 import { Mailer } from '../../mail/index.js';
 import { createAuth } from './auth.config.js';
 import { AuthRepository } from './auth.repository.js';
-import { AccountUserData } from './auth.user-data.js';
+import { AuthUserData } from './auth.user-data.js';
 
 /**
  * BE-006 : routes Better Auth sous /v1/auth et guard global.
@@ -21,6 +21,6 @@ import { AccountUserData } from './auth.user-data.js';
       }),
     }),
   ],
-  providers: [AuthRepository, AccountUserData],
+  providers: [AuthRepository, AuthUserData],
 })
 export class AuthModule {}

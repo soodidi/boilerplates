@@ -102,11 +102,16 @@ export function createAuth({ env, db, mailer, userData }: AuthDependencies) {
         // GLB-013 : les données des modules sont effacées dans une transaction, avant le compte.
         // Si elle échoue, Better Auth s'arrête là et le compte reste.
         beforeDelete: (user) => userData.eraseAll(user.id),
+        // Seconde passe, sans effet en temps normal : efface ce qu'une requête concurrente aurait
+        // écrit entre la transaction et la suppression du compte (plus aucune session n'est valide).
+        afterDelete: (user) => userData.eraseAll(user.id),
       },
     },
     hooks: {
       // GLB-013 : Better Auth accepte /delete-user sans mot de passe si la session a moins d'un
       // jour. On exige toujours sa ressaisie (une chaîne vide compte comme absente pour Better Auth).
+      // Un compte sans mot de passe (connexion sociale, passkey) ne pourrait pas être supprimé :
+      // revoir cette règle avec GLB-013 avant d'ajouter un tel moyen de connexion.
       before: createAuthMiddleware((ctx) => {
         const body = ctx.body as { password?: unknown } | undefined;
         if (ctx.path === '/delete-user' && (typeof body?.password !== 'string' || !body.password)) {

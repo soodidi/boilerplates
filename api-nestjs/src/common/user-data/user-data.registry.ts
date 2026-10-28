@@ -31,12 +31,12 @@ export class UserDataRegistry implements OnModuleInit {
     return this.contributors;
   }
 
-  /** Une section par contributeur, sous sa clé. */
+  /** Une section par contributeur, sous sa clé, filtrée par son schéma. */
   async exportAll(userId: string): Promise<Record<string, unknown>> {
     const sections = await Promise.all(
       this.contributors.map(async (contributor) => [
         contributor.key,
-        await contributor.export(userId),
+        contributor.schema.parse(await contributor.export(userId)),
       ]),
     );
     return Object.fromEntries(sections) as Record<string, unknown>;

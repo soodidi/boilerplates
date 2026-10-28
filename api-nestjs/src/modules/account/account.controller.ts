@@ -1,13 +1,14 @@
 import {
   Controller,
   Get,
-  Header,
+  Res,
   SerializeOptions,
   StandardSchemaSerializerInterceptor,
   UseInterceptors,
 } from '@nestjs/common';
 import { ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
+import { type FastifyReply } from 'fastify';
 import { responseSchema } from '../../common/openapi.js';
 import { Session, type UserSession } from '../auth/index.js';
 import { type AccountExportResponse, accountExportResponseSchema } from './account.schemas.js';
@@ -23,11 +24,16 @@ export class AccountController {
   @Get('export')
   // Export complet, coûteux pour la base : quelques demandes par minute suffisent.
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
-  @Header('Cache-Control', 'no-store')
-  @Header('Content-Disposition', 'attachment; filename="account-export.json"')
   @SerializeOptions({ schema: accountExportResponseSchema })
   @ApiOkResponse({ schema: responseSchema(accountExportResponseSchema) })
-  exportAccount(@Session() session: UserSession): Promise<AccountExportResponse> {
-    return this.accountService.export(session.user.id);
+  async exportAccount(
+    @Session() session: UserSession,
+    @Res({ passthrough: true }) reply: FastifyReply,
+  ): Promise<AccountExportResponse> {
+    const result = await this.accountService.export(session.user.id);
+    // Après succès seulement : une erreur ne doit pas être téléchargée comme un fichier.
+    reply.header('Cache-Control', 'no-store');
+    reply.header('Content-Disposition', 'attachment; filename="account-export.json"');
+    return result;
   }
 }

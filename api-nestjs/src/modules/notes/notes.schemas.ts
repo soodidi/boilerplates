@@ -21,6 +21,15 @@ export const noteResponseSchema = z.object({
   createdAt: z.iso.datetime(),
 });
 
+/** GLB-013 : une note dans l'export des données de l'utilisateur. */
+export const noteExportSchema = z.object({
+  id: z.uuid(),
+  title: z.string(),
+  content: z.string(),
+  createdAt: z.iso.datetime(),
+  updatedAt: z.iso.datetime(),
+});
+
 export const notePageResponseSchema = z.object({
   data: z.array(noteResponseSchema),
   nextCursor: z.string().nullable(),
@@ -29,4 +38,5 @@ export const notePageResponseSchema = z.object({
 export type CreateNoteInput = z.infer<typeof createNoteSchema>;
 export type ListNotesQuery = z.infer<typeof listNotesQuerySchema>;
 export type NoteResponse = z.infer<typeof noteResponseSchema>;
+export type NoteExport = z.infer<typeof noteExportSchema>;
 export type NotePageResponse = z.infer<typeof notePageResponseSchema>;

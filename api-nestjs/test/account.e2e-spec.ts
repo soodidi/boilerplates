@@ -1,6 +1,7 @@
 import { type NestFastifyApplication } from '@nestjs/platform-fastify';
 import { count, eq, getTableName } from 'drizzle-orm';
-import { afterAll, beforeAll, beforeEach, describe, expect, inject, it } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, inject, it, vi } from 'vitest';
+import { createOpenApiDocument } from '../src/common/openapi.js';
 import { UserDataRegistry } from '../src/common/user-data/index.js';
 import { type InMemoryMailer } from '../src/mail/index.js';
 import { users } from '../src/modules/auth/auth.table.js';
@@ -113,12 +114,36 @@ describe('Account data (e2e)', () => {
       expect(response.statusCode).toBe(401);
       expect(response.headers['content-type']).toContain('application/problem+json');
     });
+
+    it('limits exports to 5 per minute and per client IP', async () => {
+      // IP dédiée : le compteur du throttler vit en mémoire pour toute la durée de l'app.
+      const exportFrom = (ip: string) =>
+        app.inject({
+          method: 'GET',
+          url: '/v1/account/export',
+          headers: { ...bearer(ada.token), 'x-forwarded-for': ip },
+        });
+      const statuses: number[] = [];
+      for (let attempt = 0; attempt < 6; attempt++)
+        statuses.push((await exportFrom('203.0.113.10')).statusCode);
+
+      expect(statuses.slice(0, 5)).toEqual([200, 200, 200, 200, 200]);
+      expect(statuses[5]).toBe(429);
+      expect((await exportFrom('203.0.113.11')).statusCode).toBe(200);
+    });
+
+    it('is described in the OpenAPI contract as exportAccount', () => {
+      const document = createOpenApiDocument(app, 'test');
+
+      expect(document.paths['/v1/account/export']?.get?.operationId).toBe('exportAccount');
+    });
   });
 
   describe('POST /v1/auth/delete-user', () => {
     it.each([
       ['without a password', {}],
       ['with an empty password', { password: '' }],
+      ['with a password that is not a string', { password: 12345678 }],
       ['with a wrong password', { password: 'not the right password' }],
     ])('deletes nothing %s', async (_case, payload) => {
       await createNote(ada.token, 'keep me');
@@ -147,10 +172,14 @@ describe('Account data (e2e)', () => {
       const bob = await signUpAndSignIn(app, mailer, 'bob@example.com');
       await createNote(bob.token, 'keep me');
       const userId = (await adaId())!;
+      const eraseAll = vi.spyOn(app.get(UserDataRegistry), 'eraseAll');
 
       const response = await deleteUser(ada.token, { password: PASSWORD });
 
       expect(response.statusCode).toBe(200);
+      // Avant la suppression du compte, puis une seconde passe après (écritures concurrentes).
+      expect(eraseAll).toHaveBeenCalledTimes(2);
+      eraseAll.mockRestore();
       expect(await adaId()).toBeUndefined();
       const remaining = await remainingRows(userId);
       expect(Object.keys(remaining)).toEqual(
@@ -165,6 +194,27 @@ describe('Account data (e2e)', () => {
       });
       expect(signIn.statusCode).toBe(401);
       expect((await listNotes(bob.token)).json<{ data: unknown[] }>().data).toHaveLength(1);
+    });
+
+    it('keeps the account and its data when erasing the module data fails', async () => {
+      await createNote(ada.token, 'keep me');
+      const userId = await adaId();
+      // Panne simulée d'un contributeur : Better Auth doit s'arrêter avant de supprimer le compte.
+      const eraseAll = vi
+        .spyOn(app.get(UserDataRegistry), 'eraseAll')
+        .mockRejectedValueOnce(new Error('erase failed'));
+
+      try {
+        const response = await deleteUser(ada.token, { password: PASSWORD });
+
+        expect(response.statusCode).toBe(500);
+        expect(response.body).not.toContain('erase failed');
+        expect(eraseAll).toHaveBeenCalledWith(userId);
+        expect(await adaId()).toBe(userId);
+        expect((await listNotes(ada.token)).json<{ data: unknown[] }>().data).toHaveLength(1);
+      } finally {
+        eraseAll.mockRestore();
+      }
     });
 
     it('keeps the email-link deletion route closed', async () => {
@@ -187,7 +237,11 @@ describe('Account data (e2e)', () => {
         .flatMap((contributor) => contributor.tables),
     );
 
-    const uncovered = (await findUserTables())
+    const userTables = await findUserTables();
+    expect(userTables.map(({ table }) => getTableName(table))).toEqual(
+      expect.arrayContaining(['notes', 'sessions', 'accounts']),
+    );
+    const uncovered = userTables
       .filter(({ table }) => !covered.has(table))
       .map(({ table }) => getTableName(table));
 

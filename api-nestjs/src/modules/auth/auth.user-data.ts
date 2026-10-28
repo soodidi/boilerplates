@@ -1,7 +1,35 @@
 import { Injectable } from '@nestjs/common';
+import { z } from 'zod';
 import { ContributesUserData, type UserDataContributor } from '../../common/user-data/index.js';
 import { AuthRepository } from './auth.repository.js';
 import { accounts, sessions } from './auth.table.js';
+
+const timestamps = { createdAt: z.iso.datetime(), updatedAt: z.iso.datetime() };
+
+/** BE-005 : seuls ces champs sortent dans l'export. Ni token, ni hachage, ni identifiant de session. */
+const accountExportSchema = z.object({
+  user: z
+    .object({
+      id: z.uuid(),
+      name: z.string(),
+      email: z.string(),
+      emailVerified: z.boolean(),
+      image: z.string().nullable(),
+      ...timestamps,
+    })
+    .nullable(),
+  sessions: z.array(
+    z.object({
+      ...timestamps,
+      expiresAt: z.iso.datetime(),
+      ipAddress: z.string().nullable(),
+      userAgent: z.string().nullable(),
+    }),
+  ),
+  signInMethods: z.array(z.object({ providerId: z.string(), ...timestamps })),
+});
+
+type AccountExport = z.infer<typeof accountExportSchema>;
 
 /**
  * GLB-013 : le compte, ses sessions et ses moyens de connexion, dans l'export.
@@ -10,13 +38,14 @@ import { accounts, sessions } from './auth.table.js';
  */
 @ContributesUserData()
 @Injectable()
-export class AccountUserData implements UserDataContributor {
+export class AuthUserData implements UserDataContributor<AccountExport> {
   readonly key = 'account';
   readonly tables = [sessions, accounts];
+  readonly schema = accountExportSchema;
 
   constructor(private readonly repository: AuthRepository) {}
 
-  async export(userId: string) {
+  async export(userId: string): Promise<AccountExport> {
     const [user, userSessions, signInMethods] = await Promise.all([
       this.repository.findUser(userId),
       this.repository.findSessions(userId),
