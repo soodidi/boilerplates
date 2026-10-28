@@ -2,6 +2,7 @@
 included:
   - App
   - AppTests
+  - AppUITests
   - Packages/Sources
   - Packages/Tests
 excluded:

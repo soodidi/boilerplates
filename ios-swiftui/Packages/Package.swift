@@ -13,6 +13,7 @@ let package = Package(
         .macOS("15.0"),
     ],
     products: [
+        .library(name: "AuthFeature", targets: ["AuthFeature"]),
         .library(name: "CoreAuth", targets: ["CoreAuth"]),
         .library(name: "CoreModels", targets: ["CoreModels"]),
         .library(name: "CoreNetworking", targets: ["CoreNetworking"]),
@@ -20,6 +21,11 @@ let package = Package(
         .library(name: "NotesFeature", targets: ["NotesFeature"]),
     ],
     targets: [
+        .target(
+            name: "AuthFeature",
+            dependencies: ["CoreAuth", "CoreNetworking", "DesignSystem"],
+            resources: [.process("Resources")]
+        ),
         .target(name: "CoreAuth"),
         .target(name: "CoreModels"),
         .target(name: "CoreNetworking", dependencies: ["CoreAuth", "CoreModels"]),
@@ -29,6 +35,7 @@ let package = Package(
             dependencies: ["CoreModels", "CoreNetworking", "DesignSystem"],
             resources: [.process("Resources")]
         ),
+        .testTarget(name: "AuthFeatureTests", dependencies: ["AuthFeature", "CoreAuth", "CoreNetworking"]),
         .testTarget(name: "CoreAuthTests", dependencies: ["CoreAuth"]),
         .testTarget(name: "CoreNetworkingTests", dependencies: ["CoreNetworking", "CoreAuth"]),
         .testTarget(name: "NotesFeatureTests", dependencies: ["NotesFeature", "CoreModels", "CoreNetworking"]),

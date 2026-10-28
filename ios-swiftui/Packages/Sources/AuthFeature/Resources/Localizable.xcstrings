@@ -1,0 +1,169 @@
+{
+  "sourceLanguage" : "fr",
+  "strings" : {
+    "auth.backToSignIn" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Back to sign in" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Retour à la connexion" } }
+      }
+    },
+    "auth.email" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "E-mail address" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Adresse e-mail" } }
+      }
+    },
+    "auth.email.invalid" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Invalid e-mail address." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Adresse e-mail invalide." } }
+      }
+    },
+    "auth.error.emailNotVerified" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "First confirm your address with the link you received by e-mail." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Confirmez d'abord votre adresse avec le lien reçu par e-mail." } }
+      }
+    },
+    "auth.error.generic" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Something went wrong. Try again." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Une erreur est survenue. Réessayez." } }
+      }
+    },
+    "auth.error.invalidCredentials" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Incorrect e-mail address or password." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Adresse e-mail ou mot de passe incorrect." } }
+      }
+    },
+    "auth.error.network" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Cannot reach the server. Check your network." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Connexion au serveur impossible. Vérifiez votre réseau." } }
+      }
+    },
+    "auth.error.tooManyAttempts" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Too many attempts. Try again in a few minutes." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Trop de tentatives. Réessayez dans quelques minutes." } }
+      }
+    },
+    "auth.forgotPassword.intro" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Enter your e-mail address: you will receive a link to choose a new password." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Saisissez votre adresse e-mail : vous recevrez un lien pour choisir un nouveau mot de passe." } }
+      }
+    },
+    "auth.forgotPassword.link" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Forgot your password?" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Mot de passe oublié ?" } }
+      }
+    },
+    "auth.forgotPassword.sent %@" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "If an account exists for %@, an e-mail with a link has been sent. Choose your new password, then come back to sign in." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Si un compte existe pour %@, un e-mail avec un lien vient d'être envoyé. Choisissez votre nouveau mot de passe, puis revenez vous connecter." } }
+      }
+    },
+    "auth.forgotPassword.submit" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Send me the link" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Recevoir le lien" } }
+      }
+    },
+    "auth.forgotPassword.title" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Forgot password" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Mot de passe oublié" } }
+      }
+    },
+    "auth.name" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Name" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Nom" } }
+      }
+    },
+    "auth.name.tooLong" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "100 characters maximum." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "100 caractères maximum." } }
+      }
+    },
+    "auth.password" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Password" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Mot de passe" } }
+      }
+    },
+    "auth.password.hide" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Hide password" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Masquer le mot de passe" } }
+      }
+    },
+    "auth.password.show" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Show password" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Afficher le mot de passe" } }
+      }
+    },
+    "auth.password.tooLong" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "128 characters maximum." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "128 caractères maximum." } }
+      }
+    },
+    "auth.password.tooShort" : {
+      "comment" : "Même borne que AuthLimits.passwordMinLength et que l'API.",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "At least 12 characters." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "12 caractères minimum." } }
+      }
+    },
+    "auth.signIn.submit" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Sign in" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Se connecter" } }
+      }
+    },
+    "auth.signIn.title" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Sign in" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Connexion" } }
+      }
+    },
+    "auth.signUp.link" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Create an account" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Créer un compte" } }
+      }
+    },
+    "auth.signUp.sent %@" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "If this address can be used, an e-mail has been sent to %@. Open the link it contains, then come back to sign in." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Si cette adresse peut être utilisée, un e-mail vient d'être envoyé à %@. Ouvrez le lien qu'il contient, puis revenez vous connecter." } }
+      }
+    },
+    "auth.signUp.submit" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Create my account" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Créer mon compte" } }
+      }
+    },
+    "auth.signUp.title" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Create an account" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Créer un compte" } }
+      }
+    },
+    "validation.required" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "This field is required." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Ce champ est obligatoire." } }
+      }
+    }
+  },
+  "version" : "1.0"
+}

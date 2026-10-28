@@ -6,9 +6,12 @@ import SwiftUI
 /// IOS-001 : vue sans logique métier ; elle lit l'état du ViewModel et lui transmet les actions.
 public struct NotesView: View {
     @State private var viewModel: NotesViewModel
+    private let onSignOut: (() -> Void)?
 
-    public init(viewModel: NotesViewModel) {
+    /// `onSignOut` : fourni par l'app, car une feature ne dépend pas d'une autre (IOS-002).
+    public init(viewModel: NotesViewModel, onSignOut: (() -> Void)? = nil) {
         _viewModel = State(initialValue: viewModel)
+        self.onSignOut = onSignOut
     }
 
     public var body: some View {
@@ -25,6 +28,20 @@ public struct NotesView: View {
         .task(id: viewModel.query) { await viewModel.search() }
         .refreshable { await viewModel.load() }
         .overlay(alignment: .bottom) { MessageBanner(message: $viewModel.message) }
+        .toolbar {
+            if let onSignOut {
+                ToolbarItem {
+                    Button(action: onSignOut) {
+                        Label {
+                            Text("notes.signOut", bundle: .module)
+                        } icon: {
+                            Image(systemName: "rectangle.portrait.and.arrow.right")
+                        }
+                    }
+                    .accessibilityIdentifier("notes.signOut")
+                }
+            }
+        }
     }
 
     @ViewBuilder
@@ -157,7 +174,7 @@ private struct PreviewNotesRepository: NotesRepository {
 
 #Preview("Liste") {
     NavigationStack {
-        NotesView(viewModel: NotesViewModel(repository: PreviewNotesRepository()))
+        NotesView(viewModel: NotesViewModel(repository: PreviewNotesRepository()), onSignOut: {})
     }
 }
 
