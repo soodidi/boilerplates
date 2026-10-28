@@ -69,7 +69,7 @@ export function CreateNoteForm() {
         </p>
       ) : null}
 
-      <div className="flex items-center gap-4">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
         <Button type="submit" disabled={isSubmitting}>
           {isSubmitting ? m.notes.form.submitting : m.notes.form.submit}
         </Button>

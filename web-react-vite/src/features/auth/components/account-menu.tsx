@@ -20,8 +20,11 @@ export function AccountMenu({ linkClassName }: { linkClassName: string }) {
   }
 
   return (
-    <div className="flex items-center gap-3">
-      <span className="hidden text-sm text-muted-foreground sm:inline">{session.user.email}</span>
+    <div className="flex min-w-0 items-center gap-3">
+      {/* FE-008 : une adresse très longue est tronquée plutôt que d'élargir l'en-tête. */}
+      <span className="hidden min-w-0 truncate text-sm text-muted-foreground sm:inline">
+        {session.user.email}
+      </span>
       <Button
         variant="secondary"
         disabled={signOut.isPending}

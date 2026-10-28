@@ -39,7 +39,7 @@ export function RootLayout() {
           >
             {m.app.nav.notes}
           </Link>
-          <div className="ml-auto">
+          <div className="ml-auto min-w-0">
             <AccountMenu linkClassName={navLinkClass} />
           </div>
         </nav>

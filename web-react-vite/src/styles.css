@@ -13,6 +13,9 @@
 @layer base {
   body {
     @apply bg-background font-sans text-foreground antialiased;
+    /* FE-008 : un mot sans espace (URL, e-mail saisi) passe à la ligne au lieu de faire défiler la
+       page. `anywhere` réduit aussi la largeur minimale des colonnes de grille et de flex. */
+    overflow-wrap: anywhere;
   }
 
   /* FE-008 : respect de prefers-reduced-motion. */
