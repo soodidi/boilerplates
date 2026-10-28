@@ -2,7 +2,8 @@ import { Link } from '@tanstack/react-router';
 import { useMessages } from '@/i18n';
 
 const linkClass =
-  'text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline';
+  // FE-008 : py-1 pour une cible tactile confortable.
+  'py-1 text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline';
 
 /** GLB-013 : pages légales accessibles depuis toutes les pages. */
 export function LegalFooter() {
