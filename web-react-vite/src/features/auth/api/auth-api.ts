@@ -114,5 +114,10 @@ export function useDeleteAccount() {
   return useMutation({
     mutationFn: async (password: string) => unwrap(await authClient().deleteUser({ password })),
     onSuccess: () => resetUserCache(queryClient, null),
+    // Session expirée entre-temps : l'en-tête et les pages privées repassent en mode déconnecté.
+    onError: (error) =>
+      error instanceof AuthError && error.status === 401
+        ? resetUserCache(queryClient, null)
+        : undefined,
   });
 }

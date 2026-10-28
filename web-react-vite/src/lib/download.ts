@@ -5,6 +5,11 @@ export function downloadJson(filename: string, data: unknown) {
   const link = document.createElement('a');
   link.href = url;
   link.download = filename;
+  // Safari et Firefox exigent un lien présent dans la page, et une URL encore valide au clic.
+  document.body.append(link);
   link.click();
-  URL.revokeObjectURL(url);
+  link.remove();
+  setTimeout(() => {
+    URL.revokeObjectURL(url);
+  }, 0);
 }

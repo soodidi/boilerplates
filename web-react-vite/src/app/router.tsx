@@ -16,7 +16,7 @@ import {
   SignupPage,
 } from '@/features/auth';
 import { AccountPage } from '@/features/account';
-import { HomePage, homeSearchSchema } from '@/features/home';
+import { HomePage } from '@/features/home';
 import { LegalNoticePage, PrivacyPolicyPage, TermsOfUsePage } from '@/features/legal';
 import { NotesPage, notesQueryOptions, notesSearchSchema } from '@/features/notes';
 import { NotFound, RouteError } from './error-fallback';
@@ -35,7 +35,6 @@ const rootRoute = createRootRouteWithContext<RouterContext>()({
 const homeRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/',
-  validateSearch: homeSearchSchema,
   component: HomePage,
 });
 
@@ -141,6 +140,15 @@ export function createAppRouter({ queryClient, history }: CreateAppRouterOptions
 }
 
 export type AppRouter = ReturnType<typeof createAppRouter>;
+
+// État d'historique (jamais dans l'URL) : un lien ne peut pas le reproduire.
+declare module '@tanstack/history' {
+  // eslint-disable-next-line @typescript-eslint/consistent-type-definitions
+  interface HistoryState {
+    /** GLB-013 : retour sur l'accueil après la suppression du compte. */
+    accountDeleted?: boolean;
+  }
+}
 
 // Augmentation des types du router : seule une `interface` peut être fusionnée.
 declare module '@tanstack/react-router' {

@@ -1,5 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useNavigate } from '@tanstack/react-router';
+import { useId } from 'react';
 import { useForm } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { FormField } from '@/components/ui/form-field';
@@ -14,6 +15,8 @@ export function DeleteAccountSection() {
   const m = useMessages();
   const navigate = useNavigate();
   const deleteAccount = useDeleteAccount();
+  const titleId = useId();
+  const confirmErrorId = useId();
 
   const form = useForm({
     resolver: zodResolver(deleteAccountFormSchema(m)),
@@ -25,18 +28,19 @@ export function DeleteAccountSection() {
   const onSubmit = form.handleSubmit(async ({ password }) => {
     try {
       await deleteAccount.mutateAsync(password);
-      await navigate({ to: '/', search: { accountDeleted: true } });
     } catch {
       // Le message d'erreur vient de l'état de la mutation.
+      return;
     }
+    await navigate({ to: '/', state: (previous) => ({ ...previous, accountDeleted: true }) });
   });
 
   return (
     <section
-      aria-labelledby="delete-title"
+      aria-labelledby={titleId}
       className="grid gap-3 rounded-lg border border-destructive p-4 sm:p-6"
     >
-      <h2 id="delete-title" className="text-xl font-semibold">
+      <h2 id={titleId} className="text-xl font-semibold">
         {m.account.delete.title}
       </h2>
       <p className="text-sm text-muted-foreground">
@@ -58,15 +62,15 @@ export function DeleteAccountSection() {
           <label className="flex items-start gap-3 text-sm">
             <input
               type="checkbox"
-              className="mt-0.5 size-5 shrink-0 accent-destructive"
+              className="size-6 shrink-0 accent-destructive"
               aria-invalid={errors.confirm !== undefined}
-              aria-describedby={errors.confirm ? 'delete-confirm-error' : undefined}
+              aria-describedby={errors.confirm ? confirmErrorId : undefined}
               {...form.register('confirm')}
             />
             {m.account.delete.confirm}
           </label>
           {errors.confirm ? (
-            <p id="delete-confirm-error" className="text-sm text-destructive">
+            <p id={confirmErrorId} className="text-sm text-destructive">
               {errors.confirm.message}
             </p>
           ) : null}

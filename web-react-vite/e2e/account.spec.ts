@@ -25,7 +25,7 @@ test('« Mon compte » exporte les données puis supprime le compte', async ({ p
 
   await deletion.getByLabel('Mot de passe actuel').fill(DEMO.password);
   await deletion.getByRole('button', { name: 'Supprimer mon compte' }).click();
-  await expect(page).toHaveURL(/\/\?accountDeleted=true$/);
+  await expect(page).toHaveURL(/\/$/);
   await expect(page.getByRole('status')).toHaveText(
     'Votre compte et vos données ont été supprimés.',
   );

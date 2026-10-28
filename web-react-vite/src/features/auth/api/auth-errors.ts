@@ -24,6 +24,7 @@ export function isEmailNotVerified(error: unknown): boolean {
 export function deleteAccountErrorMessage(error: unknown, m: Messages): string {
   if (error instanceof AuthError) {
     if (error.code === 'INVALID_PASSWORD') return m.account.delete.wrongPassword;
+    if (error.status === 401) return m.account.delete.sessionExpired;
     if (error.status === 429) return m.auth.errors.tooManyAttempts;
   }
   return m.auth.errors.generic;

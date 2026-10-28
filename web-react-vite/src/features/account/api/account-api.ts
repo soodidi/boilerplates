@@ -8,7 +8,8 @@ export function useExportAccount() {
   return useMutation({
     mutationFn: async () => {
       const result = await request('/v1/account/export', { schema: accountExportSchema });
-      downloadJson(`export-${result.exportedAt.slice(0, 10)}.json`, result);
+      // Date du jour, en heure locale (AAAA-MM-JJ).
+      downloadJson(`export-${new Date().toLocaleDateString('sv-SE')}.json`, result);
     },
   });
 }

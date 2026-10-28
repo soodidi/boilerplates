@@ -1,3 +1,4 @@
+import { useId } from 'react';
 import { Button } from '@/components/ui/button';
 import { useMessages } from '@/i18n';
 import { useExportAccount } from '../api/account-api';
@@ -6,10 +7,11 @@ import { useExportAccount } from '../api/account-api';
 export function ExportSection() {
   const m = useMessages();
   const exportAccount = useExportAccount();
+  const titleId = useId();
 
   return (
-    <section aria-labelledby="export-title" className="grid gap-3">
-      <h2 id="export-title" className="text-xl font-semibold">
+    <section aria-labelledby={titleId} className="grid gap-3">
+      <h2 id={titleId} className="text-xl font-semibold">
         {m.account.export.title}
       </h2>
       <p className="text-sm text-muted-foreground">{m.account.export.description}</p>

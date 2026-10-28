@@ -124,6 +124,7 @@ export const fr = {
       submit: 'Supprimer mon compte',
       submitting: 'Suppression…',
       wrongPassword: 'Mot de passe incorrect.',
+      sessionExpired: 'Votre session a expiré. Reconnectez-vous pour supprimer votre compte.',
     },
   },
   legal: {

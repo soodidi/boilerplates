@@ -124,6 +124,7 @@ export const en: Messages = {
       submit: 'Delete my account',
       submitting: 'Deleting…',
       wrongPassword: 'Wrong password.',
+      sessionExpired: 'Your session has expired. Sign in again to delete your account.',
     },
   },
   legal: {

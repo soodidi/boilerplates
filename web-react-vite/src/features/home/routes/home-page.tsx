@@ -1,11 +1,10 @@
-import { getRouteApi, Link } from '@tanstack/react-router';
+import { Link, useRouterState } from '@tanstack/react-router';
 import { useMessages } from '@/i18n';
-
-const routeApi = getRouteApi('/');
 
 export function HomePage() {
   const m = useMessages();
-  const { accountDeleted } = routeApi.useSearch();
+  // Posé par la suppression du compte, dans l'état d'historique : un lien ne peut pas l'afficher.
+  const accountDeleted = useRouterState({ select: (state) => state.location.state.accountDeleted });
 
   return (
     <section className="grid gap-4">
