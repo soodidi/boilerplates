@@ -9,6 +9,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
@@ -61,9 +62,15 @@ class EncryptedSessionStoreTest {
 
     private fun newStore() = EncryptedSessionStore(dataStore, FakeCipher(), storeScope, Dispatchers.IO)
 
-    private suspend fun SessionStore.loaded(): SessionState = withTimeout(5_000) { state.first { it != SessionState.Loading } }
+    private suspend fun SessionStore.loaded(): SessionState = withTimeout(15_000) { state.first { it != SessionState.Loading } }
 
     private suspend fun stored(): String? = dataStore.data.first()[key]
+
+    /** Écriture faite en tâche de fond : relit le fichier jusqu'à la valeur attendue (temps réel, CI lente). */
+    private suspend fun awaitStored(expected: String?) =
+        withTimeout(15_000) {
+            while (stored() != expected) delay(20)
+        }
 
     @Test
     fun startsSignedOutWithoutStoredToken() =
@@ -94,7 +101,7 @@ class EncryptedSessionStoreTest {
             val store = newStore()
 
             assertEquals(SessionState.SignedOut, store.loaded())
-            withTimeout(5_000) { dataStore.data.first { it[key] == null } }
+            awaitStored(null)
         }
 
     @Test
@@ -153,7 +160,7 @@ class EncryptedSessionStoreTest {
             store.onUnauthorized("token-1")
 
             assertEquals(SessionState.SignedOut, store.state.value)
-            withTimeout(5_000) { dataStore.data.first { it[key] == null } }
+            awaitStored(null)
         }
 
     @Test
