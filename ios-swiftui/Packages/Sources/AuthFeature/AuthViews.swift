@@ -47,9 +47,11 @@ struct SignInView: View {
         .navigationTitle(Text("auth.signIn.title", bundle: .module))
     }
 
+    /// En cas d'erreur de saisie, le focus va au premier champ en erreur : VoiceOver le lit avec son erreur.
     private func submit() async {
         focus = nil
         await viewModel.submit()
+        focus = viewModel.emailError != nil ? .email : viewModel.passwordError != nil ? .password : nil
     }
 }
 
@@ -98,6 +100,13 @@ struct SignUpView: View {
     private func submit() async {
         focus = nil
         await viewModel.submit()
+        if viewModel.nameError != nil {
+            focus = .name
+        } else if viewModel.emailError != nil {
+            focus = .email
+        } else if viewModel.passwordError != nil {
+            focus = .password
+        }
     }
 }
 
@@ -138,6 +147,9 @@ struct ForgotPasswordView: View {
     private func submit() async {
         focus = nil
         await viewModel.submit()
+        if viewModel.emailError != nil {
+            focus = .email
+        }
     }
 }
 
