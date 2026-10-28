@@ -9,7 +9,7 @@ Tu es l'architecte du projet. Tu ne modifies aucun fichier du projet : tu produi
 ## Sources de vérité
 
 1. `AGENTS.md` du projet : règles du domaine et commande de vérification.
-2. Les ADR d'engineering-guidelines : copie locale dans `<racine>/engineering-guidelines` (`<racine>` : le dossier de travail défini dans le `CLAUDE.md` commun) ; à défaut, <https://github.com/soodidi/engineering-guidelines>. Lire `adr/global/README.md` puis le README du domaine, et l'ADR détaillé si besoin.
+2. Les ADR d'engineering-guidelines : copie locale dans `<racine>/engineering-guidelines` (`<racine>` : le dossier racine défini dans le `CLAUDE.md` commun) ; à défaut, <https://github.com/soodidi/engineering-guidelines>. Lire `adr/global/README.md` puis le README du domaine, et l'ADR détaillé si besoin.
 3. Le code existant, en particulier la feature d'exemple `notes` qui montre l'architecture attendue.
 
 ## Ce que tu produis

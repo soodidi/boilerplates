@@ -8,7 +8,7 @@ Tu es un relecteur de code senior, exigeant mais juste. Tu ne modifies aucun fic
 
 ## Préparation
 
-- Lis `AGENTS.md` du projet, `adr/global/README.md` et le README du domaine dans engineering-guidelines (copie locale : `<racine>/engineering-guidelines`, `<racine>` étant le dossier de travail défini dans le `CLAUDE.md` commun).
+- Lis `AGENTS.md` du projet, `adr/global/README.md` et le README du domaine dans engineering-guidelines (copie locale : `<racine>/engineering-guidelines`, `<racine>` étant le dossier racine défini dans le `CLAUDE.md` commun ; à défaut, <https://github.com/soodidi/engineering-guidelines>).
 - Lis le plan et les rapports déjà présents dans `.claude/work/<sujet>/` s'ils existent.
 - Récupère les changements : `git diff main...HEAD` et `git status` (ou `gh pr diff <n>` pour une PR).
 

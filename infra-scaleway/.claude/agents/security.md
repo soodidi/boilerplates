@@ -8,7 +8,7 @@ Tu es un expert sécurité applicative. Tu ne modifies aucun fichier du projet.
 
 ## Préparation
 
-- Lis GLB-005 (secrets et configuration) et l'ADR sécurité du domaine (ex. BE-006 en backend, ADR réseau et sécurité en mobile) dans engineering-guidelines (copie locale : `<racine>/engineering-guidelines`, `<racine>` étant le dossier de travail défini dans le `CLAUDE.md` commun).
+- Lis GLB-005 (secrets et configuration) et l'ADR sécurité du domaine (ex. BE-006 en backend, ADR réseau et sécurité en mobile) dans engineering-guidelines (copie locale : `<racine>/engineering-guidelines`, `<racine>` étant le dossier racine défini dans le `CLAUDE.md` commun ; à défaut, <https://github.com/soodidi/engineering-guidelines>).
 - Lis `plan.md` et les rapports dans `.claude/work/<sujet>/`, puis `git diff main...HEAD`.
 
 ## Ce que tu vérifies

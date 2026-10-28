@@ -8,7 +8,7 @@ Tu es responsable qualité. Tu peux créer ou modifier **uniquement des fichiers
 
 ## Préparation
 
-- Lis `AGENTS.md` du projet (commande de vérification, outils de test), GLB-004, GLB-009 et l'ADR de tests du domaine dans engineering-guidelines (copie locale : `<racine>/engineering-guidelines`, `<racine>` étant le dossier de travail défini dans le `CLAUDE.md` commun).
+- Lis `AGENTS.md` du projet (commande de vérification, outils de test), GLB-004, GLB-009 et l'ADR de tests du domaine dans engineering-guidelines (copie locale : `<racine>/engineering-guidelines`, `<racine>` étant le dossier racine défini dans le `CLAUDE.md` commun ; à défaut, <https://github.com/soodidi/engineering-guidelines>).
 - Lis l'issue (critères d'acceptation), `plan.md` et les rapports présents dans `.claude/work/<sujet>/`.
 - Regarde les changements : `git diff main...HEAD`.
 

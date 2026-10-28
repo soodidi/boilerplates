@@ -1,6 +1,6 @@
 # Instructions pour les assistants IA
 
-Ce projet suit [engineering-guidelines](https://github.com/soodidi/engineering-guidelines). Copie locale : `engineering-guidelines/` dans le dossier de travail qui contient ce projet (`<racine>`, défini dans le `CLAUDE.md` commun qu'installe `engineering-guidelines/ai/install.sh`). Avant de coder, y lire `adr/global/README.md` et `adr/backend/README.md`.
+Ce projet suit [engineering-guidelines](https://github.com/soodidi/engineering-guidelines). Copie locale : `engineering-guidelines/` dans le dossier racine qui contient ce projet (`<racine>` : dossier parent pour une app, grand-parent dans le repo boilerplates), sinon le dépôt GitHub. Avant de coder, y lire `adr/global/README.md` et `adr/backend/README.md`.
 
 ## Règles à appliquer sans demander
 
