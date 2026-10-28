@@ -21,6 +21,9 @@ jobs:
       AWS_SECRET_ACCESS_KEY: ${{ secrets.SCW_SECRET_KEY }}
       AWS_DEFAULT_REGION: fr-par
       S3_ENDPOINT: https://s3.fr-par.scw.cloud
+      # AWS CLI 2.23+ calcule par défaut des sommes de contrôle que les S3 compatibles refusent.
+      AWS_REQUEST_CHECKSUM_CALCULATION: when_required
+      AWS_RESPONSE_CHECKSUM_VALIDATION: when_required
       BUCKET: ${{ vars.BUCKET }}
     steps:
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2

@@ -17,7 +17,17 @@ output "web_url" {
 }
 
 output "database_url" {
-  description = "Secret DATABASE_URL de l'environnement GitHub `production` (job de migration)"
+  description = "URL de la base (réseau privé) : intervention manuelle uniquement, les migrations tournent dans l'API"
   value       = module.database.database_url
   sensitive   = true
+}
+
+output "api_dns_target" {
+  description = "CNAME à créer : domaine de l'API → cette valeur (avant l'apply qui crée le domaine)"
+  value       = module.api.dns_target
+}
+
+output "web_dns_target" {
+  description = "CNAME à créer après l'apply : domaine du front → cette valeur (Edge Services)"
+  value       = module.web.dns_target
 }

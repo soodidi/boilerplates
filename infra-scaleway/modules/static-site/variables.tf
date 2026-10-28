@@ -9,6 +9,11 @@ variable "domain" {
   default     = null
 }
 
+variable "bucket_application_ids" {
+  description = "Applications IAM qui accèdent au bucket : CI infra (apply), plans des PR (lecture), déploiement du front"
+  type        = list(string)
+}
+
 variable "tags" {
   description = "Tags au format clé:valeur"
   type        = list(string)

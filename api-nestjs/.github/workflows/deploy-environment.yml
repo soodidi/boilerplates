@@ -26,29 +26,30 @@ jobs:
       SCW_DEFAULT_REGION: fr-par
       IMAGE: ${{ inputs.image }}
     steps:
-      # OPS-004 : 1) migrations (compatibles avec la version en cours, expand/contract),
-      # avec la MÊME image que celle qui va être déployée.
-      - name: Appliquer les migrations
+      # OPS-004 / BE-003 : les migrations s'appliquent au démarrage des nouvelles instances, sous
+      # verrou, avant /health/ready. Une migration qui échoue garde l'ancienne version en service.
+      - name: Installer la CLI Scaleway (version épinglée, OPS-002)
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SCW_CLI_VERSION: 2.65.2
+          SCW_CLI_SHA256: 184e697e6ab8a8e825be1c5cf61d104341abe3598bb0e20b7a54618cb05231b3
         run: |
-          echo "$SCW_SECRET_KEY" | docker login rg.fr-par.scw.cloud -u nologin --password-stdin
-          docker run --rm -e DATABASE_URL "$IMAGE" node dist/database/migrate.js
-
-      # 2) Déploiement de la nouvelle image ; la plateforme bascule quand /health/ready répond.
-      - name: Installer la CLI Scaleway
-        run: curl -fsSL https://raw.githubusercontent.com/scaleway/scaleway-cli/master/scripts/get.sh | sh
+          curl -fsSL -o scw "https://github.com/scaleway/scaleway-cli/releases/download/v${SCW_CLI_VERSION}/scaleway-cli_${SCW_CLI_VERSION}_linux_amd64"
+          echo "${SCW_CLI_SHA256}  scw" | sha256sum --check
+          sudo install scw /usr/local/bin/scw
       - name: Déployer
         env:
           CONTAINER_ID: ${{ vars.CONTAINER_ID }}
         run: |
           scw container container update "$CONTAINER_ID" image="$IMAGE"
-          # Attendre que le conteneur soit prêt (sondes /health/ready, BE-007).
+          # Prêt seulement quand le conteneur sert la NOUVELLE image (sondes /health/ready, BE-007),
+          # pour ne pas confondre avec l'ancienne version encore en ligne.
           for _ in $(seq 1 60); do
-            status=$(scw container container get "$CONTAINER_ID" -o json | jq -r .status)
-            echo "status: $status"
-            [ "$status" = "ready" ] && exit 0
-            [ "$status" = "error" ] && exit 1
             sleep 10
+            info=$(scw container container get "$CONTAINER_ID" -o json)
+            status=$(echo "$info" | jq -r .status)
+            image=$(echo "$info" | jq -r .image)
+            echo "status: $status, image: $image"
+            [ "$status" = "error" ] && echo "::error::$(echo "$info" | jq -r .error_message)" && exit 1
+            [ "$status" = "ready" ] && [ "$image" = "$IMAGE" ] && exit 0
           done
           echo "::error::Le conteneur n'est pas prêt après 10 minutes" && exit 1

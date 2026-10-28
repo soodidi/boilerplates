@@ -23,6 +23,9 @@ resource "scaleway_object_bucket_website_configuration" "this" {
   }
 }
 
+# Chez Scaleway, dès qu'une bucket policy existe, seuls les principaux qu'elle cite y ont accès,
+# quels que soient leurs droits IAM : la CI infra, la clé des plans et celle du déploiement y sont
+# listées. `s3:*` reste borné par l'IAM de chaque clé (policy ET IAM doivent autoriser l'action).
 resource "scaleway_object_bucket_policy" "public_read" {
   bucket = scaleway_object_bucket.this.name
   policy = jsonencode({
@@ -35,6 +38,13 @@ resource "scaleway_object_bucket_policy" "public_read" {
         Principal = "*"
         Action    = ["s3:GetObject"]
         Resource  = ["${scaleway_object_bucket.this.name}/*"]
+      },
+      {
+        Sid       = "Writers"
+        Effect    = "Allow"
+        Principal = { SCW = [for id in var.bucket_application_ids : "application_id:${id}"] }
+        Action    = ["s3:*"]
+        Resource  = [scaleway_object_bucket.this.name, "${scaleway_object_bucket.this.name}/*"]
       },
     ]
   })

@@ -48,7 +48,7 @@ src/
 ├── instrument.ts        # Sentry, chargé avant tout le reste (--import)
 ├── config/              # configuration validée au démarrage (GLB-005)
 ├── common/              # Problem Details, validation, OpenAPI
-├── database/            # client Drizzle, script de migration
+├── database/            # client Drizzle, migrations au démarrage sous verrou (BE-003)
 ├── health/              # /health/live et /health/ready (publiques)
 ├── mail/                # envoi d'e-mails : interface Mailer, SMTP, gabarits (BE-009)
 └── modules/
@@ -82,7 +82,7 @@ Le module `notes` sert d'exemple et correspond à la feature `notes` du boilerpl
 | Authentification Better Auth : inscription, vérification d'e-mail, connexion, mot de passe oublié, sessions révocables (cookie web, `Bearer` mobile), Argon2id, guard global + `@Public()`, CSRF, notes propres à chaque utilisateur | `src/modules/auth/`, `src/common/csrf.guard.ts`         | BE-006           |
 | E-mails : `Mailer` injectable, SMTP hors requête avec reprises, gabarits FR, Mailpit en local                                                                                                                                        | `src/mail/`, `compose.yaml`                             | BE-009           |
 | Image Docker multi-stage non-root, scan Trivy                                                                                                                                                                                        | `Dockerfile`, `.github/workflows/docker.yml`            | OPS-001          |
-| Déploiement : migrations puis Serverless Container, staging puis production                                                                                                                                                          | `.github/workflows/deploy*.yml`                         | OPS-004, OPS-005 |
+| Déploiement : Serverless Container (migrations au démarrage, sous verrou), staging puis production                                                                                                                                   | `.github/workflows/deploy*.yml`                         | OPS-004, OPS-005 |
 
 ## À ajouter selon le projet
 

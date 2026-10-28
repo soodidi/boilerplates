@@ -59,6 +59,17 @@ module "ci" {
   tags                 = local.tags
 }
 
+# Clé des `plan` sur les PR (environnements GitHub *-plan) : lecture seule, aucune modification
+# possible même si le code d'une PR est malveillant. Le plan tourne avec `-lock=false`.
+module "ci_plan" {
+  source               = "../../modules/api-key"
+  name                 = "${var.project}-ci-plan"
+  description          = "Plans OpenTofu des PR de ${var.project} : lecture seule"
+  project_id           = var.project_id
+  permission_set_names = ["AllProductsReadOnly"]
+  tags                 = local.tags
+}
+
 # Clés de déploiement des repos applicatifs (OPS-006 : une clé par pipeline).
 # Object Storage est limité au projet, pas à un bucket : la clé web peut écrire dans les autres
 # buckets du projet, dont celui du state (chiffré et versionné).
