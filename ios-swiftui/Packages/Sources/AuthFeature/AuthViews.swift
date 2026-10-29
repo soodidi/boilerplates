@@ -4,17 +4,27 @@ import SwiftUI
 struct SignInView: View {
     @State private var viewModel: SignInViewModel
     @FocusState private var focus: AuthField?
+    private let accountDeleted: Bool
     private let onSignUp: () -> Void
     private let onForgotPassword: () -> Void
 
-    init(viewModel: SignInViewModel, onSignUp: @escaping () -> Void, onForgotPassword: @escaping () -> Void) {
+    init(
+        viewModel: SignInViewModel,
+        accountDeleted: Bool = false,
+        onSignUp: @escaping () -> Void,
+        onForgotPassword: @escaping () -> Void
+    ) {
         _viewModel = State(initialValue: viewModel)
+        self.accountDeleted = accountDeleted
         self.onSignUp = onSignUp
         self.onForgotPassword = onForgotPassword
     }
 
     var body: some View {
         Form {
+            if accountDeleted {
+                AccountDeletedSection()
+            }
             Section {
                 EmailField(text: $viewModel.email, error: viewModel.emailError, focus: $focus)
                 FieldErrorText(error: viewModel.emailError)
@@ -149,6 +159,18 @@ struct ForgotPasswordView: View {
         await viewModel.submit()
         if viewModel.emailError != nil {
             focus = .email
+        }
+    }
+}
+
+/// Le compte vient d'être supprimé (GLB-013) : message affiché et annoncé par VoiceOver.
+private struct AccountDeletedSection: View {
+    var body: some View {
+        let text = String(localized: "auth.accountDeleted", bundle: .module)
+        Section {
+            Text(verbatim: text)
+                .accessibilityIdentifier("auth.accountDeleted")
+                .task { AccessibilityNotification.Announcement(text).post() }
         }
     }
 }

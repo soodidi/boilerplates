@@ -52,6 +52,7 @@ struct PasswordField: View {
     let error: FieldError?
     let focus: FocusState<AuthField?>.Binding
     var isNewPassword = false
+    var title: LocalizedStringKey = "auth.password"
     @State private var isVisible = false
     @Environment(\.scenePhase) private var scenePhase
 
@@ -88,7 +89,7 @@ struct PasswordField: View {
     }
 
     private var label: Text {
-        Text("auth.password", bundle: .module)
+        Text(title, bundle: .module)
     }
 }
 
@@ -135,6 +136,7 @@ struct FailureText: View {
         case .invalidCredentials: "auth.error.invalidCredentials"
         case .emailNotVerified: "auth.error.emailNotVerified"
         case .tooManyAttempts: "auth.error.tooManyAttempts"
+        case .wrongPassword: "account.delete.wrongPassword"
         case .network: "auth.error.network"
         case .unknown: "auth.error.generic"
         }
@@ -146,6 +148,9 @@ struct FailureText: View {
 struct SubmitButton: View {
     let title: LocalizedStringKey
     let isSubmitting: Bool
+    /// `AppColor.destructive` pour une action irréversible (suppression du compte).
+    var color = AppColor.primary
+    var foreground = AppColor.primaryForeground
     let action: () async -> Void
 
     var body: some View {
@@ -156,14 +161,14 @@ struct SubmitButton: View {
                 Text(title, bundle: .module)
                 if isSubmitting {
                     ProgressView()
-                        .tint(AppColor.primaryForeground)
+                        .tint(foreground)
                 }
             }
-            .foregroundStyle(AppColor.primaryForeground)
+            .foregroundStyle(foreground)
             .frame(maxWidth: .infinity, minHeight: 44)
         }
         .buttonStyle(.borderedProminent)
-        .tint(AppColor.primary)
+        .tint(color)
         .disabled(isSubmitting)
         .accessibilityIdentifier("auth.submit")
     }

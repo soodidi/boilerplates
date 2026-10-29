@@ -9,11 +9,14 @@ public struct AuthFlowView: View {
     }
 
     private let repository: any AuthRepository
+    private let accountDeleted: Bool
     @State private var path: [Route] = []
     @State private var signIn: SignInViewModel
 
-    public init(repository: any AuthRepository) {
+    /// `accountDeleted` : la connexion confirme la suppression du compte (GLB-013).
+    public init(repository: any AuthRepository, accountDeleted: Bool = false) {
         self.repository = repository
+        self.accountDeleted = accountDeleted
         _signIn = State(initialValue: SignInViewModel(repository: repository))
     }
 
@@ -21,6 +24,7 @@ public struct AuthFlowView: View {
         NavigationStack(path: $path) {
             SignInView(
                 viewModel: signIn,
+                accountDeleted: accountDeleted,
                 onSignUp: { path.append(.signUp) },
                 onForgotPassword: { path.append(.forgotPassword) }
             )

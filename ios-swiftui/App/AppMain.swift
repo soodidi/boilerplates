@@ -33,13 +33,9 @@ private struct RootView: View {
         Group {
             switch model.state {
             case .signedIn:
-                NavigationStack {
-                    NotesView(viewModel: dependencies.makeNotesViewModel()) {
-                        Task { await model.signOut() }
-                    }
-                }
+                SignedInView(dependencies: dependencies, model: model)
             case .signedOut:
-                AuthFlowView(repository: dependencies.authRepository)
+                AuthFlowView(repository: dependencies.authRepository, accountDeleted: model.accountDeleted)
             }
         }
         // GLB-012 : couleur du thème pour les boutons et les liens de toute l'app.
@@ -53,11 +49,42 @@ private struct RootView: View {
     }
 }
 
+/// Écrans connectés : notes, puis « Mon compte ». Recréée à chaque connexion, avec une pile vide.
+private struct SignedInView: View {
+    enum Route: Hashable {
+        case account
+    }
+
+    let dependencies: AppDependencies
+    let model: SessionModel
+    @State private var path: [Route] = []
+
+    var body: some View {
+        NavigationStack(path: $path) {
+            NotesView(viewModel: dependencies.makeNotesViewModel()) {
+                path.append(.account)
+            }
+            .navigationDestination(for: Route.self) { route in
+                switch route {
+                case .account:
+                    AccountView(
+                        viewModel: dependencies.makeAccountViewModel(),
+                        onSignOut: { Task { await model.signOut() } },
+                        onAccountDeleted: model.onAccountDeleted
+                    )
+                }
+            }
+        }
+    }
+}
+
 /// Suit la session : une connexion, une déconnexion ou un `401` changent d'écran.
 @MainActor
 @Observable
 private final class SessionModel {
     private(set) var state: SessionState
+    /// Vrai après la suppression du compte : la connexion le confirme, jusqu'à la session suivante.
+    private(set) var accountDeleted = false
     private var isSigningOut = false
     private let session: SessionStore
     private let authRepository: any AuthRepository
@@ -71,13 +98,27 @@ private final class SessionModel {
     /// Relit la session : si le Keychain était illisible au lancement (avant le premier déverrouillage),
     /// la session revient dès qu'il l'est.
     func refresh() {
-        state = session.state
+        update(session.state)
     }
 
     func observe() async {
         for await state in session.states() {
-            self.state = state
+            update(state)
         }
+    }
+
+    /// GLB-013 : l'API a supprimé le compte et révoqué sa session ; l'appareil l'oublie à son tour.
+    /// Le message est posé avant : c'est l'effacement de la session qui ramène à la connexion.
+    func onAccountDeleted() {
+        accountDeleted = true
+        session.clear()
+    }
+
+    private func update(_ state: SessionState) {
+        if state == .signedIn {
+            accountDeleted = false
+        }
+        self.state = state
     }
 
     /// Un second appui pendant la déconnexion est ignoré.
@@ -96,8 +137,11 @@ private struct AppDependencies {
     let session: SessionStore
     let authRepository: any AuthRepository
     let notesRepository: any NotesRepository
+    /// Front web : liens des e-mails, politique de confidentialité, export des données.
+    let webBaseURL: URL
 
     static func make() -> AppDependencies {
+        let webBaseURL = url(forInfoKey: "WebBaseURL")
         #if DEBUG
             // XCUITest : parcours complet sans API ni Keychain (voir AppUITests).
             if ProcessInfo.processInfo.arguments.contains(UITestFakes.launchArgument) {
@@ -105,7 +149,8 @@ private struct AppDependencies {
                 return AppDependencies(
                     session: session,
                     authRepository: UITestFakes.AuthRepository(session: session),
-                    notesRepository: UITestFakes.NotesRepository()
+                    notesRepository: UITestFakes.NotesRepository(),
+                    webBaseURL: webBaseURL
                 )
             }
         #endif
@@ -115,13 +160,18 @@ private struct AppDependencies {
         let client = APIClient(baseURL: apiBaseURL, session: session)
         return AppDependencies(
             session: session,
-            authRepository: LiveAuthRepository(client: client, session: session, webBaseURL: url(forInfoKey: "WebBaseURL")),
-            notesRepository: LiveNotesRepository(client: client)
+            authRepository: LiveAuthRepository(client: client, session: session, webBaseURL: webBaseURL),
+            notesRepository: LiveNotesRepository(client: client),
+            webBaseURL: webBaseURL
         )
     }
 
     func makeNotesViewModel() -> NotesViewModel {
         NotesViewModel(repository: notesRepository)
+    }
+
+    func makeAccountViewModel() -> AccountViewModel {
+        AccountViewModel(repository: authRepository, webBaseURL: webBaseURL, backupRetentionDays: LegalInfo.backupRetentionDays)
     }
 
     private static func url(forInfoKey key: String) -> URL {

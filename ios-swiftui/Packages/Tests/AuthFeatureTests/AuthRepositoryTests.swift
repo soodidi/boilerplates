@@ -167,4 +167,42 @@ struct AuthRepositoryTests {
 
         #expect(session.state == .signedOut)
     }
+
+    @Test("suppression du compte : envoie le mot de passe avec le token, et laisse la session à l'appelant")
+    func deleteAccountSendsPassword() async throws {
+        let api = StubAPI(body: #"{"success":true}"#)
+        let session = SessionStore(storage: MemoryStorage())
+        session.save("token")
+
+        try await repository(api, session: session).deleteAccount(password: "secret")
+
+        let request = try #require(api.received.first)
+        #expect(request.httpMethod == "POST")
+        #expect(request.url?.path() == "/v1/auth/delete-user")
+        #expect(request.value(forHTTPHeaderField: "Authorization") == "Bearer token")
+        #expect(try api.json() == ["password": "secret"])
+        // L'app oublie la session une fois prête à quitter les écrans connectés.
+        #expect(session.state == .signedIn)
+    }
+
+    @Test(
+        "suppression du compte : traduit les erreurs de l'API",
+        arguments: [
+            (400, #"{"code":"INVALID_PASSWORD","message":"Invalid password"}"#, AuthFailure.wrongPassword),
+            (400, #"{"code":"VALIDATION_ERROR"}"#, .unknown),
+            (429, "", .tooManyAttempts),
+        ]
+    )
+    func deleteAccountMapsErrors(status: Int, body: String, expected: AuthFailure) async {
+        await #expect(throws: expected) {
+            try await repository(StubAPI(status: status, body: body)).deleteAccount(password: "secret")
+        }
+    }
+
+    @Test("suppression du compte hors ligne : erreur réseau")
+    func deleteAccountOffline() async {
+        await #expect(throws: AuthFailure.network) {
+            try await repository(StubAPI(fails: true)).deleteAccount(password: "secret")
+        }
+    }
 }

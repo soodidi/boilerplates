@@ -6,12 +6,12 @@ import SwiftUI
 /// IOS-001 : vue sans logique métier ; elle lit l'état du ViewModel et lui transmet les actions.
 public struct NotesView: View {
     @State private var viewModel: NotesViewModel
-    private let onSignOut: (() -> Void)?
+    private let onOpenAccount: (() -> Void)?
 
-    /// `onSignOut` : fourni par l'app, car une feature ne dépend pas d'une autre (IOS-002).
-    public init(viewModel: NotesViewModel, onSignOut: (() -> Void)? = nil) {
+    /// `onOpenAccount` : fourni par l'app, car une feature ne dépend pas d'une autre (IOS-002).
+    public init(viewModel: NotesViewModel, onOpenAccount: (() -> Void)? = nil) {
         _viewModel = State(initialValue: viewModel)
-        self.onSignOut = onSignOut
+        self.onOpenAccount = onOpenAccount
     }
 
     public var body: some View {
@@ -29,16 +29,17 @@ public struct NotesView: View {
         .refreshable { await viewModel.load() }
         .overlay(alignment: .bottom) { MessageBanner(message: $viewModel.message) }
         .toolbar {
-            if let onSignOut {
+            // La déconnexion est dans « Mon compte », comme sur Android.
+            if let onOpenAccount {
                 ToolbarItem {
-                    Button(action: onSignOut) {
+                    Button(action: onOpenAccount) {
                         Label {
-                            Text("notes.signOut", bundle: .module)
+                            Text("notes.account", bundle: .module)
                         } icon: {
-                            Image(systemName: "rectangle.portrait.and.arrow.right")
+                            Image(systemName: "person.crop.circle")
                         }
                     }
-                    .accessibilityIdentifier("notes.signOut")
+                    .accessibilityIdentifier("notes.account")
                 }
             }
         }
@@ -174,7 +175,7 @@ private struct PreviewNotesRepository: NotesRepository {
 
 #Preview("Liste") {
     NavigationStack {
-        NotesView(viewModel: NotesViewModel(repository: PreviewNotesRepository()), onSignOut: {})
+        NotesView(viewModel: NotesViewModel(repository: PreviewNotesRepository()), onOpenAccount: {})
     }
 }
 

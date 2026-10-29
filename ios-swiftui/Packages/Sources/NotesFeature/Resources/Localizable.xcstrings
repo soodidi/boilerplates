@@ -1,6 +1,12 @@
 {
   "sourceLanguage" : "fr",
   "strings" : {
+    "notes.account" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "My account" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Mon compte" } }
+      }
+    },
     "notes.add" : {
       "localizations" : {
         "en" : { "stringUnit" : { "state" : "translated", "value" : "Add" } },
@@ -53,12 +59,6 @@
       "localizations" : {
         "en" : { "stringUnit" : { "state" : "translated", "value" : "Search notes" } },
         "fr" : { "stringUnit" : { "state" : "translated", "value" : "Rechercher une note" } }
-      }
-    },
-    "notes.signOut" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Sign out" } },
-        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Se déconnecter" } }
       }
     },
     "notes.title" : {

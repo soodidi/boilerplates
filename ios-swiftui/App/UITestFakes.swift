@@ -42,6 +42,13 @@
             func signOut() async {
                 session.clear()
             }
+
+            /// Comme l'API : la session n'est pas effacée ici, l'app s'en charge.
+            func deleteAccount(password: String) async throws(AuthFailure) {
+                guard password == UITestFakes.password else {
+                    throw .wrongPassword
+                }
+            }
         }
 
         struct NotesRepository: NotesFeature.NotesRepository {

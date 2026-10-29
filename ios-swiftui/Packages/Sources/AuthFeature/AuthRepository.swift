@@ -8,6 +8,8 @@ public enum AuthFailure: Error, Sendable, Equatable {
     case invalidCredentials
     case emailNotVerified
     case tooManyAttempts
+    /// Mot de passe refusé à la suppression du compte.
+    case wrongPassword
     case network
     case unknown
 }
@@ -21,6 +23,9 @@ public protocol AuthRepository: Sendable {
     func requestPasswordReset(email: String) async throws(AuthFailure)
     /// Révoque la session côté serveur si possible, et l'oublie localement dans tous les cas.
     func signOut() async
+    /// GLB-013 : supprime le compte et toutes ses données. L'API révoque la session, mais elle reste
+    /// enregistrée sur l'appareil : l'appelant l'oublie, une fois prêt à quitter les écrans connectés.
+    func deleteAccount(password: String) async throws(AuthFailure)
 }
 
 /// Routes de Better Auth exposées par l'API (BE-006). Elles répondent `{ code, message }` en cas
@@ -72,6 +77,10 @@ public struct LiveAuthRepository: AuthRepository {
         session.clear()
     }
 
+    public func deleteAccount(password: String) async throws(AuthFailure) {
+        _ = try await post("v1/auth/delete-user", DeleteUserDTO(password: password))
+    }
+
     private func post(_ path: String, _ body: some Encodable) async throws(AuthFailure) -> RawResponse {
         let response: RawResponse
         do {
@@ -94,6 +103,7 @@ public struct LiveAuthRepository: AuthRepository {
         switch (response.status, code) {
         case (401, "INVALID_EMAIL_OR_PASSWORD"): return .invalidCredentials
         case (403, "EMAIL_NOT_VERIFIED"): return .emailNotVerified
+        case (400, "INVALID_PASSWORD"): return .wrongPassword
         case (429, _): return .tooManyAttempts
         default: return .unknown
         }
@@ -117,6 +127,10 @@ struct PasswordResetRequestDTO: Encodable {
     let email: String
     /// Page du front web qui reçoit le jeton et demande le nouveau mot de passe.
     let redirectTo: String
+}
+
+struct DeleteUserDTO: Encodable {
+    let password: String
 }
 
 struct EmptyDTO: Encodable {}

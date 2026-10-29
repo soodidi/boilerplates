@@ -58,6 +58,8 @@ private actor FakeAuthRepository: AuthRepository {
     }
 
     func signOut() async {}
+
+    func deleteAccount(password _: String) async throws(AuthFailure) {}
 }
 
 @MainActor
