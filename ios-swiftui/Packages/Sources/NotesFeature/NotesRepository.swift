@@ -5,6 +5,8 @@ import Foundation
 /// IOS-002 : les ViewModels dépendent de ce protocole, injecté par le constructeur.
 public protocol NotesRepository: Sendable {
     func list(query: String) async throws(APIError) -> [Note]
+    /// BE-010 : 404 si la note n'existe pas ou appartient à un autre utilisateur.
+    func get(id: String) async throws(APIError) -> Note
     func create(title: String) async throws(APIError) -> Note
 }
 
@@ -23,6 +25,16 @@ public struct LiveNotesRepository: NotesRepository {
         }
         let page: NotePageDTO = try await client.get("v1/notes", query: items)
         return page.data.map(\.domain)
+    }
+
+    public func get(id: String) async throws(APIError) -> Note {
+        // Les notes ont des UUID : tout autre id ne peut pas exister, et ne doit pas viser une autre
+        // route avec le Bearer (`..`, `/`). Même réponse que l'API, sans l'appeler.
+        guard UUID(uuidString: id) != nil else {
+            throw .http(ProblemDetails(title: "Not Found", status: 404))
+        }
+        let note: NoteDTO = try await client.get("v1/notes/\(id)")
+        return note.domain
     }
 
     public func create(title: String) async throws(APIError) -> Note {

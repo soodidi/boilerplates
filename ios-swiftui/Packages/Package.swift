@@ -29,7 +29,7 @@ let package = Package(
         .target(name: "CoreAuth"),
         .target(name: "CoreModels"),
         .target(name: "CoreNetworking", dependencies: ["CoreAuth", "CoreModels"]),
-        .target(name: "DesignSystem"),
+        .target(name: "DesignSystem", dependencies: ["CoreNetworking"], resources: [.process("Resources")]),
         .target(
             name: "NotesFeature",
             dependencies: ["CoreModels", "CoreNetworking", "DesignSystem"],
@@ -38,6 +38,7 @@ let package = Package(
         .testTarget(name: "AuthFeatureTests", dependencies: ["AuthFeature", "CoreAuth", "CoreNetworking"]),
         .testTarget(name: "CoreAuthTests", dependencies: ["CoreAuth"]),
         .testTarget(name: "CoreNetworkingTests", dependencies: ["CoreNetworking", "CoreAuth"]),
+        .testTarget(name: "DesignSystemTests", dependencies: ["DesignSystem", "CoreNetworking"]),
         .testTarget(name: "NotesFeatureTests", dependencies: ["NotesFeature", "CoreModels", "CoreNetworking"]),
     ],
     // IOS-001 : mode de langage Swift 6 (concurrence stricte).

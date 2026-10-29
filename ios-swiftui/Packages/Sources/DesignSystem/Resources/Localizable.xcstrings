@@ -1,0 +1,66 @@
+{
+  "sourceLanguage" : "fr",
+  "strings" : {
+    "error.back" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Back" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Retour" } }
+      }
+    },
+    "error.forbidden.message" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Your account does not have access to this page." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Votre compte n'a pas accès à cette page." } }
+      }
+    },
+    "error.forbidden.title" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Access denied" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Accès refusé" } }
+      }
+    },
+    "error.network.message" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "The server is not responding. Check your connection, then try again." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Le serveur ne répond pas. Vérifiez votre connexion, puis réessayez." } }
+      }
+    },
+    "error.network.title" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Cannot connect" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Connexion impossible" } }
+      }
+    },
+    "error.notFound.message" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "What you are looking for does not exist, or no longer exists." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Ce que vous cherchez n'existe pas, ou n'existe plus." } }
+      }
+    },
+    "error.notFound.title" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Page not found" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Page introuvable" } }
+      }
+    },
+    "error.retry" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Try again" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Réessayer" } }
+      }
+    },
+    "error.server.message" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "You can try again." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Vous pouvez réessayer." } }
+      }
+    },
+    "error.server.title" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Something went wrong" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Une erreur est survenue" } }
+      }
+    }
+  },
+  "version" : "1.0"
+}

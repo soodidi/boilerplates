@@ -81,6 +81,20 @@ final class SignInFlowUITests: XCTestCase {
         XCTAssertFalse(app.staticTexts["auth.accountDeleted"].exists)
     }
 
+    func testOpensANoteFromTheList() {
+        let app = launch()
+        XCTAssertTrue(app.textFields["auth.email"].waitForExistence(timeout: 10))
+        signIn(app, email: "camille@example.com", password: "correct-password")
+
+        let row = app.buttons["notes.row.0190a5e0-0000-7000-8000-000000000001"]
+        XCTAssertTrue(row.waitForExistence(timeout: 5))
+        row.tap()
+
+        // BE-010 : le détail est chargé par l'API (doublure) : son contenu n'est pas dans la liste.
+        let content = app.staticTexts["Première note"]
+        XCTAssertTrue(content.waitForExistence(timeout: 10), app.debugDescription)
+    }
+
     private func openAccount(_ app: XCUIApplication) {
         let account = app.buttons["notes.account"]
         XCTAssertTrue(account.waitForExistence(timeout: 5))

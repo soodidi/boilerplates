@@ -57,14 +57,16 @@ private struct SignedInView: View {
 
     let dependencies: AppDependencies
     let model: SessionModel
-    @State private var path: [Route] = []
+    /// `NavigationPath` et non `[Route]` : une feature y ajoute ses propres routes (le détail d'une
+    /// note), qu'un tableau typé de l'app ignorerait sans erreur.
+    @State private var path = NavigationPath()
 
     var body: some View {
         NavigationStack(path: $path) {
             NotesView(viewModel: dependencies.makeNotesViewModel()) {
                 // Un double appui n'empile pas deux écrans « Mon compte ».
                 if path.isEmpty {
-                    path.append(.account)
+                    path.append(Route.account)
                 }
             }
             .navigationDestination(for: Route.self) { route in

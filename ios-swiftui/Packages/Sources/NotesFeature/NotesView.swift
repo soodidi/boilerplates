@@ -27,6 +27,9 @@ public struct NotesView: View {
         .searchable(text: $viewModel.query, prompt: Text("notes.search", bundle: .module))
         .task(id: viewModel.query) { await viewModel.search() }
         .refreshable { await viewModel.load() }
+        .navigationDestination(for: NoteRoute.self) { route in
+            NoteDetailView(viewModel: NoteDetailViewModel(id: route.id, repository: viewModel.repository))
+        }
         .overlay(alignment: .bottom) { MessageBanner(message: $viewModel.message) }
         .toolbar {
             // La déconnexion est dans « Mon compte », comme sur Android.
@@ -51,15 +54,9 @@ public struct NotesView: View {
         case .loading where viewModel.notes.isEmpty:
             ProgressView()
                 .frame(maxWidth: .infinity)
-        case .failed:
-            VStack(alignment: .leading, spacing: Spacing.small) {
-                Text("notes.loadError", bundle: .module)
-                    .foregroundStyle(AppColor.destructive)
-                Button {
-                    Task { await viewModel.load() }
-                } label: {
-                    Text("notes.retry", bundle: .module)
-                }
+        case let .failed(kind):
+            ErrorStateView(kind: kind) {
+                Task { await viewModel.load() }
             }
         default:
             if viewModel.notes.isEmpty {
@@ -70,7 +67,11 @@ public struct NotesView: View {
                 }
             } else {
                 ForEach(viewModel.notes) { note in
-                    NoteRow(note: note)
+                    // La destination est déclarée ici : l'app n'a pas à connaître les écrans de la feature.
+                    NavigationLink(value: NoteRoute(id: note.id)) {
+                        NoteRow(note: note)
+                    }
+                    .accessibilityIdentifier("notes.row.\(note.id)")
                 }
             }
         }
@@ -166,6 +167,13 @@ private struct PreviewNotesRepository: NotesRepository {
             throw .network
         }
         return notes
+    }
+
+    func get(id: String) async throws(APIError) -> Note {
+        guard let note = notes.first(where: { $0.id == id }) else {
+            throw .http(ProblemDetails(title: "Not Found", status: 404))
+        }
+        return note
     }
 
     func create(title: String) async throws(APIError) -> Note {
