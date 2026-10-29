@@ -8,7 +8,13 @@ const PASSWORD_MAX = 128;
 /** FE-002 : la session renvoyée par l'API est validée avant d'être utilisée. */
 export const sessionSchema = z
   .object({
-    user: z.object({ id: z.string(), email: z.string(), name: z.string() }),
+    user: z.object({
+      id: z.string(),
+      email: z.string(),
+      name: z.string(),
+      /** BE-010 : pour l'affichage seulement ; l'API décide. */
+      role: z.string().nullish(),
+    }),
   })
   .nullable();
 

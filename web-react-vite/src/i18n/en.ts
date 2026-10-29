@@ -5,7 +5,8 @@ export const en: Messages = {
     name: 'My app',
     skipToContent: 'Skip to content',
     mainNavigation: 'Main navigation',
-    nav: { home: 'Home', notes: 'Notes' },
+    nav: { home: 'Home', notes: 'Notes', admin: 'Administration' },
+    offline: 'You are offline: the data shown may be out of date.',
   },
   errors: {
     title: 'Something went wrong',
@@ -14,6 +15,10 @@ export const en: Messages = {
     retry: 'Try again',
     notFoundTitle: 'Page not found',
     backHome: 'Back to home',
+    forbiddenTitle: 'Access denied',
+    forbiddenDescription: 'Your account does not have access to this page.',
+    networkTitle: 'Cannot connect',
+    networkDescription: 'The server is not responding. Check your connection, then try again.',
   },
   home: {
     title: 'Welcome',
@@ -29,6 +34,10 @@ export const en: Messages = {
     empty: 'No notes yet.',
     noResults: (query: string) => `No note matches “${query}”.`,
     loading: 'Loading notes…',
+    backToList: 'All notes',
+    createdOn: (date: string) => `Created on ${date}`,
+    notFoundTitle: 'Note not found',
+    notFoundDescription: 'This note does not exist, or it has been deleted.',
     form: {
       title: 'New note',
       titleLabel: 'Title',
@@ -95,6 +104,7 @@ export const en: Messages = {
       emailNotVerified: 'Please confirm your email address first, using the link we sent you.',
       tooManyAttempts: 'Too many attempts. Try again in a few minutes.',
       generic: 'Something went wrong. Please try again.',
+      banned: 'This account is suspended.',
     },
     validation: {
       email: 'Invalid email address.',
@@ -125,6 +135,26 @@ export const en: Messages = {
       submitting: 'Deleting…',
       wrongPassword: 'Wrong password.',
       sessionExpired: 'Your session has expired. Sign in again to delete your account.',
+    },
+  },
+  admin: {
+    title: 'Administration',
+    stats: {
+      title: 'At a glance',
+      users: 'Accounts',
+      notes: 'Notes',
+    },
+    users: {
+      title: 'Accounts',
+      description: 'The 100 most recent accounts.',
+      you: 'you',
+      roles: { user: 'User', admin: 'Administrator' },
+      banned: 'Suspended',
+      ban: (name: string) => `Suspend ${name}`,
+      unban: (name: string) => `Reactivate ${name}`,
+      makeAdmin: (name: string) => `Make ${name} an administrator`,
+      makeUser: (name: string) => `Remove the administrator role from ${name}`,
+      error: 'The action failed. Please try again.',
     },
   },
   legal: {

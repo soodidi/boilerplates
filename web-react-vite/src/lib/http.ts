@@ -1,4 +1,5 @@
 import { type z } from 'zod';
+import { NetworkError } from './errors';
 import { ProblemDetailsError, parseProblemDetails } from './problem-details';
 
 let baseUrl = '';
@@ -26,18 +27,26 @@ export async function request<TSchema extends z.ZodType>(
   path: string,
   { method = 'GET', body, headers, signal, schema }: RequestOptions<TSchema>,
 ): Promise<z.output<TSchema>> {
-  const response = await fetch(`${baseUrl}${path}`, {
-    method,
-    headers: {
-      Accept: 'application/json',
-      ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
-      ...headers,
-    },
-    body: body === undefined ? null : JSON.stringify(body),
-    // BE-006 : session web en cookie HttpOnly.
-    credentials: 'include',
-    signal: signal ?? null,
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${baseUrl}${path}`, {
+      method,
+      headers: {
+        Accept: 'application/json',
+        ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
+        ...headers,
+      },
+      body: body === undefined ? null : JSON.stringify(body),
+      // BE-006 : session web en cookie HttpOnly.
+      credentials: 'include',
+      signal: signal ?? null,
+    });
+  } catch (error) {
+    // Requête annulée (navigation, nouvelle recherche) : ce n'est pas une panne réseau.
+    if (signal?.aborted) throw error;
+    // BE-010 : API injoignable, affichée comme telle (écran « hors ligne »), sans réponse à lire.
+    throw new NetworkError({ cause: error });
+  }
 
   if (!response.ok) {
     if (response.status === 401) onUnauthorized?.();

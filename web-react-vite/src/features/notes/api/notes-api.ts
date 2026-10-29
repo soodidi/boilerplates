@@ -6,6 +6,7 @@ import { type CreateNoteInput, noteSchema, notePageSchema } from '../schemas/not
 export const noteKeys = {
   all: ['notes'] as const,
   list: (q: string) => [...noteKeys.all, 'list', { q }] as const,
+  detail: (id: string) => [...noteKeys.all, 'detail', id] as const,
 };
 
 function fetchNotes(q: string, signal: AbortSignal) {
@@ -22,6 +23,15 @@ export function notesQueryOptions(q: string) {
   return queryOptions({
     queryKey: noteKeys.list(q),
     queryFn: ({ signal }) => fetchNotes(q, signal),
+  });
+}
+
+/** BE-010 : 404 si la note n'existe pas ou appartient à un autre utilisateur. */
+export function noteQueryOptions(id: string) {
+  return queryOptions({
+    queryKey: noteKeys.detail(id),
+    queryFn: ({ signal }) =>
+      request(`/v1/notes/${encodeURIComponent(id)}`, { schema: noteSchema, signal }),
   });
 }
 

@@ -17,6 +17,14 @@ export { AccountMenu } from './components/account-menu';
 export { authKeys, sessionQueryOptions, useDeleteAccount } from './api/auth-api';
 export { deleteAccountErrorMessage } from './api/auth-errors';
 export { configureAuthClient } from './api/auth-client';
-export { redirectIfSignedIn, requireSession } from './guard';
+export { redirectIfSignedIn, requirePermission, requireSession } from './guard';
+export { type Permissions, useCan } from './api/permissions-api';
+export {
+  type AdminUser,
+  adminUsersQueryOptions,
+  ROLES,
+  type Role,
+  useAdminUserAction,
+} from './api/admin-users-api';
 export { createUnauthorizedHandler } from './session-expiry';
 export { redirectSearchSchema, resetPasswordSearchSchema } from './schemas/auth';

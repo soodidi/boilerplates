@@ -68,6 +68,16 @@ describe('LoginPage', () => {
     expect(await screen.findByText('E-mail de confirmation envoyé.')).toBeInTheDocument();
   });
 
+  it('signale un compte suspendu, seulement avec le bon mot de passe (BE-010)', async () => {
+    const other = db.users.find((candidate) => candidate.id === OTHER_USER.id);
+    if (other) other.banned = true;
+    renderRoute('/login');
+
+    await fillAndSubmit(OTHER_USER.email, OTHER_USER.password);
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Ce compte est suspendu.');
+  });
+
   it('ignore une redirection vers un autre site', async () => {
     const { router } = renderRoute('/login?redirect=%2F%2Fevil.example.com');
 

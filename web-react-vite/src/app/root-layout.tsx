@@ -1,13 +1,17 @@
 import { Link, Outlet } from '@tanstack/react-router';
-import { AccountMenu } from '@/features/auth';
+import { ADMIN_PAGE_PERMISSIONS } from '@/features/admin';
+import { AccountMenu, useCan } from '@/features/auth';
 import { LegalFooter } from '@/features/legal';
 import { useMessages } from '@/i18n';
+import { OfflineBanner } from './offline-banner';
 
 const navLinkClass =
   'rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground';
 
 export function RootLayout() {
   const m = useMessages();
+  // BE-010 : lien affiché selon les permissions ; la page et l'API vérifient de leur côté.
+  const canAdmin = useCan(ADMIN_PAGE_PERMISSIONS);
 
   return (
     <div className="flex min-h-dvh flex-col">
@@ -39,10 +43,20 @@ export function RootLayout() {
           >
             {m.app.nav.notes}
           </Link>
+          {canAdmin ? (
+            <Link
+              to="/admin"
+              className={navLinkClass}
+              activeProps={{ className: 'text-foreground', 'aria-current': 'page' }}
+            >
+              {m.app.nav.admin}
+            </Link>
+          ) : null}
           <div className="ml-auto min-w-0">
             <AccountMenu linkClassName={navLinkClass} />
           </div>
         </nav>
+        <OfflineBanner />
       </header>
       <main
         id="main"

@@ -10,6 +10,8 @@ export function authErrorMessage(error: unknown, m: Messages): string {
     if (error.status === 401) return m.auth.errors.invalidCredentials;
     if (error.status === 403 && error.code === 'EMAIL_NOT_VERIFIED')
       return m.auth.errors.emailNotVerified;
+    // BE-010 : l'API ne le dit qu'après le bon mot de passe, donc sans révéler qu'un compte existe.
+    if (error.status === 403 && error.code === 'BANNED_USER') return m.auth.errors.banned;
     if (error.status === 429) return m.auth.errors.tooManyAttempts;
     if (error.code === 'INVALID_TOKEN') return m.auth.reset.invalidLink;
   }
