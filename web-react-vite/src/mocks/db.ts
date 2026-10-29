@@ -28,6 +28,9 @@ export type MockUser = {
   email: string;
   password: string;
   emailVerified: boolean;
+  /** BE-010 : rôle du compte (plugin `admin` de l'API). */
+  role: 'user' | 'admin';
+  banned: boolean;
 };
 
 /** Comptes de démonstration des mocks (jamais utilisés avec la vraie API). */
@@ -37,6 +40,9 @@ export const DEMO_USER: MockUser = {
   email: 'demo@example.com',
   password: 'demo-password-123',
   emailVerified: true,
+  // Administrateur : le compte de démonstration ouvre toutes les pages, « Administration » comprise.
+  role: 'admin',
+  banned: false,
 };
 
 export const OTHER_USER: MockUser = {
@@ -45,6 +51,8 @@ export const OTHER_USER: MockUser = {
   email: 'other@example.com',
   password: 'other-password-123',
   emailVerified: true,
+  role: 'user',
+  banned: false,
 };
 
 export const UNVERIFIED_USER: MockUser = {
@@ -53,23 +61,30 @@ export const UNVERIFIED_USER: MockUser = {
   email: 'unverified@example.com',
   password: 'unverified-password',
   emailVerified: false,
+  role: 'user',
+  banned: false,
 };
 
 /** Base en mémoire partagée par les mocks du navigateur et des tests. */
 export const db = {
   notes: seed(),
-  users: [DEMO_USER, OTHER_USER, UNVERIFIED_USER],
+  users: [{ ...DEMO_USER }, { ...OTHER_USER }, { ...UNVERIFIED_USER }],
   /** Utilisateur connecté (le cookie de session de la vraie API). */
   sessionUserId: null as string | null,
 };
 
 export function resetDb() {
   db.notes = seed();
-  db.users = [DEMO_USER, OTHER_USER, UNVERIFIED_USER];
+  db.users = [{ ...DEMO_USER }, { ...OTHER_USER }, { ...UNVERIFIED_USER }];
   db.sessionUserId = null;
 }
 
-/** Tests : démarre avec l'utilisateur de démonstration connecté. */
+/** Tests : démarre avec l'utilisateur de démonstration connecté (administrateur). */
 export function signInAsDemo() {
   db.sessionUserId = DEMO_USER.id;
+}
+
+/** Tests : démarre avec un compte ordinaire connecté (rôle `user`). */
+export function signInAsUser() {
+  db.sessionUserId = OTHER_USER.id;
 }

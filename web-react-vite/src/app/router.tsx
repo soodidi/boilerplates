@@ -3,23 +3,36 @@ import {
   createRootRouteWithContext,
   createRoute,
   createRouter,
+  notFound,
   type RouterHistory,
 } from '@tanstack/react-router';
+import { z } from 'zod';
 import {
   ForgotPasswordPage,
   LoginPage,
   redirectIfSignedIn,
   redirectSearchSchema,
+  requirePermission,
   requireSession,
   ResetPasswordPage,
   resetPasswordSearchSchema,
   SignupPage,
 } from '@/features/auth';
 import { AccountPage } from '@/features/account';
+import { ADMIN_PAGE_PERMISSIONS, AdminPage, adminStatsQueryOptions } from '@/features/admin';
+import { adminUsersQueryOptions } from '@/features/auth';
 import { HomePage } from '@/features/home';
 import { LegalNoticePage, PrivacyPolicyPage, TermsOfUsePage } from '@/features/legal';
-import { NotesPage, notesQueryOptions, notesSearchSchema } from '@/features/notes';
-import { NotFound, RouteError } from './error-fallback';
+import {
+  NoteNotFound,
+  NotePage,
+  noteQueryOptions,
+  NotesPage,
+  notesQueryOptions,
+  notesSearchSchema,
+} from '@/features/notes';
+import { isProblemDetailsError } from '@/lib/problem-details';
+import { NotFound, PageLoading, RouteError } from './error-fallback';
 import { RootLayout } from './root-layout';
 
 export type RouterContext = {
@@ -81,6 +94,41 @@ const notesRoute = createRoute({
   component: NotesPage,
 });
 
+// BE-010 : détail d'une note. Absente ou d'un autre utilisateur (404 de l'API) : « Note introuvable ».
+const noteRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/notes/$id',
+  beforeLoad: requireSession,
+  loader: async ({ context, params }) => {
+    // Un identifiant qui ne peut pas exister : inutile de demander à l'API (qui répondrait 400).
+    // TanStack Router : `notFound()` est fait pour être levé dans un loader.
+    // eslint-disable-next-line @typescript-eslint/only-throw-error
+    if (!z.uuid().safeParse(params.id).success) throw notFound();
+    try {
+      await context.queryClient.query({ ...noteQueryOptions(params.id), staleTime: 'static' });
+    } catch (error) {
+      // eslint-disable-next-line @typescript-eslint/only-throw-error
+      if (isProblemDetailsError(error) && error.status === 404) throw notFound();
+      throw error;
+    }
+  },
+  notFoundComponent: NoteNotFound,
+  component: NotePage,
+});
+
+// BE-010 : page réservée aux comptes qui ont les permissions de l'administration.
+const adminRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/admin',
+  beforeLoad: requirePermission(ADMIN_PAGE_PERMISSIONS),
+  loader: ({ context }) =>
+    Promise.all([
+      context.queryClient.query(adminStatsQueryOptions()),
+      context.queryClient.query(adminUsersQueryOptions()),
+    ]),
+  component: AdminPage,
+});
+
 // GLB-013 : export des données et suppression du compte. Page privée.
 const accountRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -115,6 +163,8 @@ const routeTree = rootRoute.addChildren([
   forgotPasswordRoute,
   resetPasswordRoute,
   notesRoute,
+  noteRoute,
+  adminRoute,
   accountRoute,
   legalNoticeRoute,
   privacyPolicyRoute,
@@ -133,6 +183,8 @@ export function createAppRouter({ queryClient, history }: CreateAppRouterOptions
     context: { queryClient },
     ...(history ? { history } : {}),
     defaultPreload: 'intent',
+    // Réseau lent : un état de chargement plutôt qu'une page qui semble ne pas réagir.
+    defaultPendingComponent: PageLoading,
     // Le cache est géré par TanStack Query : le router ne garde pas ses propres données.
     defaultPreloadStaleTime: 0,
     scrollRestoration: true,

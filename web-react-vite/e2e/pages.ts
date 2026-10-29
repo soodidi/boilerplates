@@ -13,9 +13,12 @@ export const PUBLIC_PAGES: Record<string, string> = {
   '/legal/terms': '/legal/terms',
 };
 
-/** Private routes: opened after signing in with the demo account. */
+/** Private routes: opened after signing in with the demo account (an administrator in the mocks). */
 export const PRIVATE_PAGES: Record<string, string> = {
   '/notes': '/notes',
+  // A note of the demo account (src/mocks/db.ts).
+  '/notes/$id': '/notes/019a1f3e-7b2c-7d4e-9f10-2a3b4c5d6e7f',
+  '/admin': '/admin',
   '/account': '/account',
 };
 

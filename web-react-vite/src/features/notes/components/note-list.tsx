@@ -1,3 +1,4 @@
+import { Link } from '@tanstack/react-router';
 import { useMessages } from '@/i18n';
 import { type Note } from '../schemas/note';
 
@@ -21,7 +22,15 @@ export function NoteList({ notes, query }: NoteListProps) {
     <ul aria-label={m.notes.listLabel} className="grid gap-3">
       {notes.map((note) => (
         <li key={note.id} className="rounded-md border border-border p-4">
-          <h3 className="font-medium">{note.title}</h3>
+          <h3 className="font-medium">
+            <Link
+              to="/notes/$id"
+              params={{ id: note.id }}
+              className="underline-offset-4 hover:underline"
+            >
+              {note.title}
+            </Link>
+          </h3>
           {note.content ? (
             <p className="mt-1 text-sm whitespace-pre-line text-muted-foreground">{note.content}</p>
           ) : null}

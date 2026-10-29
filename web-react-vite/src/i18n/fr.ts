@@ -4,7 +4,9 @@ export const fr = {
     name: 'Mon app',
     skipToContent: 'Aller au contenu',
     mainNavigation: 'Navigation principale',
-    nav: { home: 'Accueil', notes: 'Notes' },
+    nav: { home: 'Accueil', notes: 'Notes', admin: 'Administration' },
+    offline: 'Vous êtes hors ligne : les données affichées peuvent être anciennes.',
+    loading: 'Chargement…',
   },
   errors: {
     title: 'Une erreur est survenue',
@@ -13,6 +15,10 @@ export const fr = {
     retry: 'Réessayer',
     notFoundTitle: 'Page introuvable',
     backHome: "Retour à l'accueil",
+    forbiddenTitle: 'Accès refusé',
+    forbiddenDescription: "Votre compte n'a pas accès à cette page.",
+    networkTitle: 'Connexion impossible',
+    networkDescription: 'Le serveur ne répond pas. Vérifiez votre connexion, puis réessayez.',
   },
   home: {
     title: 'Bienvenue',
@@ -28,6 +34,10 @@ export const fr = {
     empty: 'Aucune note pour le moment.',
     noResults: (query: string) => `Aucune note ne correspond à « ${query} ».`,
     loading: 'Chargement des notes…',
+    backToList: 'Toutes les notes',
+    createdOn: (date: string) => `Créée le ${date}`,
+    notFoundTitle: 'Note introuvable',
+    notFoundDescription: "Cette note n'existe pas, ou elle a été supprimée.",
     form: {
       title: 'Nouvelle note',
       titleLabel: 'Titre',
@@ -95,6 +105,7 @@ export const fr = {
       emailNotVerified: 'Confirmez d’abord votre adresse e-mail, avec le lien reçu par e-mail.',
       tooManyAttempts: 'Trop de tentatives. Réessayez dans quelques minutes.',
       generic: 'Une erreur est survenue. Réessayez.',
+      banned: 'Ce compte est suspendu.',
     },
     validation: {
       email: 'Adresse e-mail invalide.',
@@ -125,6 +136,34 @@ export const fr = {
       submitting: 'Suppression…',
       wrongPassword: 'Mot de passe incorrect.',
       sessionExpired: 'Votre session a expiré. Reconnectez-vous pour supprimer votre compte.',
+    },
+  },
+  admin: {
+    title: 'Administration',
+    stats: {
+      title: 'En chiffres',
+      users: 'Comptes',
+      notes: 'Notes',
+    },
+    users: {
+      title: 'Comptes',
+      description: 'Les 100 comptes les plus récents.',
+      you: 'vous',
+      // Clé dynamique (rôle venu de l'API) : un rôle inconnu affiche son nom brut.
+      roles: { user: 'Utilisateur', admin: 'Administrateur' } as Record<string, string>,
+      banned: 'Suspendu',
+      ban: 'Suspendre',
+      unban: 'Réactiver',
+      makeAdmin: 'Nommer administrateur',
+      makeUser: 'Retirer le rôle administrateur',
+      confirmBan: (name: string) => `Suspendre ${name} ? Ses sessions sont fermées tout de suite.`,
+      confirmAdmin: (name: string) =>
+        `Nommer ${name} administrateur ? Ce compte pourra gérer tous les autres.`,
+      confirm: 'Confirmer',
+      cancel: 'Annuler',
+      saved: 'Modification enregistrée.',
+      forbidden: "Votre compte n'a plus le droit de faire cette action.",
+      error: "L'action a échoué. Réessayez.",
     },
   },
   legal: {

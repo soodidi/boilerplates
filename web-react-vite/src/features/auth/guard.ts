@@ -1,6 +1,8 @@
 import { type QueryClient } from '@tanstack/react-query';
 import { redirect } from '@tanstack/react-router';
-import { sessionQueryOptions } from './api/auth-api';
+import { ForbiddenError } from '@/lib/errors';
+import { AuthError, resetUserCache, sessionQueryOptions } from './api/auth-api';
+import { permissionQueryOptions, type Permissions } from './api/permissions-api';
 
 /**
  * BE-006 : à utiliser dans `beforeLoad` des routes privées. Sans session, renvoie vers la
@@ -20,6 +22,28 @@ export async function requireSession({
     throw redirect({ to: '/login', search: { redirect: location.href } });
   }
   return { session };
+}
+
+/**
+ * BE-010 : `beforeLoad` d'une route réservée. Sans session, comme `requireSession` ; sans la
+ * permission, l'écran « Accès refusé » (erreur de la route). La vraie protection reste l'API.
+ */
+export function requirePermission(permissions: Permissions) {
+  return async (args: { context: { queryClient: QueryClient }; location: { href: string } }) => {
+    const { session } = await requireSession(args);
+    let allowed: boolean;
+    try {
+      allowed = await args.context.queryClient.query(permissionQueryOptions(permissions));
+    } catch (error) {
+      if (!(error instanceof AuthError && error.status === 401)) throw error;
+      // Session révoquée côté API mais encore en cache : retour à la connexion, cache vidé (BE-006).
+      await resetUserCache(args.context.queryClient, null);
+      // eslint-disable-next-line @typescript-eslint/only-throw-error
+      throw redirect({ to: '/login', search: { redirect: args.location.href } });
+    }
+    if (!allowed) throw new ForbiddenError();
+    return { session };
+  };
 }
 
 /** `beforeLoad` de /login : un utilisateur déjà connecté part vers `?redirect=` ou /notes. */

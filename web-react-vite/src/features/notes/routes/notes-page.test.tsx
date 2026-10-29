@@ -1,4 +1,4 @@
-import { screen, within } from '@testing-library/react';
+import { screen, waitForElementToBeRemoved, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { signInAsDemo } from '@/mocks/db';
@@ -23,10 +23,15 @@ describe('NotesPage', () => {
 
     await user.type(screen.getByRole('searchbox', { name: 'Rechercher une note' }), 'api');
 
-    expect(await screen.findByText('Brancher la vraie API')).toBeInTheDocument();
-    expect(await screen.findByRole('list', { name: 'Liste des notes' })).toBeInTheDocument();
+    // La liste précédente reste affichée jusqu'à la réponse (keepPreviousData) : on attend qu'elle change.
+    await waitForElementToBeRemoved(() => screen.queryByText('Lire les ADR du frontend'), {
+      timeout: 3000,
+    });
+    expect(screen.getByText('Brancher la vraie API')).toBeInTheDocument();
+    expect(
+      within(screen.getByRole('list', { name: 'Liste des notes' })).getAllByRole('listitem'),
+    ).toHaveLength(1);
     await expect.poll(() => router.state.location.search).toEqual({ q: 'api' });
-    expect(screen.queryByText('Lire les ADR du frontend')).not.toBeInTheDocument();
   });
 
   it('lit la recherche depuis l’URL au chargement', async () => {

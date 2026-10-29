@@ -1,4 +1,6 @@
 import { type QueryClient, queryOptions, useMutation, useQueryClient } from '@tanstack/react-query';
+import { ForbiddenError } from '@/lib/errors';
+import { notifyUnauthorized } from '@/lib/http';
 import { authClient } from './auth-client';
 import { type Session, type SignInInput, type SignUpInput, sessionSchema } from '../schemas/auth';
 
@@ -19,6 +21,16 @@ type AuthResult<T> = { data: T | null; error: { status: number; code?: string } 
 function unwrap<T>(result: AuthResult<T>): T | null {
   if (result.error) throw new AuthError(result.error.status, result.error.code);
   return result.data;
+}
+
+/**
+ * BE-010 : routes réservées de Better Auth (/v1/auth/admin/*), traitées comme `request()` :
+ * un 401 renvoie à la connexion (cache vidé), un 403 affiche « Accès refusé ».
+ */
+export function unwrapProtected<T>(result: AuthResult<T>): T | null {
+  if (result.error?.status === 401) notifyUnauthorized();
+  if (result.error?.status === 403) throw new ForbiddenError();
+  return unwrap(result);
 }
 
 /** Lien absolu vers une page du front, pour les e-mails envoyés par l'API. */
