@@ -5,7 +5,8 @@ import SwiftUI
 public enum ErrorAction: Sendable, Equatable {
     case retry
     case back
-    case none
+    /// Pas de bouton (`.none` se confondrait avec `Optional.none`).
+    case hidden
 }
 
 /// Clés du titre et de l'explication d'une erreur, et son action : la règle de BE-010, testée sans simulateur.
@@ -18,7 +19,7 @@ public struct ErrorContent: Sendable, Equatable {
 /// BE-010 : réessayer pour une panne (réseau, serveur) ; revenir en arrière pour un refus ou une
 /// ressource introuvable, où réessayer ne change rien. Rien pour un 401 : l'app revient à la connexion.
 public func errorContent(for kind: ErrorKind, canGoBack: Bool) -> ErrorContent? {
-    let back: ErrorAction = canGoBack ? .back : .none
+    let back: ErrorAction = canGoBack ? .back : .hidden
     return switch kind {
     case .unauthorized: nil
     case .forbidden: ErrorContent(titleKey: "error.forbidden.title", messageKey: "error.forbidden.message", action: back)
@@ -48,6 +49,7 @@ public struct ErrorStateView: View {
     private let backLabel: Text?
     private let onRetry: () -> Void
     private let onBack: (() -> Void)?
+    @AccessibilityFocusState private var isTitleFocused: Bool
 
     /// `onBack` : sans lui, un refus ou une ressource introuvable n'a pas de bouton.
     public init(
@@ -74,6 +76,9 @@ public struct ErrorStateView: View {
                     .font(.headline)
                     .accessibilityAddTraits(.isHeader)
                     .accessibilityIdentifier("error.title")
+                    // Le focus de VoiceOver s'y pose : une annonce serait coupée par l'ouverture de l'écran.
+                    .accessibilityFocused($isTitleFocused)
+                    .onAppear { isTitleFocused = true }
                 Text(verbatim: message)
                     .foregroundStyle(AppColor.mutedForeground)
                 switch content.action {
@@ -89,12 +94,9 @@ public struct ErrorStateView: View {
                         backLabel ?? Text("error.back", bundle: .module)
                     }
                     .accessibilityIdentifier("error.back")
-                case .none:
+                case .hidden:
                     EmptyView()
                 }
-            }
-            .task(id: kind) {
-                AccessibilityNotification.Announcement(title).post()
             }
         }
     }

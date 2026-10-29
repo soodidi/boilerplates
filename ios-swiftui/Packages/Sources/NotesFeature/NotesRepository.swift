@@ -29,7 +29,8 @@ public struct LiveNotesRepository: NotesRepository {
 
     public func get(id: String) async throws(APIError) -> Note {
         // Les notes ont des UUID : tout autre id ne peut pas exister, et ne doit pas viser une autre
-        // route avec le Bearer (`..`, `/`). Même réponse que l'API, sans l'appeler.
+        // route avec le Bearer (`..`, `/`, `?`). L'API répondrait 400 ; pour l'utilisateur, c'est une
+        // note introuvable, sans appel réseau.
         guard UUID(uuidString: id) != nil else {
             throw .http(ProblemDetails(title: "Not Found", status: 404))
         }

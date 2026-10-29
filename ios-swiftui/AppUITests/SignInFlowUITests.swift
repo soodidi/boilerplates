@@ -95,6 +95,24 @@ final class SignInFlowUITests: XCTestCase {
         XCTAssertTrue(content.waitForExistence(timeout: 10), app.debugDescription)
     }
 
+    func testANoteNotFoundGoesBackToTheList() {
+        let app = launch()
+        XCTAssertTrue(app.textFields["auth.email"].waitForExistence(timeout: 10))
+        signIn(app, email: "camille@example.com", password: "correct-password")
+
+        let row = app.buttons["notes.row.0190a5e0-0000-7000-8000-000000000002"]
+        XCTAssertTrue(row.waitForExistence(timeout: 5))
+        row.tap()
+
+        // BE-010 : 404 de l'API (doublure) → « Note introuvable », puis retour par « Toutes les notes ».
+        XCTAssertTrue(app.staticTexts["error.title"].waitForExistence(timeout: 5))
+        XCTAssertEqual(app.staticTexts["error.title"].label, "Note introuvable")
+        app.buttons["error.back"].tap()
+
+        // De retour sur la liste, « Mon compte » s'ouvre toujours.
+        openAccount(app)
+    }
+
     private func openAccount(_ app: XCUIApplication) {
         let account = app.buttons["notes.account"]
         XCTAssertTrue(account.waitForExistence(timeout: 5))

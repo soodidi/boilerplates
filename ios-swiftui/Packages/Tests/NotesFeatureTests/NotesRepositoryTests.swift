@@ -44,6 +44,7 @@ struct NotesRepositoryTests {
         let note = try await repository(api).get(id: id)
 
         #expect(note.title == "Coffee")
+        #expect(api.received.first?.httpMethod == "GET")
         #expect(api.received.first?.url?.path() == "/v1/notes/\(id)")
     }
 
@@ -66,7 +67,10 @@ struct NotesRepositoryTests {
         }
     }
 
-    @Test("un identifiant qui n'est pas un UUID ne part pas vers l'API", arguments: ["..", "a/b", "../auth/x", ""])
+    @Test(
+        "un identifiant qui n'est pas un UUID ne part pas vers l'API",
+        arguments: ["..", "a/b", "../auth/x", "", "x?admin=1", "x#y", "%2e%2e%2Fauth"]
+    )
     func refusesNonUUIDs(id: String) async {
         let api = StubAPI()
 

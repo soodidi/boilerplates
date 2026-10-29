@@ -37,7 +37,11 @@ private actor FakeNoteRepository: NotesRepository {
         []
     }
 
-    func get(id _: String) async throws(APIError) -> Note {
+    func get(id: String) async throws(APIError) -> Note {
+        // Le ViewModel demande bien la note de sa route.
+        guard id == "1" else {
+            throw .http(ProblemDetails(title: "Not Found", status: 404))
+        }
         gets += 1
         if isGated {
             isGated = false
@@ -52,7 +56,7 @@ private actor FakeNoteRepository: NotesRepository {
 }
 
 @MainActor
-@Suite("NoteDetailViewModel")
+@Suite("NoteDetailViewModel", .timeLimit(.minutes(1)))
 struct NoteDetailViewModelTests {
     let note = Note(id: "1", title: "Coffee", content: "Arabica", createdAt: .now)
 

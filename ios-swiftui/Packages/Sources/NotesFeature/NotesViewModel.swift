@@ -30,8 +30,7 @@ public final class NotesViewModel {
         didSet { titleIsInvalid = false }
     }
 
-    /// Partagé avec l'écran de détail, ouvert depuis la liste.
-    let repository: any NotesRepository
+    private let repository: any NotesRepository
 
     public init(repository: any NotesRepository) {
         self.repository = repository

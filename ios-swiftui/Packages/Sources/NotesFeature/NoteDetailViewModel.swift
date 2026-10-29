@@ -3,11 +3,6 @@ import CoreNetworking
 import Foundation
 import Observation
 
-/// Route du détail d'une note : un identifiant, jamais l'objet complet (IOS-002).
-struct NoteRoute: Hashable {
-    let id: String
-}
-
 /// IOS-002 : détail d'une note, chargé à l'ouverture de l'écran.
 @MainActor
 @Observable

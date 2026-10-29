@@ -51,7 +51,7 @@ private struct NoteContent: View {
             Text("notes.createdOn \(note.createdAt.formatted(date: .long, time: .omitted))", bundle: .module)
                 .font(.caption)
                 .foregroundStyle(AppColor.mutedForeground)
-            if !note.content.isEmpty {
+            if !note.content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 Text(note.content)
             }
         }

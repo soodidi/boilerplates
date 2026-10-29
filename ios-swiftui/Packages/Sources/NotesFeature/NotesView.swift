@@ -7,11 +7,17 @@ import SwiftUI
 public struct NotesView: View {
     @State private var viewModel: NotesViewModel
     private let onOpenAccount: (() -> Void)?
+    private let onOpenNote: (String) -> Void
 
-    /// `onOpenAccount` : fourni par l'app, car une feature ne dépend pas d'une autre (IOS-002).
-    public init(viewModel: NotesViewModel, onOpenAccount: (() -> Void)? = nil) {
+    /// Fournis par l'app, qui déclare les routes : une feature ne dépend pas d'une autre (IOS-002).
+    public init(
+        viewModel: NotesViewModel,
+        onOpenAccount: (() -> Void)? = nil,
+        onOpenNote: @escaping (String) -> Void = { _ in }
+    ) {
         _viewModel = State(initialValue: viewModel)
         self.onOpenAccount = onOpenAccount
+        self.onOpenNote = onOpenNote
     }
 
     public var body: some View {
@@ -27,9 +33,6 @@ public struct NotesView: View {
         .searchable(text: $viewModel.query, prompt: Text("notes.search", bundle: .module))
         .task(id: viewModel.query) { await viewModel.search() }
         .refreshable { await viewModel.load() }
-        .navigationDestination(for: NoteRoute.self) { route in
-            NoteDetailView(viewModel: NoteDetailViewModel(id: route.id, repository: viewModel.repository))
-        }
         .overlay(alignment: .bottom) { MessageBanner(message: $viewModel.message) }
         .toolbar {
             // La déconnexion est dans « Mon compte », comme sur Android.
@@ -67,10 +70,12 @@ public struct NotesView: View {
                 }
             } else {
                 ForEach(viewModel.notes) { note in
-                    // La destination est déclarée ici : l'app n'a pas à connaître les écrans de la feature.
-                    NavigationLink(value: NoteRoute(id: note.id)) {
+                    Button {
+                        onOpenNote(note.id)
+                    } label: {
                         NoteRow(note: note)
                     }
+                    .foregroundStyle(AppColor.foreground)
                     .accessibilityIdentifier("notes.row.\(note.id)")
                 }
             }
