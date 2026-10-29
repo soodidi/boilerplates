@@ -59,6 +59,10 @@ class AccountViewModel
             _uiState.update { it.copy(confirmed = confirmed, confirmError = null) }
         }
 
+        fun onLinkOpened() {
+            _uiState.update { it.copy(linkError = null) }
+        }
+
         /** Aucun navigateur n'a pu ouvrir le lien. */
         fun onLinkUnavailable() {
             _uiState.update { it.copy(linkError = R.string.account_link_unavailable) }

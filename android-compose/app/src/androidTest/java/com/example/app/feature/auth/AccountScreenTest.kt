@@ -100,6 +100,10 @@ class AccountScreenTest {
         composeRule.onNode(hasText(string(R.string.account_back)) and hasClickAction()).assertIsNotEnabled()
         composeRule.onNode(hasText(string(R.string.auth_sign_out)) and hasClickAction()).assertIsNotEnabled()
         composeRule.onNodeWithText(string(R.string.account_delete_password)).performScrollTo().assertIsNotEnabled()
+        composeRule
+            .onNode(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Checkbox))
+            .performScrollTo()
+            .assertIsNotEnabled()
         deleteButton.performScrollTo().assertIsNotEnabled()
     }
 

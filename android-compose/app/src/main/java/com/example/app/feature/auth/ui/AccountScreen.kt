@@ -56,6 +56,7 @@ fun AccountRoute(
     fun open(url: String) {
         try {
             uriHandler.openUri(url)
+            viewModel.onLinkOpened()
         } catch (_: IllegalArgumentException) {
             // Levée par Compose quand aucune app ne sait ouvrir le lien.
             viewModel.onLinkUnavailable()

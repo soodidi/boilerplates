@@ -165,5 +165,8 @@ class AccountViewModelTest {
 
         assertEquals(R.string.account_link_unavailable, viewModel.uiState.value.linkError)
         assertNull(viewModel.uiState.value.errorMessage)
+
+        viewModel.onLinkOpened()
+        assertNull(viewModel.uiState.value.linkError)
     }
 }
