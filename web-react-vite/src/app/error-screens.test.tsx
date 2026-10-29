@@ -35,6 +35,13 @@ describe('Error screens', () => {
     expect(await screen.findByRole('heading', { name: 'Accès refusé' })).toBeVisible();
   });
 
+  it('signale l’absence de réseau dès l’ouverture', async () => {
+    vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false);
+    renderRoute('/');
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Vous êtes hors ligne');
+  });
+
   it('signale la perte du réseau, puis son retour', async () => {
     const onLine = vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(true);
     renderRoute('/');

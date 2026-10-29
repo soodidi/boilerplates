@@ -1,7 +1,7 @@
 import { type QueryClient } from '@tanstack/react-query';
 import { redirect } from '@tanstack/react-router';
 import { ForbiddenError } from '@/lib/errors';
-import { sessionQueryOptions } from './api/auth-api';
+import { AuthError, resetUserCache, sessionQueryOptions } from './api/auth-api';
 import { permissionQueryOptions, type Permissions } from './api/permissions-api';
 
 /**
@@ -31,9 +31,17 @@ export async function requireSession({
 export function requirePermission(permissions: Permissions) {
   return async (args: { context: { queryClient: QueryClient }; location: { href: string } }) => {
     const { session } = await requireSession(args);
-    if (!(await args.context.queryClient.query(permissionQueryOptions(permissions)))) {
-      throw new ForbiddenError();
+    let allowed: boolean;
+    try {
+      allowed = await args.context.queryClient.query(permissionQueryOptions(permissions));
+    } catch (error) {
+      if (!(error instanceof AuthError && error.status === 401)) throw error;
+      // Session révoquée côté API mais encore en cache : retour à la connexion, cache vidé (BE-006).
+      await resetUserCache(args.context.queryClient, null);
+      // eslint-disable-next-line @typescript-eslint/only-throw-error
+      throw redirect({ to: '/login', search: { redirect: args.location.href } });
     }
+    if (!allowed) throw new ForbiddenError();
     return { session };
   };
 }

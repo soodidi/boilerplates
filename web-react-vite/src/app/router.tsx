@@ -32,7 +32,7 @@ import {
   notesSearchSchema,
 } from '@/features/notes';
 import { isProblemDetailsError } from '@/lib/problem-details';
-import { NotFound, RouteError } from './error-fallback';
+import { NotFound, PageLoading, RouteError } from './error-fallback';
 import { RootLayout } from './root-layout';
 
 export type RouterContext = {
@@ -183,6 +183,8 @@ export function createAppRouter({ queryClient, history }: CreateAppRouterOptions
     context: { queryClient },
     ...(history ? { history } : {}),
     defaultPreload: 'intent',
+    // Réseau lent : un état de chargement plutôt qu'une page qui semble ne pas réagir.
+    defaultPendingComponent: PageLoading,
     // Le cache est géré par TanStack Query : le router ne garde pas ses propres données.
     defaultPreloadStaleTime: 0,
     scrollRestoration: true,

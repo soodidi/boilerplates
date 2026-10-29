@@ -17,12 +17,12 @@ export function StatsSection() {
       </h2>
       <dl className="grid grid-cols-2 gap-3">
         {[
-          [m.admin.stats.users, stats.users],
-          [m.admin.stats.notes, stats.notes],
-        ].map(([label, value]) => (
+          { label: m.admin.stats.users, value: stats.users },
+          { label: m.admin.stats.notes, value: stats.notes },
+        ].map(({ label, value }) => (
           <div key={label} className="rounded-md border border-border p-4">
             <dt className="text-sm text-muted-foreground">{label}</dt>
-            <dd className="text-2xl font-semibold">{numberFormatter.format(Number(value))}</dd>
+            <dd className="text-2xl font-semibold">{numberFormatter.format(value)}</dd>
           </div>
         ))}
       </dl>

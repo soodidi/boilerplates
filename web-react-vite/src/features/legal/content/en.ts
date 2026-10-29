@@ -49,7 +49,7 @@ export const en: LegalContent = (info) => ({
         blocks: [
           'The publisher only collects what the service needs:',
           [
-            'your account: name, email address and password, stored only in an irreversible form (hash);',
+            'your account: name, email address and password, stored only in an irreversible form (hash); its role (user or administrator) and, where applicable, its suspension (reason, end date);',
             'your sign-in sessions: IP address and browser or device type, to keep your account secure;',
             'your IP address, for the time needed to limit repeated sign-in or sign-up attempts;',
             'the content you create in the application.',

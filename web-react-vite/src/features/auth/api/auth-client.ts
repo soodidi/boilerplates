@@ -1,5 +1,6 @@
 import { createAuthClient } from 'better-auth/client';
 import { adminClient } from 'better-auth/client/plugins';
+import { fetchOrNetworkError } from '@/lib/http';
 
 function createClient(baseUrl: string) {
   return createAuthClient({
@@ -9,7 +10,8 @@ function createClient(baseUrl: string) {
     fetchOptions: {
       credentials: 'include',
       // `fetch` global lu à chaque appel (et non mémorisé à la création) : MSW peut l'intercepter.
-      customFetchImpl: (input, init) => fetch(input, init),
+      // API injoignable : `NetworkError`, comme `request()` (écran « Connexion impossible »).
+      customFetchImpl: fetchOrNetworkError,
     },
     // BE-010 : routes /v1/auth/admin/* (comptes) ; les permissions sont vérifiées par l'API.
     plugins: [adminClient()],

@@ -1,6 +1,7 @@
 import { screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { db, OTHER_USER, signInAsDemo } from '@/mocks/db';
+import { server } from '@/mocks/server';
 import { renderRoute } from '@/test/render';
 
 const DEMO_NOTE_ID = '019a1f3e-7b2c-7d4e-9f10-2a3b4c5d6e7f';
@@ -34,9 +35,16 @@ describe('NotePage', () => {
 
   it('affiche « Note introuvable » pour un identifiant impossible, sans appeler l’API', async () => {
     signInAsDemo();
+    const noteRequests: string[] = [];
+    const listener = ({ request }: { request: Request }) => {
+      if (new URL(request.url).pathname.startsWith('/v1/notes/')) noteRequests.push(request.url);
+    };
+    server.events.on('request:start', listener);
     renderRoute('/notes/42');
 
     expect(await screen.findByRole('heading', { name: 'Note introuvable' })).toBeVisible();
+    server.events.removeListener('request:start', listener);
+    expect(noteRequests).toEqual([]);
   });
 
   it('ouvre la note depuis la liste', async () => {

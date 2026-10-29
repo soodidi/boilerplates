@@ -99,6 +99,17 @@ export function Forbidden() {
   );
 }
 
+/** Page dont les données se chargent encore (au-delà d'une seconde, réglage du router). */
+export function PageLoading() {
+  const m = useMessages();
+
+  return (
+    <p aria-live="polite" className="text-muted-foreground">
+      {m.app.loading}
+    </p>
+  );
+}
+
 export function NotFound() {
   const m = useMessages();
 

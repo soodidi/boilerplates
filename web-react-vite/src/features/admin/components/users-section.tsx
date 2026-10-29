@@ -1,5 +1,5 @@
 import { useQuery, useSuspenseQuery } from '@tanstack/react-query';
-import { useId } from 'react';
+import { useId, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   type AdminUser,
@@ -8,8 +8,11 @@ import {
   useAdminUserAction,
 } from '@/features/auth';
 import { useMessages } from '@/i18n';
+import { ForbiddenError } from '@/lib/errors';
 
-/** BE-010 : comptes, avec bannissement et changement de rôle. L'API vérifie chaque action. */
+type ActionType = 'ban' | 'unban' | 'set-role';
+
+/** BE-010 : comptes, avec suspension et changement de rôle. L'API vérifie chaque action. */
 export function UsersSection() {
   const m = useMessages();
   const titleId = useId();
@@ -17,15 +20,28 @@ export function UsersSection() {
   const { data: session } = useQuery(sessionQueryOptions());
   const action = useAdminUserAction();
 
+  function run(user: AdminUser, type: ActionType) {
+    // Un second clic pendant l'envoi est ignoré (le bouton garde le focus : pas de `disabled`).
+    if (action.isPending) return;
+    if (type === 'set-role') {
+      action.mutate({ type, userId: user.id, role: user.role === 'admin' ? 'user' : 'admin' });
+    } else {
+      action.mutate({ type, userId: user.id });
+    }
+  }
+
   return (
     <section aria-labelledby={titleId} className="grid gap-3">
       <h2 id={titleId} className="text-xl font-semibold">
         {m.admin.users.title}
       </h2>
       <p className="text-sm text-muted-foreground">{m.admin.users.description}</p>
+      <p role="status" className="text-sm text-success">
+        {action.isSuccess ? m.admin.users.saved : null}
+      </p>
       {action.isError ? (
         <p role="alert" className="text-sm text-destructive">
-          {m.admin.users.error}
+          {action.error instanceof ForbiddenError ? m.admin.users.forbidden : m.admin.users.error}
         </p>
       ) : null}
       {/* FE-008 : des cartes plutôt qu'un tableau, lisibles dès 320 px. */}
@@ -38,15 +54,7 @@ export function UsersSection() {
             isSelf={user.id === session?.user.id}
             isPending={action.isPending}
             onAction={(type) => {
-              if (type === 'set-role') {
-                action.mutate({
-                  type,
-                  userId: user.id,
-                  role: user.role === 'admin' ? 'user' : 'admin',
-                });
-              } else {
-                action.mutate({ type, userId: user.id });
-              }
+              run(user, type);
             }}
           />
         ))}
@@ -59,16 +67,19 @@ type UserCardProps = {
   user: AdminUser;
   isSelf: boolean;
   isPending: boolean;
-  onAction: (type: 'ban' | 'unban' | 'set-role') => void;
+  onAction: (type: ActionType) => void;
 };
 
 function UserCard({ user, isSelf, isPending, onAction }: UserCardProps) {
   const m = useMessages();
   const role = user.role ?? 'user';
+  const isAdmin = role === 'admin';
+  // Suspendre et nommer administrateur se confirment : un clic de travers aurait de lourds effets.
+  const [confirming, setConfirming] = useState<'ban' | 'set-role' | null>(null);
 
   return (
-    <li className="grid gap-3 rounded-md border border-border p-4 sm:grid-cols-[1fr_auto] sm:items-center">
-      <div className="grid min-w-0 gap-1">
+    <li className="flex flex-col gap-3 rounded-md border border-border p-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="grid min-w-0 flex-1 gap-1">
         <p className="font-medium">
           {user.name}
           {isSelf ? <span className="text-muted-foreground"> ({m.admin.users.you})</span> : null}
@@ -81,30 +92,84 @@ function UserCard({ user, isSelf, isPending, onAction }: UserCardProps) {
           ) : null}
         </p>
       </div>
-      {isSelf ? null : (
+      {isSelf ? null : confirming ? (
+        <div className="grid gap-2">
+          <p className="text-sm">
+            {confirming === 'ban'
+              ? m.admin.users.confirmBan(user.name)
+              : m.admin.users.confirmAdmin(user.name)}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant={confirming === 'ban' ? 'destructive' : 'primary'}
+              // Le focus passe sur la confirmation, que le clavier et les lecteurs d'écran trouvent.
+              ref={(button) => button?.focus()}
+              onClick={() => {
+                onAction(confirming);
+                setConfirming(null);
+              }}
+            >
+              {m.admin.users.confirm}
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setConfirming(null);
+              }}
+            >
+              {m.admin.users.cancel}
+            </Button>
+          </div>
+        </div>
+      ) : (
         <div className="flex flex-wrap gap-2">
-          <Button
+          <ActionButton
+            label={isAdmin ? m.admin.users.makeUser : m.admin.users.makeAdmin}
+            name={user.name}
             variant="secondary"
-            disabled={isPending}
+            isPending={isPending}
             onClick={() => {
-              onAction('set-role');
+              if (isAdmin) onAction('set-role');
+              else setConfirming('set-role');
             }}
-          >
-            {role === 'admin'
-              ? m.admin.users.makeUser(user.name)
-              : m.admin.users.makeAdmin(user.name)}
-          </Button>
-          <Button
+          />
+          <ActionButton
+            label={user.banned ? m.admin.users.unban : m.admin.users.ban}
+            name={user.name}
             variant={user.banned ? 'secondary' : 'destructive'}
-            disabled={isPending}
+            isPending={isPending}
             onClick={() => {
-              onAction(user.banned ? 'unban' : 'ban');
+              if (user.banned) onAction('unban');
+              else setConfirming('ban');
             }}
-          >
-            {user.banned ? m.admin.users.unban(user.name) : m.admin.users.ban(user.name)}
-          </Button>
+          />
         </div>
       )}
     </li>
+  );
+}
+
+type ActionButtonProps = {
+  label: string;
+  name: string;
+  variant: 'secondary' | 'destructive';
+  isPending: boolean;
+  onClick: () => void;
+};
+
+/**
+ * Libellé court à l'écran (lisible à 320 px), nom du compte en plus pour les lecteurs d'écran :
+ * le nom accessible commence par le libellé visible (WCAG 2.5.3).
+ */
+function ActionButton({ label, name, variant, isPending, onClick }: ActionButtonProps) {
+  return (
+    <Button
+      variant={variant}
+      aria-label={`${label} ${name}`}
+      aria-disabled={isPending}
+      onClick={onClick}
+    >
+      {label}
+    </Button>
   );
 }

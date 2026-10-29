@@ -49,7 +49,7 @@ export const fr: LegalContent = (info) => ({
         blocks: [
           'L’éditeur ne collecte que ce qui est nécessaire au service :',
           [
-            'votre compte : nom, adresse e-mail et mot de passe, conservé uniquement sous une forme irréversible (hachage) ;',
+            'votre compte : nom, adresse e-mail et mot de passe, conservé uniquement sous une forme irréversible (hachage) ; son rôle (utilisateur ou administrateur) et, le cas échéant, sa suspension (motif, date de fin) ;',
             'vos sessions de connexion : adresse IP et type de navigateur ou d’appareil, pour sécuriser votre compte ;',
             'votre adresse IP, le temps de limiter les tentatives répétées de connexion ou d’inscription ;',
             'les contenus que vous créez dans l’application.',

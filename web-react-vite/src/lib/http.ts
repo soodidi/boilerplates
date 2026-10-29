@@ -14,6 +14,24 @@ export function configureHttp(options: { baseUrl: string; onUnauthorized?: () =>
   onUnauthorized = options.onUnauthorized;
 }
 
+/** Un 401 reçu hors de `request()` (client Better Auth) : même traitement, retour à la connexion. */
+export function notifyUnauthorized() {
+  onUnauthorized?.();
+}
+
+/**
+ * `fetch` qui lève une `NetworkError` quand l'API ne répond pas, comme `request()`.
+ * Pour le client Better Auth, qui laisserait passer l'erreur brute de `fetch`.
+ */
+export async function fetchOrNetworkError(input: RequestInfo | URL, init?: RequestInit) {
+  try {
+    return await fetch(input, init);
+  } catch (error) {
+    if (init?.signal?.aborted) throw error;
+    throw new NetworkError({ cause: error });
+  }
+}
+
 type RequestOptions<TSchema extends z.ZodType> = {
   method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
   body?: unknown;

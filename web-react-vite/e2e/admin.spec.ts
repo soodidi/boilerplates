@@ -14,6 +14,7 @@ test('un administrateur suspend un compte, qui ne peut plus se connecter', async
   expect(results.violations).toEqual([]);
 
   await page.getByRole('button', { name: 'Suspendre Other' }).click();
+  await page.getByRole('button', { name: 'Confirmer' }).click();
   await expect(page.getByRole('button', { name: 'Réactiver Other' })).toBeVisible();
 
   await page.getByRole('button', { name: 'Se déconnecter' }).click();
