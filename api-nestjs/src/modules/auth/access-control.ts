@@ -32,7 +32,7 @@ export const roles = {
 export const DEFAULT_ROLE = 'user';
 export const ADMIN_ROLE = 'admin';
 
-/** Routes du plugin `admin` ouvertes aux admins (BE-010), avec la permission que chacune exige. */
+/** Routes du plugin `admin` ouvertes aux admins (BE-010) : elles exigent les permissions du rôle `admin`. */
 export const ADMIN_OPEN_PATHS = [
   '/admin/list-users',
   '/admin/get-user',
