@@ -17,6 +17,12 @@ private struct PreviewAuthRepository: AuthRepository {
     func requestPasswordReset(email _: String) async throws(AuthFailure) {}
 
     func signOut() async {}
+
+    func deleteAccount(password _: String) async throws(AuthFailure) {
+        if let failure {
+            throw failure
+        }
+    }
 }
 
 #Preview("Parcours") {
@@ -30,6 +36,47 @@ private struct PreviewAuthRepository: AuthRepository {
     return NavigationStack {
         SignInView(viewModel: viewModel, onSignUp: {}, onForgotPassword: {})
             .task { await viewModel.submit() }
+    }
+    .environment(\.dynamicTypeSize, .accessibility2)
+}
+
+#Preview("Connexion après suppression du compte") {
+    NavigationStack {
+        SignInView(
+            viewModel: SignInViewModel(repository: PreviewAuthRepository()),
+            accountDeleted: true,
+            onSignUp: {},
+            onForgotPassword: {}
+        )
+    }
+}
+
+#Preview("Mon compte") {
+    NavigationStack {
+        AccountView(
+            viewModel: AccountViewModel(
+                repository: PreviewAuthRepository(),
+                webBaseURL: URL(string: "https://app.example.com")!,
+                backupRetentionDays: 14,
+                onAccountDeleted: {}
+            ),
+            onSignOut: {}
+        )
+    }
+}
+
+#Preview("Mon compte : mauvais mot de passe, grande police") {
+    let viewModel = AccountViewModel(
+        repository: PreviewAuthRepository(failure: .wrongPassword),
+        webBaseURL: URL(string: "https://app.example.com")!,
+        backupRetentionDays: 14,
+        onAccountDeleted: {}
+    )
+    viewModel.password = "wrong-password"
+    viewModel.isConfirmed = true
+    return NavigationStack {
+        AccountView(viewModel: viewModel, onSignOut: {})
+            .task { await viewModel.delete() }
     }
     .environment(\.dynamicTypeSize, .accessibility2)
 }

@@ -4,17 +4,27 @@ import SwiftUI
 struct SignInView: View {
     @State private var viewModel: SignInViewModel
     @FocusState private var focus: AuthField?
+    private let accountDeleted: Bool
     private let onSignUp: () -> Void
     private let onForgotPassword: () -> Void
 
-    init(viewModel: SignInViewModel, onSignUp: @escaping () -> Void, onForgotPassword: @escaping () -> Void) {
+    init(
+        viewModel: SignInViewModel,
+        accountDeleted: Bool = false,
+        onSignUp: @escaping () -> Void,
+        onForgotPassword: @escaping () -> Void
+    ) {
         _viewModel = State(initialValue: viewModel)
+        self.accountDeleted = accountDeleted
         self.onSignUp = onSignUp
         self.onForgotPassword = onForgotPassword
     }
 
     var body: some View {
         Form {
+            if accountDeleted {
+                AccountDeletedSection()
+            }
             Section {
                 EmailField(text: $viewModel.email, error: viewModel.emailError, focus: $focus)
                 FieldErrorText(error: viewModel.emailError)
@@ -149,6 +159,21 @@ struct ForgotPasswordView: View {
         await viewModel.submit()
         if viewModel.emailError != nil {
             focus = .email
+        }
+    }
+}
+
+/// Le compte vient d'être supprimé (GLB-013). Le focus de VoiceOver s'y pose : une annonce serait
+/// coupée par le changement d'écran.
+private struct AccountDeletedSection: View {
+    @AccessibilityFocusState private var isFocused: Bool
+
+    var body: some View {
+        Section {
+            Text("auth.accountDeleted", bundle: .module)
+                .accessibilityIdentifier("auth.accountDeleted")
+                .accessibilityFocused($isFocused)
+                .onAppear { isFocused = true }
         }
     }
 }

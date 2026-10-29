@@ -1,6 +1,110 @@
 {
   "sourceLanguage" : "fr",
   "strings" : {
+    "account.delete.confirm" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "I understand that my account and my data will be permanently deleted." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Je comprends que mon compte et mes données seront supprimés définitivement." } }
+      }
+    },
+    "account.delete.confirmRequired" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Turn this option on to confirm." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Activez cette option pour confirmer." } }
+      }
+    },
+    "account.delete.description %lld" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : { "stringUnit" : { "state" : "translated", "value" : "Deletion is immediate and permanent: your account and all your data are erased. Only backups keep them, for %lld day at most." } },
+              "other" : { "stringUnit" : { "state" : "translated", "value" : "Deletion is immediate and permanent: your account and all your data are erased. Only backups keep them, for %lld days at most." } }
+            }
+          }
+        },
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "one" : { "stringUnit" : { "state" : "translated", "value" : "La suppression est immédiate et définitive : votre compte et toutes vos données sont effacés. Seules les sauvegardes les conservent, %lld jour au plus." } },
+              "other" : { "stringUnit" : { "state" : "translated", "value" : "La suppression est immédiate et définitive : votre compte et toutes vos données sont effacés. Seules les sauvegardes les conservent, %lld jours au plus." } }
+            }
+          }
+        }
+      }
+    },
+    "account.delete.password" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Current password" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Mot de passe actuel" } }
+      }
+    },
+    "account.delete.submit" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Delete my account" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Supprimer mon compte" } }
+      }
+    },
+    "account.delete.title" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Delete my account" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Supprimer mon compte" } }
+      }
+    },
+    "account.delete.wrongPassword" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Wrong password." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Mot de passe incorrect." } }
+      }
+    },
+    "account.export.description" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "The file with all the data of your account (profile, sessions and content) is downloaded from the website: sign in, then open “My account”." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Le fichier qui contient toutes les données de votre compte (profil, sessions et contenus) se télécharge sur le site web : connectez-vous, puis ouvrez « Mon compte »." } }
+      }
+    },
+    "account.export.open" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Export from the website" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Exporter depuis le site web" } }
+      }
+    },
+    "account.export.title" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Export my data" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Exporter mes données" } }
+      }
+    },
+    "account.linkUnavailable" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "No app can open this link." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Aucune app ne peut ouvrir ce lien." } }
+      }
+    },
+    "account.privacyLink" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Privacy policy" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Politique de confidentialité" } }
+      }
+    },
+    "account.signOut" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Sign out" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Se déconnecter" } }
+      }
+    },
+    "account.title" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "My account" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Mon compte" } }
+      }
+    },
+    "auth.accountDeleted" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Your account and your data have been deleted." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Votre compte et vos données ont été supprimés." } }
+      }
+    },
     "auth.backToSignIn" : {
       "localizations" : {
         "en" : { "stringUnit" : { "state" : "translated", "value" : "Back to sign in" } },

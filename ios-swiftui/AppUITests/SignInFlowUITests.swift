@@ -1,7 +1,7 @@
 import XCTest
 
 /// IOS-005 : parcours critique, avec les doublures de l'app (argument `-ui-testing`, Debug) :
-/// connexion refusée, connexion, notes, déconnexion.
+/// connexion refusée, connexion, notes, « Mon compte », déconnexion et suppression du compte.
 @MainActor
 final class SignInFlowUITests: XCTestCase {
     private func launch() -> XCUIApplication {
@@ -21,12 +21,12 @@ final class SignInFlowUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["auth.failure"].waitForExistence(timeout: 5))
 
         signIn(app, email: "camille@example.com", password: "correct-password")
-        let signOut = app.buttons["notes.signOut"]
-        XCTAssertTrue(signOut.waitForExistence(timeout: 5))
         // La liste arrive après le délai de recherche (300 ms) : attendre, ne pas lire tout de suite.
         XCTAssertTrue(app.staticTexts["Bienvenue"].waitForExistence(timeout: 5))
 
-        signOut.tap()
+        // La déconnexion est dans « Mon compte ».
+        openAccount(app)
+        app.buttons["account.signOut"].tap()
         XCTAssertTrue(app.textFields["auth.email"].waitForExistence(timeout: 5))
         // Nouveau formulaire : rien du compte précédent.
         XCTAssertFalse((app.textFields["auth.email"].value as? String ?? "").contains("camille"))
@@ -50,6 +50,50 @@ final class SignInFlowUITests: XCTestCase {
         XCTAssertTrue(app.buttons["auth.signUp"].waitForExistence(timeout: 5))
         app.buttons["auth.signUp"].tap()
         XCTAssertTrue(app.textFields["auth.name"].waitForExistence(timeout: 5))
+    }
+
+    func testDeleteAccountAfterAWrongPassword() {
+        let app = launch()
+        XCTAssertTrue(app.textFields["auth.email"].waitForExistence(timeout: 10))
+        signIn(app, email: "camille@example.com", password: "correct-password")
+        openAccount(app)
+
+        let password = app.secureTextFields["auth.password"]
+        password.tap()
+        password.clearAndType("wrong-password")
+        confirmDeletion(app)
+        app.buttons["auth.submit"].tap()
+        XCTAssertTrue(app.staticTexts["auth.failure"].waitForExistence(timeout: 5))
+
+        password.tap()
+        password.clearAndType("correct-password")
+        app.buttons["auth.submit"].tap()
+
+        // Retour à la connexion, qui confirme la suppression.
+        XCTAssertTrue(app.staticTexts["auth.accountDeleted"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.textFields["auth.email"].exists)
+
+        // Le message ne survit pas à la session suivante (la doublure ne supprime pas le compte).
+        signIn(app, email: "camille@example.com", password: "correct-password")
+        openAccount(app)
+        app.buttons["account.signOut"].tap()
+        XCTAssertTrue(app.textFields["auth.email"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.staticTexts["auth.accountDeleted"].exists)
+    }
+
+    private func openAccount(_ app: XCUIApplication) {
+        let account = app.buttons["notes.account"]
+        XCTAssertTrue(account.waitForExistence(timeout: 5))
+        account.tap()
+        XCTAssertTrue(app.buttons["account.signOut"].waitForExistence(timeout: 5))
+    }
+
+    /// Un `Toggle` dans un `Form` ne bascule que par son interrupteur, pas par son libellé.
+    private func confirmDeletion(_ app: XCUIApplication) {
+        let toggle = app.switches["account.confirm"]
+        XCTAssertTrue(toggle.waitForExistence(timeout: 5))
+        toggle.switches.firstMatch.tap()
+        XCTAssertEqual(toggle.value as? String, "1")
     }
 
     private func signIn(_ app: XCUIApplication, email: String, password: String) {
