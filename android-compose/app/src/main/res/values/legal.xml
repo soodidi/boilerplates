@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- GLB-013 : valeurs légales du projet, à reporter depuis le front web (src/features/legal/legal-info.ts). -->
+<resources>
+    <!-- Même valeur que backupRetentionDays du web : durée de conservation des sauvegardes de la base. -->
+    <integer name="legal_backup_retention_days">14</integer>
+</resources>

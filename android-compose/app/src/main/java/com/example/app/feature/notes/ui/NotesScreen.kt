@@ -44,7 +44,7 @@ import java.time.Instant
 /** Écran relié au ViewModel : seul composable qui connaît Hilt et le cycle de vie (AND-001). */
 @Composable
 fun NotesRoute(
-    onSignOut: () -> Unit,
+    onOpenAccount: () -> Unit,
     viewModel: NotesViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -55,7 +55,7 @@ fun NotesRoute(
         onSubmit = viewModel::onSubmit,
         onRetry = viewModel::refresh,
         onUserMessageShown = viewModel::onUserMessageShown,
-        onSignOut = onSignOut,
+        onOpenAccount = onOpenAccount,
     )
 }
 
@@ -69,7 +69,7 @@ fun NotesScreen(
     onSubmit: () -> Unit,
     onRetry: () -> Unit,
     onUserMessageShown: () -> Unit,
-    onSignOut: () -> Unit,
+    onOpenAccount: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
@@ -86,7 +86,9 @@ fun NotesScreen(
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.notes_title)) },
-                actions = { TextButton(onClick = onSignOut) { Text(stringResource(R.string.auth_sign_out)) } },
+                // Une seule action : en grande police, le titre et le bouton tiennent encore sur 320 dp.
+                // La déconnexion est dans « Mon compte ».
+                actions = { TextButton(onClick = onOpenAccount) { Text(stringResource(R.string.account_open)) } },
             )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -189,6 +191,14 @@ private val previewNotes =
 @Preview(showBackground = true)
 @Composable
 private fun NotesScreenPreview() {
+    AppTheme {
+        NotesScreen(NotesUiState(notes = previewNotes, isLoading = false), {}, {}, {}, {}, {}, {})
+    }
+}
+
+@Preview(showBackground = true, widthDp = 320, fontScale = 2f)
+@Composable
+private fun NotesScreenLargeFontPreview() {
     AppTheme {
         NotesScreen(NotesUiState(notes = previewNotes, isLoading = false), {}, {}, {}, {}, {}, {})
     }

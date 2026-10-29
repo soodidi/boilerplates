@@ -47,6 +47,7 @@ internal fun Throwable.toMessage(): Int =
         AuthFailure.InvalidCredentials -> R.string.auth_error_invalid_credentials
         AuthFailure.EmailNotVerified -> R.string.auth_error_email_not_verified
         AuthFailure.TooManyAttempts -> R.string.auth_error_too_many_attempts
+        AuthFailure.WrongPassword -> R.string.account_delete_wrong_password
         AuthFailure.Network -> R.string.auth_error_network
         AuthFailure.Unknown, null -> R.string.auth_error_generic
     }

@@ -32,7 +32,7 @@ class NotesScreenTest {
                     onSubmit = {},
                     onRetry = { retried = true },
                     onUserMessageShown = {},
-                    onSignOut = {},
+                    onOpenAccount = {},
                 )
             }
         }
@@ -57,7 +57,7 @@ class NotesScreenTest {
                     onSubmit = {},
                     onRetry = {},
                     onUserMessageShown = {},
-                    onSignOut = {},
+                    onOpenAccount = {},
                 )
             }
         }
@@ -66,8 +66,8 @@ class NotesScreenTest {
     }
 
     @Test
-    fun forwardsSignOut() {
-        var signedOut = false
+    fun opensTheAccount() {
+        var accountOpened = false
         composeRule.setContent {
             AppTheme {
                 NotesScreen(
@@ -77,13 +77,13 @@ class NotesScreenTest {
                     onSubmit = {},
                     onRetry = {},
                     onUserMessageShown = {},
-                    onSignOut = { signedOut = true },
+                    onOpenAccount = { accountOpened = true },
                 )
             }
         }
 
-        val label = InstrumentationRegistry.getInstrumentation().targetContext.getString(R.string.auth_sign_out)
+        val label = InstrumentationRegistry.getInstrumentation().targetContext.getString(R.string.account_open)
         composeRule.onNodeWithText(label, useUnmergedTree = true).performClick()
-        assertTrue(signedOut)
+        assertTrue(accountOpened)
     }
 }

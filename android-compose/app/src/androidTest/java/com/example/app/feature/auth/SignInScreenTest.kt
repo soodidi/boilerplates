@@ -56,4 +56,15 @@ class SignInScreenTest {
         composeRule.onNodeWithText(string(R.string.auth_sign_up_link), useUnmergedTree = true).performClick()
         assertTrue(signUp)
     }
+
+    @Test
+    fun showsTheNoticeAfterAnAccountDeletion() {
+        composeRule.setContent {
+            AppTheme {
+                SignInScreen(SignInUiState(), {}, {}, {}, {}, {}, notice = R.string.account_deleted)
+            }
+        }
+
+        composeRule.onNodeWithText(string(R.string.account_deleted)).assertIsDisplayed()
+    }
 }

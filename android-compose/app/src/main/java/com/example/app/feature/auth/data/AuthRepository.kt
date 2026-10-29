@@ -16,6 +16,9 @@ enum class AuthFailure {
     InvalidCredentials,
     EmailNotVerified,
     TooManyAttempts,
+
+    /** Mot de passe refusé à la suppression du compte. */
+    WrongPassword,
     Network,
     Unknown,
 }
@@ -42,6 +45,12 @@ interface AuthRepository {
 
     /** Révoque la session côté serveur si possible, et l'oublie localement dans tous les cas. */
     suspend fun signOut()
+
+    /**
+     * GLB-013 : supprime le compte et toutes ses données. L'API révoque la session, mais elle reste
+     * enregistrée sur l'appareil : l'appelant l'oublie, une fois prêt à quitter les écrans connectés.
+     */
+    suspend fun deleteAccount(password: String): Result<Unit>
 }
 
 class DefaultAuthRepository
@@ -87,6 +96,9 @@ class DefaultAuthRepository
             }
         }
 
+        override suspend fun deleteAccount(password: String): Result<Unit> =
+            call { api.deleteUser(DeleteUserDto(password = password)).orThrow() }
+
         private fun webUrl(path: String) = webBaseUrl.resolve(path).toString()
 
         private fun <T> Response<T>.orThrow(): Response<T> {
@@ -96,6 +108,7 @@ class DefaultAuthRepository
                 when {
                     code() == 401 && code == "INVALID_EMAIL_OR_PASSWORD" -> AuthFailure.InvalidCredentials
                     code() == 403 && code == "EMAIL_NOT_VERIFIED" -> AuthFailure.EmailNotVerified
+                    code() == 400 && code == "INVALID_PASSWORD" -> AuthFailure.WrongPassword
                     code() == 429 -> AuthFailure.TooManyAttempts
                     else -> AuthFailure.Unknown
                 },

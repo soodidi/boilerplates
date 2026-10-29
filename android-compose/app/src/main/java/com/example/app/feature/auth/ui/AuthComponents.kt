@@ -14,6 +14,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonColors
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -54,11 +55,12 @@ import com.example.app.core.designsystem.Spacing
 internal fun AuthScaffold(
     @StringRes title: Int,
     modifier: Modifier = Modifier,
+    navigationIcon: @Composable () -> Unit = {},
     content: @Composable ColumnScope.() -> Unit,
 ) {
     Scaffold(
         modifier = modifier,
-        topBar = { TopAppBar(title = { Text(stringResource(title)) }) },
+        topBar = { TopAppBar(title = { Text(stringResource(title)) }, navigationIcon = navigationIcon) },
     ) { padding ->
         Column(
             modifier =
@@ -87,6 +89,7 @@ internal fun AuthTextField(
     imeAction: ImeAction = ImeAction.Next,
     onImeAction: () -> Unit = {},
     isPassword: Boolean = false,
+    enabled: Boolean = true,
 ) {
     val errorText = error?.let { stringResource(it) }
     var passwordVisible by rememberSaveable { mutableStateOf(false) }
@@ -94,6 +97,7 @@ internal fun AuthTextField(
         value = value,
         onValueChange = onValueChange,
         label = { Text(stringResource(label)) },
+        enabled = enabled,
         isError = errorText != null,
         supportingText = errorText?.let { { Text(it) } },
         singleLine = true,
@@ -127,12 +131,14 @@ internal fun AuthSubmitButton(
     isSubmitting: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    colors: ButtonColors = ButtonDefaults.buttonColors(),
 ) {
     val text = stringResource(label)
     // TalkBack lit le libellé même pendant l'envoi, quand le bouton n'affiche qu'un indicateur.
     Button(
         onClick = onClick,
         enabled = !isSubmitting,
+        colors = colors,
         modifier = modifier.fillMaxWidth().semantics(mergeDescendants = true) { contentDescription = text },
     ) {
         if (isSubmitting) {

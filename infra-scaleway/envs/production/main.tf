@@ -68,7 +68,7 @@ module "database" {
   private_network_id    = module.network.private_network_id
   node_type             = "DB-PRO2-XXS"
   high_availability     = true
-  backup_retention_days = 14 # GLB-013 : annoncée dans la politique de confidentialité (web, legal-info.ts)
+  backup_retention_days = 14 # GLB-013 : annoncée aux utilisateurs (web : legal-info.ts ; Android : res/values/legal.xml)
   tags                  = local.tags
 }
 
