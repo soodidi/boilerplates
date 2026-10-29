@@ -3,7 +3,7 @@ import { type ErrorComponentProps, Link, useRouter } from '@tanstack/react-route
 import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { useMessages } from '@/i18n';
-import { isForbidden, NetworkError } from '@/lib/errors';
+import { isClientError, isForbidden, NetworkError } from '@/lib/errors';
 import { isProblemDetailsError } from '@/lib/problem-details';
 
 /** Écran affiché par l'ErrorBoundary racine quand le rendu plante (FE-009). */
@@ -32,8 +32,7 @@ export function RouteError({ error }: ErrorComponentProps) {
   const m = useMessages();
   const router = useRouter();
   const isOffline = error instanceof NetworkError;
-  const isExpected =
-    isOffline || isForbidden(error) || (isProblemDetailsError(error) && error.isClientError);
+  const isExpected = isOffline || isClientError(error);
 
   useEffect(() => {
     // Les erreurs attendues (4xx, API injoignable) ne sont pas envoyées à Sentry (FE-009).

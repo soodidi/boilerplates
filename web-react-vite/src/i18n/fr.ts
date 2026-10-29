@@ -149,6 +149,7 @@ export const fr = {
       title: 'Comptes',
       description: 'Les 100 comptes les plus récents.',
       you: 'vous',
+      // Clé dynamique (rôle venu de l'API) : un rôle inconnu affiche son nom brut.
       roles: { user: 'Utilisateur', admin: 'Administrateur' } as Record<string, string>,
       banned: 'Suspendu',
       ban: 'Suspendre',

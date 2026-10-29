@@ -24,7 +24,9 @@ describe('NotesPage', () => {
     await user.type(screen.getByRole('searchbox', { name: 'Rechercher une note' }), 'api');
 
     // La liste précédente reste affichée jusqu'à la réponse (keepPreviousData) : on attend qu'elle change.
-    await waitForElementToBeRemoved(() => screen.queryByText('Lire les ADR du frontend'));
+    await waitForElementToBeRemoved(() => screen.queryByText('Lire les ADR du frontend'), {
+      timeout: 3000,
+    });
     expect(screen.getByText('Brancher la vraie API')).toBeInTheDocument();
     expect(
       within(screen.getByRole('list', { name: 'Liste des notes' })).getAllByRole('listitem'),

@@ -67,6 +67,10 @@ describe('AdminPage', () => {
     );
     await user.click(screen.getByRole('button', { name: 'Annuler' }));
     expect(db.users.find((candidate) => candidate.id === OTHER_USER.id)?.role).toBe('user');
+    // Le focus revient sur le bouton qui a ouvert la confirmation.
+    expect(
+      screen.getByRole('button', { name: `Nommer administrateur ${OTHER_USER.name}` }),
+    ).toHaveFocus();
 
     await user.click(
       screen.getByRole('button', { name: `Nommer administrateur ${OTHER_USER.name}` }),

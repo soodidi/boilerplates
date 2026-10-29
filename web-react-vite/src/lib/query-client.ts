@@ -1,11 +1,5 @@
 import { QueryClient } from '@tanstack/react-query';
-import { ForbiddenError } from './errors';
-
-function isClientError(error: unknown): boolean {
-  if (error instanceof ForbiddenError) return true;
-  const status = (error as { status?: unknown } | null)?.status;
-  return typeof status === 'number' && status >= 400 && status < 500;
-}
+import { isClientError } from './errors';
 
 export function createQueryClient() {
   return new QueryClient({

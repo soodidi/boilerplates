@@ -40,11 +40,14 @@ describe('NotePage', () => {
       if (new URL(request.url).pathname.startsWith('/v1/notes/')) noteRequests.push(request.url);
     };
     server.events.on('request:start', listener);
-    renderRoute('/notes/42');
+    try {
+      renderRoute('/notes/42');
 
-    expect(await screen.findByRole('heading', { name: 'Note introuvable' })).toBeVisible();
-    server.events.removeListener('request:start', listener);
-    expect(noteRequests).toEqual([]);
+      expect(await screen.findByRole('heading', { name: 'Note introuvable' })).toBeVisible();
+      expect(noteRequests).toEqual([]);
+    } finally {
+      server.events.removeListener('request:start', listener);
+    }
   });
 
   it('ouvre la note depuis la liste', async () => {

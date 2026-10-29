@@ -18,6 +18,13 @@ export class ForbiddenError extends Error {
   }
 }
 
+/** Erreur attendue (4xx de l'API, Better Auth compris, ou refus) : ni nouvel essai, ni Sentry. */
+export function isClientError(error: unknown): boolean {
+  if (error instanceof ForbiddenError) return true;
+  const status = (error as { status?: unknown } | null)?.status;
+  return typeof status === 'number' && status >= 400 && status < 500;
+}
+
 export function isForbidden(error: unknown): boolean {
   return error instanceof ForbiddenError || (isProblemDetailsError(error) && error.status === 403);
 }

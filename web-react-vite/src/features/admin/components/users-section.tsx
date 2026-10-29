@@ -1,5 +1,5 @@
 import { useQuery, useSuspenseQuery } from '@tanstack/react-query';
-import { useId, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   type AdminUser,
@@ -76,6 +76,27 @@ function UserCard({ user, isSelf, isPending, onAction }: UserCardProps) {
   const isAdmin = role === 'admin';
   // Suspendre et nommer administrateur se confirment : un clic de travers aurait de lourds effets.
   const [confirming, setConfirming] = useState<'ban' | 'set-role' | null>(null);
+  // Après « Confirmer » ou « Annuler », le focus revient sur le bouton qui a ouvert la confirmation.
+  const returnFocusTo = useRef<'ban' | 'set-role' | null>(null);
+  const restoreFocus = (kind: 'ban' | 'set-role') => (button: HTMLButtonElement | null) => {
+    if (button && returnFocusTo.current === kind) {
+      button.focus();
+      returnFocusTo.current = null;
+    }
+  };
+  const confirmButton = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    // Le focus passe sur la confirmation, que le clavier et les lecteurs d'écran trouvent.
+    if (confirming) confirmButton.current?.focus();
+  }, [confirming]);
+  function close() {
+    returnFocusTo.current = confirming;
+    setConfirming(null);
+  }
+  function open(kind: 'ban' | 'set-role') {
+    // Pendant un envoi, rien ne s'ouvre : la confirmation serait ignorée.
+    if (!isPending) setConfirming(kind);
+  }
 
   return (
     <li className="flex flex-col gap-3 rounded-md border border-border p-4 sm:flex-row sm:items-center sm:justify-between">
@@ -102,21 +123,15 @@ function UserCard({ user, isSelf, isPending, onAction }: UserCardProps) {
           <div className="flex flex-wrap gap-2">
             <Button
               variant={confirming === 'ban' ? 'destructive' : 'primary'}
-              // Le focus passe sur la confirmation, que le clavier et les lecteurs d'écran trouvent.
-              ref={(button) => button?.focus()}
+              ref={confirmButton}
               onClick={() => {
                 onAction(confirming);
-                setConfirming(null);
+                close();
               }}
             >
               {m.admin.users.confirm}
             </Button>
-            <Button
-              variant="secondary"
-              onClick={() => {
-                setConfirming(null);
-              }}
-            >
+            <Button variant="secondary" onClick={close}>
               {m.admin.users.cancel}
             </Button>
           </div>
@@ -128,9 +143,10 @@ function UserCard({ user, isSelf, isPending, onAction }: UserCardProps) {
             name={user.name}
             variant="secondary"
             isPending={isPending}
+            buttonRef={restoreFocus('set-role')}
             onClick={() => {
               if (isAdmin) onAction('set-role');
-              else setConfirming('set-role');
+              else open('set-role');
             }}
           />
           <ActionButton
@@ -138,9 +154,10 @@ function UserCard({ user, isSelf, isPending, onAction }: UserCardProps) {
             name={user.name}
             variant={user.banned ? 'secondary' : 'destructive'}
             isPending={isPending}
+            buttonRef={restoreFocus('ban')}
             onClick={() => {
               if (user.banned) onAction('unban');
-              else setConfirming('ban');
+              else open('ban');
             }}
           />
         </div>
@@ -154,6 +171,7 @@ type ActionButtonProps = {
   name: string;
   variant: 'secondary' | 'destructive';
   isPending: boolean;
+  buttonRef: (button: HTMLButtonElement | null) => void;
   onClick: () => void;
 };
 
@@ -161,12 +179,13 @@ type ActionButtonProps = {
  * Libellé court à l'écran (lisible à 320 px), nom du compte en plus pour les lecteurs d'écran :
  * le nom accessible commence par le libellé visible (WCAG 2.5.3).
  */
-function ActionButton({ label, name, variant, isPending, onClick }: ActionButtonProps) {
+function ActionButton({ label, name, variant, isPending, buttonRef, onClick }: ActionButtonProps) {
   return (
     <Button
       variant={variant}
       aria-label={`${label} ${name}`}
       aria-disabled={isPending}
+      ref={buttonRef}
       onClick={onClick}
     >
       {label}
