@@ -12,6 +12,8 @@ import kotlin.coroutines.cancellation.CancellationException
 interface NotesRepository {
     suspend fun list(query: String): Result<List<Note>>
 
+    suspend fun get(id: String): Result<Note>
+
     suspend fun create(title: String): Result<Note>
 }
 
@@ -27,6 +29,8 @@ class DefaultNotesRepository
     ) : NotesRepository {
         override suspend fun list(query: String): Result<List<Note>> =
             call { api.list(query = query.ifBlank { null }).data.map { it.toDomain() } }
+
+        override suspend fun get(id: String): Result<Note> = call { api.get(id).toDomain() }
 
         override suspend fun create(title: String): Result<Note> = call { api.create(CreateNoteDto(title = title)).toDomain() }
 

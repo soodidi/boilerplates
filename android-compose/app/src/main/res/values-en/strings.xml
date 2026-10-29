@@ -5,8 +5,6 @@
     <string name="notes_search_label">Search notes</string>
     <string name="notes_empty">No notes yet.</string>
     <string name="notes_no_results">No note matches “%1$s”.</string>
-    <string name="notes_load_error">Notes could not be loaded.</string>
-    <string name="notes_retry">Try again</string>
     <string name="notes_new_title_label">New note title</string>
     <string name="notes_add">Add</string>
     <string name="notes_added">Note added.</string>
@@ -58,4 +56,18 @@
     <string name="account_delete_submit">Delete my account</string>
     <string name="account_delete_wrong_password">Wrong password.</string>
     <string name="account_deleted">Your account and your data have been deleted.</string>
+    <string name="error_title">Something went wrong</string>
+    <string name="error_description">You can try again.</string>
+    <string name="error_retry">Try again</string>
+    <string name="error_back">Back</string>
+    <string name="error_forbidden_title">Access denied</string>
+    <string name="error_forbidden_description">Your account does not have access to this page.</string>
+    <string name="error_not_found_title">Page not found</string>
+    <string name="error_not_found_description">What you are looking for does not exist, or no longer exists.</string>
+    <string name="error_network_title">Cannot connect</string>
+    <string name="error_network_description">The server is not responding. Check your connection, then try again.</string>
+    <string name="note_back_to_list">All notes</string>
+    <string name="note_created_on">Created on %1$s</string>
+    <string name="note_not_found_title">Note not found</string>
+    <string name="note_not_found_description">This note does not exist, or it has been deleted.</string>
 </resources>

@@ -9,6 +9,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.compose.dropUnlessResumed
 import androidx.navigation.NavDestination.Companion.hasRoute
@@ -24,6 +25,7 @@ import com.example.app.feature.auth.ui.AccountRoute
 import com.example.app.feature.auth.ui.ForgotPasswordRoute
 import com.example.app.feature.auth.ui.SignInRoute
 import com.example.app.feature.auth.ui.SignUpRoute
+import com.example.app.feature.notes.ui.NoteDetailRoute
 import com.example.app.feature.notes.ui.NotesRoute
 import kotlinx.serialization.Serializable
 import kotlin.reflect.KClass
@@ -51,6 +53,12 @@ data object MainGraph
 
 @Serializable
 data object NotesDestination
+
+/** BE-010 : `id` est lu par `NoteDetailViewModel` (même nom de propriété). */
+@Serializable
+data class NoteDetailDestination(
+    val id: String,
+)
 
 @Serializable
 data object AccountDestination
@@ -89,7 +97,13 @@ fun AppNavHost(viewModel: SessionViewModel = hiltViewModel()) {
         navigation<MainGraph>(startDestination = NotesDestination) {
             composable<NotesDestination> {
                 // dropUnlessResumed : un double appui n'ouvre pas deux écrans « Mon compte ».
-                NotesRoute(onOpenAccount = dropUnlessResumed { navController.navigate(AccountDestination) })
+                NotesRoute(
+                    onOpenAccount = dropUnlessResumed { navController.navigate(AccountDestination) },
+                    onOpenNote = { id -> navController.navigateOnce(NoteDetailDestination(id)) },
+                )
+            }
+            composable<NoteDetailDestination> {
+                NoteDetailRoute(onBack = dropUnlessResumed { navController.popBackStack() })
             }
             composable<AccountDestination> {
                 AccountRoute(
@@ -100,6 +114,11 @@ fun AppNavHost(viewModel: SessionViewModel = hiltViewModel()) {
             }
         }
     }
+}
+
+/** Un double appui sur une note n'empile pas deux écrans de détail (`dropUnlessResumed` ne prend pas d'argument). */
+private fun NavHostController.navigateOnce(destination: Any) {
+    if (currentBackStackEntry?.lifecycle?.currentState == Lifecycle.State.RESUMED) navigate(destination)
 }
 
 /** Ouvre `graph` à la place de toute la pile, sauf s'il est déjà affiché (rotation, retour au premier plan). */

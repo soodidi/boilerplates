@@ -4,10 +4,10 @@ import app.cash.turbine.test
 import com.example.app.R
 import com.example.app.core.model.Note
 import com.example.app.core.network.ApiError
+import com.example.app.core.network.ErrorKind
 import com.example.app.core.network.FieldError
 import com.example.app.core.network.ProblemDetails
 import com.example.app.feature.notes.data.NotesException
-import com.example.app.feature.notes.data.NotesRepository
 import com.example.app.feature.notes.ui.NotesViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -24,25 +24,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import java.time.Instant
-
-/** AND-005 : un fake du repository plutôt qu'un mock. */
-private class FakeNotesRepository : NotesRepository {
-    val notes = mutableListOf<Note>()
-    var createError: NotesException? = null
-    var lastQuery: String? = null
-
-    override suspend fun list(query: String): Result<List<Note>> {
-        lastQuery = query
-        return Result.success(notes.filter { it.title.contains(query, ignoreCase = true) })
-    }
-
-    override suspend fun create(title: String): Result<Note> {
-        createError?.let { return Result.failure(it) }
-        val note = Note(id = "${notes.size + 1}", title = title, content = "", createdAt = Instant.EPOCH)
-        notes += note
-        return Result.success(note)
-    }
-}
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class NotesViewModelTest {
@@ -139,5 +120,21 @@ class NotesViewModelTest {
             advanceUntilIdle()
 
             assertEquals("cof", repository.lastQuery)
+        }
+
+    @Test
+    fun `explains a failed load, then clears it on retry`() =
+        runTest(dispatcher) {
+            repository.listError = NotesException(ApiError.Network)
+            val viewModel = NotesViewModel(repository)
+            advanceUntilIdle()
+
+            assertEquals(ErrorKind.Network, viewModel.uiState.value.loadError)
+
+            repository.listError = null
+            viewModel.refresh()
+            advanceUntilIdle()
+
+            assertNull(viewModel.uiState.value.loadError)
         }
 }
