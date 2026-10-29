@@ -26,16 +26,20 @@ struct ErrorContentTests {
         #expect(errorContent(for: .network, canGoBack: false)?.action == .retry)
     }
 
-    @Test("chaque texte existe en français et en anglais", arguments: ["fr", "en"])
-    func everyKeyIsTranslated(language: String) throws {
-        // Les clés sont lues à l'exécution : une faute de frappe afficherait la clé brute.
-        let path = try #require(Bundle.module.path(forResource: language, ofType: "lproj"))
-        let bundle = try #require(Bundle(path: path))
+    @Test("chaque texte existe en français et en anglais dans le catalogue")
+    func everyKeyIsTranslated() throws {
+        // Les clés sont lues à l'exécution : une faute de frappe afficherait la clé brute. On lit le
+        // catalogue source : `swift test` ne le compile pas en `.lproj` avec toutes les chaînes d'outils.
+        let catalogURL = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .appending(path: "../../Sources/DesignSystem/Resources/Localizable.xcstrings")
+        let catalog = try JSONDecoder().decode(Catalog.self, from: Data(contentsOf: catalogURL))
         let kinds: [ErrorKind] = [.forbidden, .notFound, .network, .server]
         let keys = kinds.compactMap { errorContent(for: $0, canGoBack: true) }
             .flatMap { [$0.titleKey, $0.messageKey] } + ["error.retry", "error.back"]
         for key in keys {
-            #expect(bundle.localizedString(forKey: key, value: "\u{0}", table: nil) != "\u{0}", "\(key) (\(language))")
+            let languages = catalog.strings[key]?.localizations.keys.sorted() ?? []
+            #expect(languages == ["en", "fr"], "\(key)")
         }
     }
 
@@ -43,4 +47,15 @@ struct ErrorContentTests {
     func nothingWhenUnauthorized() {
         #expect(errorContent(for: .unauthorized, canGoBack: true) == nil)
     }
+}
+
+/// String Catalog (`.xcstrings`), réduit à ce que vérifie le test.
+private struct Catalog: Decodable {
+    struct Entry: Decodable {
+        let localizations: [String: Localization]
+    }
+
+    struct Localization: Decodable {}
+
+    let strings: [String: Entry]
 }
