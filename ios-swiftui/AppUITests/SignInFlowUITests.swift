@@ -7,7 +7,8 @@ final class SignInFlowUITests: XCTestCase {
     private func launch() -> XCUIApplication {
         continueAfterFailure = false
         let app = XCUIApplication()
-        app.launchArguments = ["-ui-testing"]
+        // Français imposé : les textes vérifiés ne dépendent pas de la langue du simulateur (CI en anglais).
+        app.launchArguments = ["-ui-testing", "-AppleLanguages", "(fr)", "-AppleLocale", "fr_FR"]
         app.launch()
         return app
     }
