@@ -4,7 +4,7 @@ import { betterAuth } from 'better-auth';
 import { APIError, createAuthMiddleware } from 'better-auth/api';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { admin, bearer } from 'better-auth/plugins';
-import { v7 as uuidv7 } from 'uuid';
+import { v7 as uuidv7, validate as isUuid } from 'uuid';
 import { CLIENT_IP_HEADER } from '../../common/client-ip.js';
 import { type UserDataRegistry } from '../../common/user-data/index.js';
 import { type Env } from '../../config/env.js';
@@ -125,9 +125,14 @@ export function createAuth({ env, db, mailer, userData }: AuthDependencies) {
       // Un compte sans mot de passe (connexion sociale, passkey) ne pourrait pas être supprimé :
       // revoir cette règle avec GLB-013 avant d'ajouter un tel moyen de connexion.
       before: createAuthMiddleware((ctx) => {
-        const body = ctx.body as { password?: unknown } | undefined;
+        const body = ctx.body as { password?: unknown; userId?: unknown } | undefined;
         if (ctx.path === '/delete-user' && (typeof body?.password !== 'string' || !body.password)) {
           throw new APIError('BAD_REQUEST', { message: 'Password is required' });
+        }
+        // BE-010 : un identifiant de compte mal formé ferait échouer la requête SQL (colonne uuid) en 500.
+        const userId = body?.userId ?? (ctx.query as { id?: unknown } | undefined)?.id;
+        if (ctx.path.startsWith('/admin/') && userId !== undefined && !isUuid(userId)) {
+          throw new APIError('BAD_REQUEST', { message: 'Invalid user id' });
         }
         return Promise.resolve();
       }),

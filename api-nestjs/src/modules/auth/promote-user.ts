@@ -22,7 +22,7 @@ try {
   );
   if (!(await users.promoteToAdmin(email))) {
     process.stderr.write(
-      'Aucun compte avec cette adresse : il doit d’abord être créé (inscription).\n',
+      'Aucun compte vérifié avec cette adresse : s’inscrire, confirmer l’adresse, puis relancer.\n',
     );
     process.exitCode = 1;
   } else {

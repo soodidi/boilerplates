@@ -12,10 +12,11 @@ export class UsersService {
   }
 
   /**
-   * BE-010 : premier administrateur, par une commande lancée à la main (`npm run user:promote`),
-   * jamais par une variable d'environnement ni à l'inscription. Effet à la requête suivante.
+   * BE-010 : premier administrateur (ou admin banni par erreur), par une commande lancée à la main
+   * (`npm run user:promote`), jamais par une variable d'environnement ni à l'inscription.
+   * L'adresse doit être vérifiée. Effet à la requête suivante.
    */
   promoteToAdmin(email: string): Promise<boolean> {
-    return this.repository.setRoleByEmail(email.trim().toLowerCase(), ADMIN_ROLE);
+    return this.repository.setRoleOfVerifiedEmail(email.trim().toLowerCase(), ADMIN_ROLE);
   }
 }

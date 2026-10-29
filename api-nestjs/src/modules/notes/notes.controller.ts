@@ -11,7 +11,7 @@ import {
   StandardSchemaSerializerInterceptor,
   UseInterceptors,
 } from '@nestjs/common';
-import { ApiCreatedResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
+import { ApiCreatedResponse, ApiNotFoundResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { responseSchema } from '../../common/openapi.js';
 import { Session, type UserSession } from '../auth/index.js';
 import {
@@ -58,6 +58,7 @@ export class NotesController {
   @Get(':id')
   @SerializeOptions({ schema: noteResponseSchema })
   @ApiOkResponse({ schema: responseSchema(noteResponseSchema) })
+  @ApiNotFoundResponse({ description: 'No such note for this user' })
   async get(
     @Session() session: UserSession,
     @Param('id', { schema: noteIdSchema }) id: string,

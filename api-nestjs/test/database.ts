@@ -25,6 +25,12 @@ export function createTestDatabase(databaseUrl: string) {
       if (!id) throw new Error(`No user ${email}`);
       return id;
     },
+    async role(email: string): Promise<string | null> {
+      const result = await db.execute<{ role: string | null }>(
+        sql`select role from users where email = ${email}`,
+      );
+      return result.rows[0]?.role ?? null;
+    },
     close: () => pool.end(),
   };
 }
