@@ -53,6 +53,7 @@ struct PasswordField: View {
     let focus: FocusState<AuthField?>.Binding
     var isNewPassword = false
     var title: LocalizedStringKey = "auth.password"
+    var submitLabel: SubmitLabel = .go
     @State private var isVisible = false
     @Environment(\.scenePhase) private var scenePhase
 
@@ -67,7 +68,7 @@ struct PasswordField: View {
             }
             .passwordInput(isNewPassword: isNewPassword)
             .focused(focus, equals: .password)
-            .submitLabel(.go)
+            .submitLabel(submitLabel)
             .fieldError(error)
             .accessibilityIdentifier("auth.password")
 

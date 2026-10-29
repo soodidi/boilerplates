@@ -72,6 +72,13 @@ final class SignInFlowUITests: XCTestCase {
         // Retour à la connexion, qui confirme la suppression.
         XCTAssertTrue(app.staticTexts["auth.accountDeleted"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.textFields["auth.email"].exists)
+
+        // Le message ne survit pas à la session suivante (la doublure ne supprime pas le compte).
+        signIn(app, email: "camille@example.com", password: "correct-password")
+        openAccount(app)
+        app.buttons["account.signOut"].tap()
+        XCTAssertTrue(app.textFields["auth.email"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.staticTexts["auth.accountDeleted"].exists)
     }
 
     private func openAccount(_ app: XCUIApplication) {

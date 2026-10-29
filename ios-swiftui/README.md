@@ -19,7 +19,7 @@ open iOSApp.xcodeproj
 
 À personnaliser : `name`, `bundleIdPrefix` et `PRODUCT_BUNDLE_IDENTIFIER` dans `project.yml`, `CFBundleDisplayName` dans `App/Info*.plist`, `API_BASE_URL` et `WEB_BASE_URL` (Release) dans `project.yml`, `DEVELOPMENT_TEAM` pour signer, et `App/LegalInfo.swift` (durée de conservation des sauvegardes : même valeur que `backupRetentionDays` du web et que l'infra de production).
 
-En Debug, l'app appelle l'API locale (`http://localhost:3000`, boilerplate `api-nestjs`, lancée avec `npm run setup && npm run stack`). Les liens des e-mails (vérification, nouveau mot de passe) ouvrent le front web (`WEB_BASE_URL`, `http://localhost:5173` en Debug), qui doit figurer dans `CORS_ORIGINS` de l'API ; les e-mails locaux arrivent dans Mailpit (`http://localhost:8025`).
+En Debug, l'app appelle l'API locale (`http://localhost:3000`, boilerplate `api-nestjs`, lancée avec `npm run setup && npm run stack`). Les liens des e-mails (vérification, nouveau mot de passe) ouvrent le front web (`WEB_BASE_URL`, `http://localhost:5173` en Debug), qui doit figurer dans `CORS_ORIGINS` de l'API ; les e-mails locaux arrivent dans Mailpit (`http://localhost:8025`). Ces adresses `localhost` ne valent que pour le simulateur : sur un iPhone, en Debug, remplacer `localhost` par l'adresse IP du Mac sur le réseau local.
 
 ## Organisation (IOS-002)
 

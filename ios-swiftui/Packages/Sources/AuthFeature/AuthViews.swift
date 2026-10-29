@@ -163,14 +163,17 @@ struct ForgotPasswordView: View {
     }
 }
 
-/// Le compte vient d'être supprimé (GLB-013) : message affiché et annoncé par VoiceOver.
+/// Le compte vient d'être supprimé (GLB-013). Le focus de VoiceOver s'y pose : une annonce serait
+/// coupée par le changement d'écran.
 private struct AccountDeletedSection: View {
+    @AccessibilityFocusState private var isFocused: Bool
+
     var body: some View {
-        let text = String(localized: "auth.accountDeleted", bundle: .module)
         Section {
-            Text(verbatim: text)
+            Text("auth.accountDeleted", bundle: .module)
                 .accessibilityIdentifier("auth.accountDeleted")
-                .task { AccessibilityNotification.Announcement(text).post() }
+                .accessibilityFocused($isFocused)
+                .onAppear { isFocused = true }
         }
     }
 }

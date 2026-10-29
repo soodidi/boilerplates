@@ -62,15 +62,17 @@ private struct SignedInView: View {
     var body: some View {
         NavigationStack(path: $path) {
             NotesView(viewModel: dependencies.makeNotesViewModel()) {
-                path.append(.account)
+                // Un double appui n'empile pas deux écrans « Mon compte ».
+                if path.isEmpty {
+                    path.append(.account)
+                }
             }
             .navigationDestination(for: Route.self) { route in
                 switch route {
                 case .account:
                     AccountView(
-                        viewModel: dependencies.makeAccountViewModel(),
-                        onSignOut: { Task { await model.signOut() } },
-                        onAccountDeleted: model.onAccountDeleted
+                        viewModel: dependencies.makeAccountViewModel(onAccountDeleted: model.onAccountDeleted),
+                        onSignOut: { Task { await model.signOut() } }
                     )
                 }
             }
@@ -170,8 +172,13 @@ private struct AppDependencies {
         NotesViewModel(repository: notesRepository)
     }
 
-    func makeAccountViewModel() -> AccountViewModel {
-        AccountViewModel(repository: authRepository, webBaseURL: webBaseURL, backupRetentionDays: LegalInfo.backupRetentionDays)
+    func makeAccountViewModel(onAccountDeleted: @escaping @MainActor () -> Void) -> AccountViewModel {
+        AccountViewModel(
+            repository: authRepository,
+            webBaseURL: webBaseURL,
+            backupRetentionDays: LegalInfo.backupRetentionDays,
+            onAccountDeleted: onAccountDeleted
+        )
     }
 
     private static func url(forInfoKey key: String) -> URL {

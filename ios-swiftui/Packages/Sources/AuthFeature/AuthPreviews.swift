@@ -57,10 +57,10 @@ private struct PreviewAuthRepository: AuthRepository {
             viewModel: AccountViewModel(
                 repository: PreviewAuthRepository(),
                 webBaseURL: URL(string: "https://app.example.com")!,
-                backupRetentionDays: 14
+                backupRetentionDays: 14,
+                onAccountDeleted: {}
             ),
-            onSignOut: {},
-            onAccountDeleted: {}
+            onSignOut: {}
         )
     }
 }
@@ -69,12 +69,13 @@ private struct PreviewAuthRepository: AuthRepository {
     let viewModel = AccountViewModel(
         repository: PreviewAuthRepository(failure: .wrongPassword),
         webBaseURL: URL(string: "https://app.example.com")!,
-        backupRetentionDays: 14
+        backupRetentionDays: 14,
+        onAccountDeleted: {}
     )
     viewModel.password = "wrong-password"
     viewModel.isConfirmed = true
     return NavigationStack {
-        AccountView(viewModel: viewModel, onSignOut: {}, onAccountDeleted: {})
+        AccountView(viewModel: viewModel, onSignOut: {})
             .task { await viewModel.delete() }
     }
     .environment(\.dynamicTypeSize, .accessibility2)

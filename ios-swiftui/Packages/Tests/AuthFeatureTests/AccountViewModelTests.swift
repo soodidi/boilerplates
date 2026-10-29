@@ -53,9 +53,18 @@ private actor FakeAccountRepository: AuthRepository {
 
 @MainActor
 @Suite("AccountViewModel")
-struct AccountViewModelTests {
+final class AccountViewModelTests {
+    /// Nombre d'appels à `onAccountDeleted` : l'app y efface la session.
+    private var deletionsReported = 0
+
     private func viewModel(_ repository: FakeAccountRepository) -> AccountViewModel {
-        AccountViewModel(repository: repository, webBaseURL: URL(string: "https://app.example.com")!, backupRetentionDays: 14)
+        AccountViewModel(
+            repository: repository,
+            webBaseURL: URL(string: "https://app.example.com")!,
+            backupRetentionDays: 14
+        ) { [unowned self] in
+            deletionsReported += 1
+        }
     }
 
     @Test("liens vers les pages du web")
@@ -110,7 +119,7 @@ struct AccountViewModelTests {
         #expect(await repository.deletions.isEmpty)
     }
 
-    @Test("pendant l'envoi : état « en cours », un second appui n'envoie rien ; puis compte supprimé")
+    @Test("pendant l'envoi : état « en cours », un second appui n'envoie rien ; puis l'app est prévenue, écran verrouillé")
     func deletesOnce() async {
         let repository = FakeAccountRepository()
         await repository.holdNextDeletion()
@@ -128,7 +137,9 @@ struct AccountViewModelTests {
         await first.value
 
         #expect(await repository.deletions == ["secret"])
-        #expect(!viewModel.isDeleting)
+        #expect(deletionsReported == 1)
+        // L'écran reste verrouillé jusqu'au retour à la connexion.
+        #expect(viewModel.isDeleting)
         #expect(viewModel.isDeleted)
         #expect(viewModel.password.isEmpty)
         #expect(viewModel.failure == nil)
@@ -149,6 +160,12 @@ struct AccountViewModelTests {
         #expect(viewModel.failure == .wrongPassword)
         #expect(viewModel.password == "wrong")
         #expect(!viewModel.isDeleted)
+        #expect(!viewModel.isDeleting)
+        #expect(deletionsReported == 0)
+
+        // SwiftUI réécrit la même valeur en fin d'édition : le message reste.
+        viewModel.password = viewModel.password
+        #expect(viewModel.failure == .wrongPassword)
 
         viewModel.password = "secret"
         #expect(viewModel.failure == nil)
