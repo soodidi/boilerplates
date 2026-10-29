@@ -52,8 +52,22 @@
         }
 
         struct NotesRepository: NotesFeature.NotesRepository {
+            static let welcomeID = "0190a5e0-0000-7000-8000-000000000001"
+            /// Note listée mais supprimée entre-temps : son détail répond 404.
+            static let deletedID = "0190a5e0-0000-7000-8000-000000000002"
+
             func list(query _: String) async throws(APIError) -> [Note] {
-                [Note(id: "1", title: "Bienvenue", content: "", createdAt: .now)]
+                [
+                    Note(id: Self.welcomeID, title: "Bienvenue", content: "", createdAt: .now),
+                    Note(id: Self.deletedID, title: "Supprimée ailleurs", content: "", createdAt: .now),
+                ]
+            }
+
+            func get(id: String) async throws(APIError) -> Note {
+                guard id == Self.welcomeID else {
+                    throw .http(ProblemDetails(title: "Not Found", status: 404))
+                }
+                return Note(id: id, title: "Bienvenue", content: "Première note", createdAt: .now)
             }
 
             func create(title: String) async throws(APIError) -> Note {

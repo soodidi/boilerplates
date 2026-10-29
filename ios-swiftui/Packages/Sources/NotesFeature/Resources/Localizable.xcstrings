@@ -25,16 +25,22 @@
         "fr" : { "stringUnit" : { "state" : "translated", "value" : "La note n’a pas pu être ajoutée." } }
       }
     },
+    "notes.backToList" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "All notes" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Toutes les notes" } }
+      }
+    },
+    "notes.createdOn %@" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Created on %@" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Créée le %@" } }
+      }
+    },
     "notes.empty" : {
       "localizations" : {
         "en" : { "stringUnit" : { "state" : "translated", "value" : "No notes yet." } },
         "fr" : { "stringUnit" : { "state" : "translated", "value" : "Aucune note pour le moment." } }
-      }
-    },
-    "notes.loadError" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Notes could not be loaded." } },
-        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Impossible de charger les notes." } }
       }
     },
     "notes.newTitle" : {
@@ -49,10 +55,16 @@
         "fr" : { "stringUnit" : { "state" : "translated", "value" : "Aucune note ne correspond à « %@ »." } }
       }
     },
-    "notes.retry" : {
+    "notes.notFound.message" : {
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Try again" } },
-        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Réessayer" } }
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "This note does not exist, or it has been deleted." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Cette note n'existe pas, ou elle a été supprimée." } }
+      }
+    },
+    "notes.notFound.title" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Note not found" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Note introuvable" } }
       }
     },
     "notes.search" : {

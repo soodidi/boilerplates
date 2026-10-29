@@ -51,8 +51,10 @@ private struct RootView: View {
 
 /// Écrans connectés : notes, puis « Mon compte ». Recréée à chaque connexion, avec une pile vide.
 private struct SignedInView: View {
+    /// IOS-002 : routes typées ; un identifiant, jamais l'objet complet.
     enum Route: Hashable {
         case account
+        case note(id: String)
     }
 
     let dependencies: AppDependencies
@@ -61,14 +63,16 @@ private struct SignedInView: View {
 
     var body: some View {
         NavigationStack(path: $path) {
-            NotesView(viewModel: dependencies.makeNotesViewModel()) {
-                // Un double appui n'empile pas deux écrans « Mon compte ».
-                if path.isEmpty {
-                    path.append(.account)
-                }
-            }
+            // Ces écrans s'ouvrent depuis la liste seulement : un double appui n'en empile pas deux.
+            NotesView(
+                viewModel: dependencies.makeNotesViewModel(),
+                onOpenAccount: { open(.account) },
+                onOpenNote: { id in open(.note(id: id)) }
+            )
             .navigationDestination(for: Route.self) { route in
                 switch route {
+                case let .note(id):
+                    NoteDetailView(viewModel: dependencies.makeNoteDetailViewModel(id: id))
                 case .account:
                     AccountView(
                         viewModel: dependencies.makeAccountViewModel(onAccountDeleted: model.onAccountDeleted),
@@ -76,6 +80,12 @@ private struct SignedInView: View {
                     )
                 }
             }
+        }
+    }
+
+    private func open(_ route: Route) {
+        if path.isEmpty {
+            path.append(route)
         }
     }
 }
@@ -170,6 +180,10 @@ private struct AppDependencies {
 
     func makeNotesViewModel() -> NotesViewModel {
         NotesViewModel(repository: notesRepository)
+    }
+
+    func makeNoteDetailViewModel(id: String) -> NoteDetailViewModel {
+        NoteDetailViewModel(id: id, repository: notesRepository)
     }
 
     func makeAccountViewModel(onAccountDeleted: @escaping @MainActor () -> Void) -> AccountViewModel {

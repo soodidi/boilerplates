@@ -23,6 +23,13 @@ private actor FakeNotesRepository: NotesRepository {
         return query.isEmpty ? notes : notes.filter { $0.title.localizedCaseInsensitiveContains(query) }
     }
 
+    func get(id: String) async throws(APIError) -> Note {
+        guard let note = notes.first(where: { $0.id == id }) else {
+            throw .http(ProblemDetails(title: "Not Found", status: 404))
+        }
+        return note
+    }
+
     func create(title: String) async throws(APIError) -> Note {
         if let createError {
             throw createError
@@ -94,12 +101,17 @@ struct NotesViewModelTests {
 
         await viewModel.load()
 
-        #expect(viewModel.loadState == .failed)
+        // BE-010 : l'écran sait pourquoi (ici, l'API ne répond pas).
+        #expect(viewModel.loadState == .failed(.network))
     }
 }
 
 private struct FailingRepository: NotesRepository {
     func list(query _: String) async throws(APIError) -> [Note] {
+        throw .network
+    }
+
+    func get(id _: String) async throws(APIError) -> Note {
         throw .network
     }
 

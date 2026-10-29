@@ -7,11 +7,17 @@ import SwiftUI
 public struct NotesView: View {
     @State private var viewModel: NotesViewModel
     private let onOpenAccount: (() -> Void)?
+    private let onOpenNote: (String) -> Void
 
-    /// `onOpenAccount` : fourni par l'app, car une feature ne dépend pas d'une autre (IOS-002).
-    public init(viewModel: NotesViewModel, onOpenAccount: (() -> Void)? = nil) {
+    /// Fournis par l'app, qui déclare les routes : une feature ne dépend pas d'une autre (IOS-002).
+    public init(
+        viewModel: NotesViewModel,
+        onOpenAccount: (() -> Void)? = nil,
+        onOpenNote: @escaping (String) -> Void = { _ in }
+    ) {
         _viewModel = State(initialValue: viewModel)
         self.onOpenAccount = onOpenAccount
+        self.onOpenNote = onOpenNote
     }
 
     public var body: some View {
@@ -51,15 +57,9 @@ public struct NotesView: View {
         case .loading where viewModel.notes.isEmpty:
             ProgressView()
                 .frame(maxWidth: .infinity)
-        case .failed:
-            VStack(alignment: .leading, spacing: Spacing.small) {
-                Text("notes.loadError", bundle: .module)
-                    .foregroundStyle(AppColor.destructive)
-                Button {
-                    Task { await viewModel.load() }
-                } label: {
-                    Text("notes.retry", bundle: .module)
-                }
+        case let .failed(kind):
+            ErrorStateView(kind: kind) {
+                Task { await viewModel.load() }
             }
         default:
             if viewModel.notes.isEmpty {
@@ -70,7 +70,13 @@ public struct NotesView: View {
                 }
             } else {
                 ForEach(viewModel.notes) { note in
-                    NoteRow(note: note)
+                    Button {
+                        onOpenNote(note.id)
+                    } label: {
+                        NoteRow(note: note)
+                    }
+                    .foregroundStyle(AppColor.foreground)
+                    .accessibilityIdentifier("notes.row.\(note.id)")
                 }
             }
         }
@@ -166,6 +172,13 @@ private struct PreviewNotesRepository: NotesRepository {
             throw .network
         }
         return notes
+    }
+
+    func get(id: String) async throws(APIError) -> Note {
+        guard let note = notes.first(where: { $0.id == id }) else {
+            throw .http(ProblemDetails(title: "Not Found", status: 404))
+        }
+        return note
     }
 
     func create(title: String) async throws(APIError) -> Note {

@@ -7,7 +7,8 @@ final class SignInFlowUITests: XCTestCase {
     private func launch() -> XCUIApplication {
         continueAfterFailure = false
         let app = XCUIApplication()
-        app.launchArguments = ["-ui-testing"]
+        // Français imposé : les textes vérifiés ne dépendent pas de la langue du simulateur (CI en anglais).
+        app.launchArguments = ["-ui-testing", "-AppleLanguages", "(fr)", "-AppleLocale", "fr_FR"]
         app.launch()
         return app
     }
@@ -79,6 +80,38 @@ final class SignInFlowUITests: XCTestCase {
         app.buttons["account.signOut"].tap()
         XCTAssertTrue(app.textFields["auth.email"].waitForExistence(timeout: 5))
         XCTAssertFalse(app.staticTexts["auth.accountDeleted"].exists)
+    }
+
+    func testOpensANoteFromTheList() {
+        let app = launch()
+        XCTAssertTrue(app.textFields["auth.email"].waitForExistence(timeout: 10))
+        signIn(app, email: "camille@example.com", password: "correct-password")
+
+        let row = app.buttons["notes.row.0190a5e0-0000-7000-8000-000000000001"]
+        XCTAssertTrue(row.waitForExistence(timeout: 5))
+        row.tap()
+
+        // BE-010 : le détail est chargé par l'API (doublure) : son contenu n'est pas dans la liste.
+        let content = app.staticTexts["Première note"]
+        XCTAssertTrue(content.waitForExistence(timeout: 10), app.debugDescription)
+    }
+
+    func testANoteNotFoundGoesBackToTheList() {
+        let app = launch()
+        XCTAssertTrue(app.textFields["auth.email"].waitForExistence(timeout: 10))
+        signIn(app, email: "camille@example.com", password: "correct-password")
+
+        let row = app.buttons["notes.row.0190a5e0-0000-7000-8000-000000000002"]
+        XCTAssertTrue(row.waitForExistence(timeout: 5))
+        row.tap()
+
+        // BE-010 : 404 de l'API (doublure) → « Note introuvable », puis retour par « Toutes les notes ».
+        XCTAssertTrue(app.staticTexts["error.title"].waitForExistence(timeout: 5))
+        XCTAssertEqual(app.staticTexts["error.title"].label, "Note introuvable")
+        app.buttons["error.back"].tap()
+
+        // De retour sur la liste, « Mon compte » s'ouvre toujours.
+        openAccount(app)
     }
 
     private func openAccount(_ app: XCUIApplication) {

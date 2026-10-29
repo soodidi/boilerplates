@@ -10,7 +10,8 @@ public final class NotesViewModel {
     public enum LoadState: Equatable {
         case loading
         case loaded
-        case failed
+        /// BE-010 : l'écran explique pourquoi (réseau, serveur, refus).
+        case failed(ErrorKind)
     }
 
     public enum Message: Equatable {
@@ -37,11 +38,11 @@ public final class NotesViewModel {
 
     public func load() async {
         loadState = .loading
-        do {
+        do throws(APIError) {
             notes = try await repository.list(query: query)
             loadState = .loaded
         } catch {
-            loadState = .failed
+            loadState = .failed(error.kind)
         }
     }
 

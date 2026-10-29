@@ -46,6 +46,7 @@ targets:
         - package: Packages/AuthFeatureTests
         - package: Packages/CoreAuthTests
         - package: Packages/CoreNetworkingTests
+        - package: Packages/DesignSystemTests
         - package: Packages/NotesFeatureTests
     settings:
       base:
