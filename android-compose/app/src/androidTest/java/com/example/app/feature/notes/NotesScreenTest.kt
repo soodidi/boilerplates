@@ -8,8 +8,10 @@ import androidx.test.platform.app.InstrumentationRegistry
 import com.example.app.R
 import com.example.app.core.designsystem.AppTheme
 import com.example.app.core.model.Note
+import com.example.app.core.network.ErrorKind
 import com.example.app.feature.notes.ui.NotesScreen
 import com.example.app.feature.notes.ui.NotesUiState
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -26,24 +28,26 @@ class NotesScreenTest {
         composeRule.setContent {
             AppTheme {
                 NotesScreen(
-                    state = NotesUiState(isLoading = false, loadFailed = true),
+                    state = NotesUiState(isLoading = false, loadError = ErrorKind.Network),
                     onQueryChange = {},
                     onDraftTitleChange = {},
                     onSubmit = {},
                     onRetry = { retried = true },
                     onUserMessageShown = {},
                     onOpenAccount = {},
+                    onOpenNote = {},
                 )
             }
         }
 
-        val retryLabel = InstrumentationRegistry.getInstrumentation().targetContext.getString(R.string.notes_retry)
+        val retryLabel = InstrumentationRegistry.getInstrumentation().targetContext.getString(R.string.error_retry)
         composeRule.onNodeWithText(retryLabel, useUnmergedTree = true).performClick()
         assertTrue(retried)
     }
 
     @Test
-    fun displaysTheNotes() {
+    fun displaysTheNotesAndOpensOne() {
+        var opened: String? = null
         composeRule.setContent {
             AppTheme {
                 NotesScreen(
@@ -58,11 +62,13 @@ class NotesScreenTest {
                     onRetry = {},
                     onUserMessageShown = {},
                     onOpenAccount = {},
+                    onOpenNote = { opened = it },
                 )
             }
         }
 
-        composeRule.onNodeWithText("Coffee").assertIsDisplayed()
+        composeRule.onNodeWithText("Coffee").assertIsDisplayed().performClick()
+        assertEquals("1", opened)
     }
 
     @Test
@@ -78,6 +84,7 @@ class NotesScreenTest {
                     onRetry = {},
                     onUserMessageShown = {},
                     onOpenAccount = { accountOpened = true },
+                    onOpenNote = {},
                 )
             }
         }

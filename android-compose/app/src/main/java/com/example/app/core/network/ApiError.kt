@@ -3,6 +3,7 @@ package com.example.app.core.network
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import retrofit2.HttpException
+import java.io.IOException
 
 /** Problem Details (RFC 9457) renvoyé par l'API en cas d'erreur (BE-004). */
 @Serializable
@@ -27,7 +28,11 @@ sealed interface ApiError {
         val problem: ProblemDetails,
     ) : ApiError
 
+    /** Pas de réponse : hors ligne, DNS, serveur arrêté. */
     data object Network : ApiError
+
+    /** Réponse reçue mais illisible (contrat qui a dérivé, date invalide) : ni « hors ligne », ni à réessayer en boucle. */
+    data object Unexpected : ApiError
 }
 
 fun Throwable.toApiError(json: Json): ApiError =
@@ -39,5 +44,6 @@ fun Throwable.toApiError(json: Json): ApiError =
                     ?: ProblemDetails(title = message(), status = code())
             ApiError.Http(problem)
         }
-        else -> ApiError.Network
+        is IOException -> ApiError.Network
+        else -> ApiError.Unexpected
     }

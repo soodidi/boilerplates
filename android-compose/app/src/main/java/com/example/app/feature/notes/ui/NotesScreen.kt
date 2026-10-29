@@ -28,23 +28,24 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.error
-import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.app.R
 import com.example.app.core.designsystem.AppTheme
+import com.example.app.core.designsystem.ErrorState
 import com.example.app.core.designsystem.Spacing
 import com.example.app.core.model.Note
+import com.example.app.core.network.ErrorKind
 import java.time.Instant
 
 /** Écran relié au ViewModel : seul composable qui connaît Hilt et le cycle de vie (AND-001). */
 @Composable
 fun NotesRoute(
     onOpenAccount: () -> Unit,
+    onOpenNote: (String) -> Unit,
     viewModel: NotesViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -56,6 +57,7 @@ fun NotesRoute(
         onRetry = viewModel::refresh,
         onUserMessageShown = viewModel::onUserMessageShown,
         onOpenAccount = onOpenAccount,
+        onOpenNote = onOpenNote,
     )
 }
 
@@ -70,6 +72,7 @@ fun NotesScreen(
     onRetry: () -> Unit,
     onUserMessageShown: () -> Unit,
     onOpenAccount: () -> Unit,
+    onOpenNote: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
@@ -109,7 +112,7 @@ fun NotesScreen(
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
             )
-            NotesContent(state, onRetry)
+            NotesContent(state, onRetry, onOpenNote)
         }
     }
 }
@@ -144,14 +147,11 @@ private fun CreateNoteForm(
 private fun NotesContent(
     state: NotesUiState,
     onRetry: () -> Unit,
+    onOpenNote: (String) -> Unit,
 ) {
     when {
         state.isLoading && state.notes.isEmpty() -> CircularProgressIndicator()
-        state.loadFailed ->
-            Column(modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }) {
-                Text(stringResource(R.string.notes_load_error), color = MaterialTheme.colorScheme.error)
-                TextButton(onClick = onRetry) { Text(stringResource(R.string.notes_retry)) }
-            }
+        state.loadError != null -> ErrorState(kind = state.loadError, onRetry = onRetry)
         state.notes.isEmpty() ->
             Text(
                 if (state.query.isBlank()) {
@@ -165,14 +165,17 @@ private fun NotesContent(
                 verticalArrangement = Arrangement.spacedBy(Spacing.small),
                 contentPadding = PaddingValues(bottom = Spacing.large),
             ) {
-                items(state.notes, key = { it.id }) { note -> NoteItem(note) }
+                items(state.notes, key = { it.id }) { note -> NoteItem(note, onClick = { onOpenNote(note.id) }) }
             }
     }
 }
 
 @Composable
-private fun NoteItem(note: Note) {
-    Card(modifier = Modifier.fillMaxWidth()) {
+private fun NoteItem(
+    note: Note,
+    onClick: () -> Unit,
+) {
+    Card(onClick = onClick, modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(Spacing.medium)) {
             Text(note.title, style = MaterialTheme.typography.titleMedium)
             if (note.content.isNotBlank()) {
@@ -192,7 +195,7 @@ private val previewNotes =
 @Composable
 private fun NotesScreenPreview() {
     AppTheme {
-        NotesScreen(NotesUiState(notes = previewNotes, isLoading = false), {}, {}, {}, {}, {}, {})
+        NotesScreen(NotesUiState(notes = previewNotes, isLoading = false), {}, {}, {}, {}, {}, {}, {})
     }
 }
 
@@ -200,7 +203,7 @@ private fun NotesScreenPreview() {
 @Composable
 private fun NotesScreenLargeFontPreview() {
     AppTheme {
-        NotesScreen(NotesUiState(notes = previewNotes, isLoading = false), {}, {}, {}, {}, {}, {})
+        NotesScreen(NotesUiState(notes = previewNotes, isLoading = false), {}, {}, {}, {}, {}, {}, {})
     }
 }
 
@@ -209,7 +212,8 @@ private fun NotesScreenLargeFontPreview() {
 private fun NotesScreenErrorPreview() {
     AppTheme {
         NotesScreen(
-            NotesUiState(isLoading = false, loadFailed = true, draftTitleError = R.string.validation_required),
+            NotesUiState(isLoading = false, loadError = ErrorKind.Network, draftTitleError = R.string.validation_required),
+            {},
             {},
             {},
             {},

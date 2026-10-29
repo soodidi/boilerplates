@@ -4,6 +4,7 @@ import kotlinx.serialization.Serializable
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
+import retrofit2.http.Path
 import retrofit2.http.Query
 
 /**
@@ -17,6 +18,12 @@ interface NotesApi {
         @Query("limit") limit: Int = 20,
         @Query("cursor") cursor: String? = null,
     ): NotePageDto
+
+    /** BE-010 : 404 si la note n'existe pas ou appartient à un autre utilisateur. */
+    @GET("v1/notes/{id}")
+    suspend fun get(
+        @Path("id") id: String,
+    ): NoteDto
 
     @POST("v1/notes")
     suspend fun create(

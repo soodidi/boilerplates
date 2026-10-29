@@ -6,8 +6,6 @@
     <string name="notes_search_label">Rechercher une note</string>
     <string name="notes_empty">Aucune note pour le moment.</string>
     <string name="notes_no_results">Aucune note ne correspond à « %1$s ».</string>
-    <string name="notes_load_error">Impossible de charger les notes.</string>
-    <string name="notes_retry">Réessayer</string>
     <string name="notes_new_title_label">Titre de la nouvelle note</string>
     <string name="notes_add">Ajouter</string>
     <string name="notes_added">Note ajoutée.</string>
@@ -61,4 +59,18 @@
     <string name="account_delete_submit">Supprimer mon compte</string>
     <string name="account_delete_wrong_password">Mot de passe incorrect.</string>
     <string name="account_deleted">Votre compte et vos données ont été supprimés.</string>
+    <string name="error_title">Une erreur est survenue</string>
+    <string name="error_description">Vous pouvez réessayer.</string>
+    <string name="error_retry">Réessayer</string>
+    <string name="error_back">Retour</string>
+    <string name="error_forbidden_title">Accès refusé</string>
+    <string name="error_forbidden_description">Votre compte n\'a pas accès à cette page.</string>
+    <string name="error_not_found_title">Page introuvable</string>
+    <string name="error_not_found_description">Ce que vous cherchez n\'existe pas, ou n\'existe plus.</string>
+    <string name="error_network_title">Connexion impossible</string>
+    <string name="error_network_description">Le serveur ne répond pas. Vérifiez votre connexion, puis réessayez.</string>
+    <string name="note_back_to_list">Toutes les notes</string>
+    <string name="note_created_on">Créée le %1$s</string>
+    <string name="note_not_found_title">Note introuvable</string>
+    <string name="note_not_found_description">Cette note n\'existe pas, ou elle a été supprimée.</string>
 </resources>

@@ -6,8 +6,10 @@ import androidx.lifecycle.viewModelScope
 import com.example.app.R
 import com.example.app.core.model.Note
 import com.example.app.core.network.ApiError
+import com.example.app.core.network.ErrorKind
 import com.example.app.feature.notes.data.NotesException
 import com.example.app.feature.notes.data.NotesRepository
+import com.example.app.feature.notes.data.errorKind
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -23,7 +25,8 @@ data class NotesUiState(
     val query: String = "",
     val notes: List<Note> = emptyList(),
     val isLoading: Boolean = true,
-    val loadFailed: Boolean = false,
+    /** Échec du chargement de la liste : l'écran explique pourquoi (BE-010). */
+    val loadError: ErrorKind? = null,
     val draftTitle: String = "",
     @StringRes val draftTitleError: Int? = null,
     val isSubmitting: Boolean = false,
@@ -97,11 +100,11 @@ class NotesViewModel
         }
 
         private suspend fun load() {
-            _uiState.update { it.copy(isLoading = true, loadFailed = false) }
+            _uiState.update { it.copy(isLoading = true, loadError = null) }
             repository
                 .list(_uiState.value.query)
                 .onSuccess { notes -> _uiState.update { it.copy(isLoading = false, notes = notes) } }
-                .onFailure { _uiState.update { it.copy(isLoading = false, loadFailed = true) } }
+                .onFailure { error -> _uiState.update { it.copy(isLoading = false, loadError = error.errorKind()) } }
         }
 
         private fun NotesException.titleFieldError() = (error as? ApiError.Http)?.problem?.errors?.firstOrNull { it.field == "title" }
