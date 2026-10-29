@@ -27,6 +27,7 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "node --env-file-if-exists=.env dist/database/migrate.js",
     "db:studio": "drizzle-kit studio",
+    "user:promote": "node --env-file-if-exists=.env dist/modules/auth/promote-user.js",
     "openapi": "node --env-file-if-exists=.env dist/openapi.js",
     "verify": "npm run format:check && npm run lint && npm run typecheck && npm run arch && npm run test:all && npm run build",
     "prepare": "[ \"$(git rev-parse --show-toplevel 2>/dev/null)\" = \"$(pwd -P)\" ] && lefthook install || echo 'lefthook : hooks non installés (projet hors de la racine d’un dépôt Git)'"

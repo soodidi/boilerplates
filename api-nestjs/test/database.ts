@@ -16,6 +16,15 @@ export function createTestDatabase(databaseUrl: string) {
         sql`truncate table notes, users, sessions, accounts, verifications, rate_limits restart identity cascade`,
       );
     },
+    /** Identifiant d'un compte, pour les routes d'administration qui l'attendent. */
+    async userId(email: string): Promise<string> {
+      const result = await db.execute<{ id: string }>(
+        sql`select id from users where email = ${email}`,
+      );
+      const id = result.rows[0]?.id;
+      if (!id) throw new Error(`No user ${email}`);
+      return id;
+    },
     close: () => pool.end(),
   };
 }

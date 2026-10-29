@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { and, desc, eq, ilike, type SQL, sql } from 'drizzle-orm';
+import { and, count, desc, eq, ilike, type SQL, sql } from 'drizzle-orm';
 import { DB, type Database, type Transaction } from '../../database/database.module.js';
 import { type NewNote, type Note, notes } from './notes.table.js';
 
@@ -39,6 +39,20 @@ export class NotesRepository {
       rows.length > limit && last ? { createdAt: last.createdAt, id: last.id } : null;
 
     return { notes: page, nextCursor };
+  }
+
+  /** BE-006 : la note n'est trouvée que pour son propriétaire (IDOR : celle d'un autre n'existe pas). */
+  async findById(userId: string, id: string): Promise<Note | null> {
+    const [note] = await this.db
+      .select()
+      .from(notes)
+      .where(and(eq(notes.id, id), eq(notes.userId, userId)));
+    return note ?? null;
+  }
+
+  async countAll(): Promise<number> {
+    const [row] = await this.db.select({ value: count() }).from(notes);
+    return row?.value ?? 0;
   }
 
   async insert(values: NewNote): Promise<Note> {

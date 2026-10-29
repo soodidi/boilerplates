@@ -4,6 +4,7 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  Param,
   Post,
   Query,
   SerializeOptions,
@@ -20,6 +21,7 @@ import {
   listNotesQuerySchema,
   type NotePageResponse,
   notePageResponseSchema,
+  noteIdSchema,
   type NoteResponse,
   noteResponseSchema,
 } from './notes.schemas.js';
@@ -51,6 +53,16 @@ export class NotesController {
   ): Promise<NotePageResponse> {
     const page = await this.notesService.list(session.user.id, query);
     return { data: page.notes.map(toResponse), nextCursor: page.nextCursor };
+  }
+
+  @Get(':id')
+  @SerializeOptions({ schema: noteResponseSchema })
+  @ApiOkResponse({ schema: responseSchema(noteResponseSchema) })
+  async get(
+    @Session() session: UserSession,
+    @Param('id', { schema: noteIdSchema }) id: string,
+  ): Promise<NoteResponse> {
+    return toResponse(await this.notesService.get(session.user.id, id));
   }
 
   @Post()

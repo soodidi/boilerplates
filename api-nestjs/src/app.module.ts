@@ -15,6 +15,7 @@ import { DatabaseModule } from './database/database.module.js';
 import { HealthModule } from './health/health.module.js';
 import { MailModule } from './mail/index.js';
 import { AccountModule } from './modules/account/index.js';
+import { AdminModule } from './modules/admin/index.js';
 import { AuthModule } from './modules/auth/index.js';
 import { NotesModule } from './modules/notes/index.js';
 
@@ -50,6 +51,7 @@ import { NotesModule } from './modules/notes/index.js';
     AuthModule,
     AccountModule,
     NotesModule,
+    AdminModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },

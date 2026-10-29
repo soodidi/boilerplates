@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { z } from 'zod';
 import { type NoteCursor, NotesRepository } from './notes.repository.js';
 import { type CreateNoteInput, type ListNotesQuery } from './notes.schemas.js';
@@ -43,7 +43,19 @@ export class NotesService {
     };
   }
 
+  /** BE-010 : 404, jamais 403, pour la note d'un autre : son existence n'est pas révélée. */
+  async get(userId: string, id: string): Promise<Note> {
+    const note = await this.repository.findById(userId, id);
+    if (!note) throw new NotFoundException('Note not found');
+    return note;
+  }
+
   create(userId: string, input: CreateNoteInput): Promise<Note> {
     return this.repository.insert({ ...input, userId });
+  }
+
+  /** Nombre total de notes, tous comptes confondus (statistiques d'administration). */
+  count(): Promise<number> {
+    return this.repository.countAll();
   }
 }

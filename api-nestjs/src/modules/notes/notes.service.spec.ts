@@ -1,4 +1,4 @@
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { type NoteCursor, type NotesRepository } from './notes.repository.js';
 import { decodeCursor, encodeCursor, NotesService } from './notes.service.js';
@@ -25,6 +25,12 @@ class FakeNotesRepository {
           ? { createdAt: last.createdAt, id: last.id }
           : null,
     });
+  }
+
+  findById(userId: string, id: string): Promise<Note | null> {
+    return Promise.resolve(
+      this.saved.find((note) => note.id === id && note.userId === userId) ?? null,
+    );
   }
 
   insert(values: NewNote): Promise<Note> {
@@ -57,6 +63,15 @@ describe('NotesService', () => {
     expect(note.title).toBe('First');
     expect(note.userId).toBe(USER_ID);
     expect(repository.saved).toHaveLength(1);
+  });
+
+  it("finds a note of the user, and answers 404 for another user's note", async () => {
+    const note = await service.create(USER_ID, { title: 'First', content: '' });
+
+    await expect(service.get(USER_ID, note.id)).resolves.toBe(note);
+    await expect(service.get('019a1f3e-0000-7000-8000-000000000002', note.id)).rejects.toThrow(
+      NotFoundException,
+    );
   });
 
   it('only queries the notes of the user', async () => {

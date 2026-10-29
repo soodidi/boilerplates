@@ -8,6 +8,7 @@ import { createAuth } from './auth.config.js';
 import { AuthRepository } from './auth.repository.js';
 import { AuthUserData } from './auth.user-data.js';
 import { ExpiredAuthDataPurge } from './expired-auth-data.purge.js';
+import { UsersService } from './users.service.js';
 
 /**
  * BE-006 : routes Better Auth sous /v1/auth et guard global.
@@ -22,6 +23,8 @@ import { ExpiredAuthDataPurge } from './expired-auth-data.purge.js';
       }),
     }),
   ],
-  providers: [AuthRepository, AuthUserData, ExpiredAuthDataPurge],
+  providers: [AuthRepository, AuthUserData, ExpiredAuthDataPurge, UsersService],
+  // BE-002 : ce que les autres modules peuvent utiliser. Jamais le repository.
+  exports: [UsersService],
 })
 export class AuthModule {}

@@ -143,6 +143,63 @@ describe('Notes API (e2e)', () => {
     expect(response.json<{ data: unknown[] }>().data).toEqual([]);
   });
 
+  describe('GET /v1/notes/:id', () => {
+    async function createNote(title: string) {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/v1/notes',
+        headers: auth,
+        payload: { title },
+      });
+      return response.json<{ id: string }>().id;
+    }
+
+    it('returns the note of its owner', async () => {
+      const id = await createNote('Buy coffee');
+
+      const response = await app.inject({ method: 'GET', url: `/v1/notes/${id}`, headers: auth });
+
+      expect(response.statusCode).toBe(200);
+      expect(response.json()).toMatchObject({ id, title: 'Buy coffee', content: '' });
+    });
+
+    it("answers 404, never 403, for another user's note (IDOR, BE-010)", async () => {
+      const id = await createNote('secret of ada');
+      const bob = await signUpAndSignIn(app, mailer, 'bob@example.com');
+
+      const response = await app.inject({
+        method: 'GET',
+        url: `/v1/notes/${id}`,
+        headers: { authorization: `Bearer ${bob.token}` },
+      });
+
+      expect(response.statusCode).toBe(404);
+      expect(response.headers['content-type']).toContain('application/problem+json');
+      expect(response.body).not.toContain('secret');
+    });
+
+    it('answers 404 for an unknown id and 400 for a malformed one', async () => {
+      const unknown = await app.inject({
+        method: 'GET',
+        url: '/v1/notes/0190a5e0-0000-7000-8000-000000000000',
+        headers: auth,
+      });
+      const malformed = await app.inject({ method: 'GET', url: '/v1/notes/42', headers: auth });
+
+      expect(unknown.statusCode).toBe(404);
+      expect(malformed.statusCode).toBe(400);
+    });
+
+    it('requires authentication (401 Problem Details)', async () => {
+      const id = await createNote('Buy coffee');
+
+      const response = await app.inject({ method: 'GET', url: `/v1/notes/${id}` });
+
+      expect(response.statusCode).toBe(401);
+      expect(response.headers['content-type']).toContain('application/problem+json');
+    });
+  });
+
   it('POST /v1/notes with a session cookie requires a trusted Origin (CSRF)', async () => {
     const { cookie } = await signUpAndSignIn(app, mailer, 'carol@example.com');
     const request = { method: 'POST' as const, url: '/v1/notes', payload: { title: 'x' } };
