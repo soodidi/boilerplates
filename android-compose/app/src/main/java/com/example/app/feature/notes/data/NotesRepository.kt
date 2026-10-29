@@ -2,6 +2,8 @@ package com.example.app.feature.notes.data
 
 import com.example.app.core.model.Note
 import com.example.app.core.network.ApiError
+import com.example.app.core.network.ErrorKind
+import com.example.app.core.network.kind
 import com.example.app.core.network.toApiError
 import kotlinx.serialization.json.Json
 import java.time.Instant
@@ -20,6 +22,9 @@ interface NotesRepository {
 class NotesException(
     val error: ApiError,
 ) : Exception()
+
+/** Ce que l'écran peut expliquer d'un échec du repository (BE-010). */
+fun Throwable.errorKind(): ErrorKind = (this as? NotesException)?.error?.kind ?: ErrorKind.Server
 
 class DefaultNotesRepository
     @Inject

@@ -5,9 +5,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.app.core.model.Note
 import com.example.app.core.network.ErrorKind
-import com.example.app.core.network.kind
-import com.example.app.feature.notes.data.NotesException
 import com.example.app.feature.notes.data.NotesRepository
+import com.example.app.feature.notes.data.errorKind
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -52,10 +51,7 @@ class NoteDetailViewModel
                     repository
                         .get(id)
                         .onSuccess { note -> _uiState.update { it.copy(isLoading = false, note = note) } }
-                        .onFailure { failure ->
-                            val kind = (failure as? NotesException)?.error?.kind ?: ErrorKind.Server
-                            _uiState.update { it.copy(isLoading = false, error = kind) }
-                        }
+                        .onFailure { failure -> _uiState.update { it.copy(isLoading = false, error = failure.errorKind()) } }
                 }
         }
 

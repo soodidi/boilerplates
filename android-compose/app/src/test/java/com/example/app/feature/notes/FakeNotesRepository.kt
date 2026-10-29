@@ -23,8 +23,8 @@ class FakeNotesRepository : NotesRepository {
     override suspend fun get(id: String): Result<Note> {
         getCount++
         getError?.let { return Result.failure(it) }
-        return notes.firstOrNull { it.id == id }?.let { Result.success(it) }
-            ?: Result.failure(IllegalStateException("No note $id in the fake"))
+        // Une note oubliée dans le fake fait échouer le test, au lieu d'une erreur serveur silencieuse.
+        return Result.success(notes.firstOrNull { it.id == id } ?: throw AssertionError("No note $id in the fake"))
     }
 
     override suspend fun create(title: String): Result<Note> {

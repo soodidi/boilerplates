@@ -1,9 +1,11 @@
 package com.example.app.feature.notes
 
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.platform.app.InstrumentationRegistry
@@ -49,7 +51,9 @@ class NoteDetailScreenTest {
 
         composeRule.onNodeWithText(string(R.string.note_not_found_title)).assertIsDisplayed()
         // La barre du haut et l'écran d'erreur proposent tous deux « Toutes les notes ».
-        composeRule.onAllNodes(hasText(string(R.string.note_back_to_list)) and hasClickAction())[1].performClick()
+        val backButtons = composeRule.onAllNodes(hasText(string(R.string.note_back_to_list)) and hasClickAction())
+        backButtons.assertCountEquals(2)
+        backButtons.onFirst().performClick()
         assertEquals(1, backs)
     }
 
@@ -59,6 +63,8 @@ class NoteDetailScreenTest {
 
         composeRule.onNodeWithText(string(R.string.error_forbidden_title)).assertIsDisplayed()
         composeRule.onNodeWithText(string(R.string.error_retry)).assertDoesNotExist()
+        // BE-010 : un refus propose de revenir en arrière (barre du haut et écran d'erreur).
+        composeRule.onAllNodes(hasText(string(R.string.note_back_to_list)) and hasClickAction()).assertCountEquals(2)
     }
 
     @Test

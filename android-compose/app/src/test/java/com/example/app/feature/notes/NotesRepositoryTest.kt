@@ -1,12 +1,12 @@
 package com.example.app.feature.notes
 
 import com.example.app.core.network.ErrorKind
+import com.example.app.core.network.NetworkModule
 import com.example.app.core.network.kind
 import com.example.app.feature.notes.data.DefaultNotesRepository
 import com.example.app.feature.notes.data.NotesApi
 import com.example.app.feature.notes.data.NotesException
 import kotlinx.coroutines.test.runTest
-import kotlinx.serialization.json.Json
 import mockwebserver3.MockResponse
 import mockwebserver3.MockWebServer
 import okhttp3.MediaType.Companion.toMediaType
@@ -20,7 +20,7 @@ import retrofit2.converter.kotlinx.serialization.asConverterFactory
 
 class NotesRepositoryTest {
     private val server = MockWebServer()
-    private val json = Json { ignoreUnknownKeys = true }
+    private val json = NetworkModule.provideJson()
     private lateinit var repository: DefaultNotesRepository
 
     @Before
@@ -79,6 +79,32 @@ class NotesRepositoryTest {
 
             assertEquals(ErrorKind.NotFound, repository.get("1").kind())
             assertEquals(ErrorKind.Forbidden, repository.get("1").kind())
+            assertEquals(ErrorKind.Server, repository.get("1").kind())
+        }
+
+    @Test
+    fun encodesTheIdInThePath() =
+        runTest {
+            // AND-004 : un id ne peut viser ni une autre route ni un autre hôte (le Bearer part avec).
+            respond(404, """{"type":"about:blank","title":"Not Found","status":404}""")
+
+            repository.get("a/b?c#d")
+
+            assertEquals("/v1/notes/a%2Fb%3Fc%23d", server.takeRequest().url.encodedPath)
+        }
+
+    @Test
+    fun refusesADotSegmentWithoutCallingTheApi() =
+        runTest {
+            assertEquals(ErrorKind.Server, repository.get("..").kind())
+            assertEquals(0, server.requestCount)
+        }
+
+    @Test
+    fun anUnreadableResponseIsNotANetworkFailure() =
+        runTest {
+            respond(200, """{"id":"1","title":"Coffee","content":"","createdAt":"not a date"}""")
+
             assertEquals(ErrorKind.Server, repository.get("1").kind())
         }
 

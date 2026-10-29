@@ -66,6 +66,8 @@ class NoteDetailViewModelTest {
                 mapOf(
                     http(404) to ErrorKind.NotFound,
                     http(403) to ErrorKind.Forbidden,
+                    // L'intercepteur efface la session : l'écran n'affiche pas d'erreur.
+                    http(401) to ErrorKind.Unauthorized,
                     http(500) to ErrorKind.Server,
                     NotesException(ApiError.Network) to ErrorKind.Network,
                 )

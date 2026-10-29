@@ -7,9 +7,9 @@ import com.example.app.R
 import com.example.app.core.model.Note
 import com.example.app.core.network.ApiError
 import com.example.app.core.network.ErrorKind
-import com.example.app.core.network.kind
 import com.example.app.feature.notes.data.NotesException
 import com.example.app.feature.notes.data.NotesRepository
+import com.example.app.feature.notes.data.errorKind
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -106,8 +106,6 @@ class NotesViewModel
                 .onSuccess { notes -> _uiState.update { it.copy(isLoading = false, notes = notes) } }
                 .onFailure { error -> _uiState.update { it.copy(isLoading = false, loadError = error.errorKind()) } }
         }
-
-        private fun Throwable.errorKind() = (this as? NotesException)?.error?.kind ?: ErrorKind.Server
 
         private fun NotesException.titleFieldError() = (error as? ApiError.Http)?.problem?.errors?.firstOrNull { it.field == "title" }
 

@@ -15,7 +15,9 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -41,8 +43,6 @@ fun NoteDetailRoute(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     NoteDetailScreen(state = state, onRetry = viewModel::load, onBack = onBack)
 }
-
-private val dateFormatter = DateTimeFormatter.ofLocalizedDate(FormatStyle.LONG)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -90,6 +90,9 @@ fun NoteDetailScreen(
 
 @Composable
 private fun NoteContent(note: Note) {
+    // Langue courante : elle peut changer sans que le processus redémarre.
+    val locale = LocalConfiguration.current.locales[0]
+    val dateFormatter = remember(locale) { DateTimeFormatter.ofLocalizedDate(FormatStyle.LONG).withLocale(locale) }
     Text(
         text = note.title,
         style = MaterialTheme.typography.headlineSmall,
