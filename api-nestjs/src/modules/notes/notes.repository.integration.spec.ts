@@ -72,4 +72,13 @@ describe('NotesRepository (PostgreSQL)', () => {
 
     expect(page.notes.map((note) => note.title)).toEqual(['bob note']);
   });
+
+  it("finds a note by id for its owner only, and counts every user's notes", async () => {
+    const note = await repository.insert({ userId: ALICE, title: 'alice note' });
+    await seed(['bob note'], BOB);
+
+    expect(await repository.findById(ALICE, note.id)).toMatchObject({ id: note.id });
+    expect(await repository.findById(BOB, note.id)).toBeNull();
+    expect(await repository.countAll()).toBe(2);
+  });
 });

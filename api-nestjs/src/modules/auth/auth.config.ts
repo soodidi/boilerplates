@@ -3,8 +3,8 @@ import { hash, verify } from '@node-rs/argon2';
 import { betterAuth } from 'better-auth';
 import { APIError, createAuthMiddleware } from 'better-auth/api';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
-import { bearer } from 'better-auth/plugins';
-import { v7 as uuidv7 } from 'uuid';
+import { admin, bearer } from 'better-auth/plugins';
+import { v7 as uuidv7, validate as isUuid } from 'uuid';
 import { CLIENT_IP_HEADER } from '../../common/client-ip.js';
 import { type UserDataRegistry } from '../../common/user-data/index.js';
 import { type Env } from '../../config/env.js';
@@ -15,6 +15,7 @@ import {
   resetPasswordEmail,
   verifyEmail,
 } from '../../mail/index.js';
+import { ac, ADMIN_DISABLED_PATHS, ADMIN_ROLE, DEFAULT_ROLE, roles } from './access-control.js';
 import { authSchema } from './auth.table.js';
 
 const DAY_SECONDS = 24 * 60 * 60;
@@ -83,6 +84,17 @@ export function createAuth({ env, db, mailer, userData }: AuthDependencies) {
         mailer.send(resetPasswordEmail({ to: user.email, appName, url }));
         return Promise.resolve();
       },
+      // BE-006 : pour une adresse déjà inscrite, Better Auth renvoie un compte factice. Il doit avoir
+      // la forme d'un vrai compte, champs du plugin `admin` compris, sinon la réponse trahit l'adresse.
+      customSyntheticUser: ({ coreFields, additionalFields, id }) => ({
+        ...coreFields,
+        role: DEFAULT_ROLE,
+        banned: false,
+        banReason: null,
+        banExpires: null,
+        ...additionalFields,
+        id,
+      }),
       onExistingUserSignUp: ({ user }) => {
         mailer.send(existingAccountEmail({ to: user.email, appName, url: env.WEB_URL }));
         return Promise.resolve();
@@ -113,15 +125,20 @@ export function createAuth({ env, db, mailer, userData }: AuthDependencies) {
       // Un compte sans mot de passe (connexion sociale, passkey) ne pourrait pas être supprimé :
       // revoir cette règle avec GLB-013 avant d'ajouter un tel moyen de connexion.
       before: createAuthMiddleware((ctx) => {
-        const body = ctx.body as { password?: unknown } | undefined;
+        const body = ctx.body as { password?: unknown; userId?: unknown } | undefined;
         if (ctx.path === '/delete-user' && (typeof body?.password !== 'string' || !body.password)) {
           throw new APIError('BAD_REQUEST', { message: 'Password is required' });
+        }
+        // BE-010 : un identifiant de compte mal formé ferait échouer la requête SQL (colonne uuid) en 500.
+        const userId = body?.userId ?? (ctx.query as { id?: unknown } | undefined)?.id;
+        if (ctx.path.startsWith('/admin/') && userId !== undefined && !isUuid(userId)) {
+          throw new APIError('BAD_REQUEST', { message: 'Invalid user id' });
         }
         return Promise.resolve();
       }),
     },
     // Suppression par lien e-mail : non utilisée (GLB-013), la route reste fermée.
-    disabledPaths: ['/delete-user/callback'],
+    disabledPaths: ['/delete-user/callback', ...ADMIN_DISABLED_PATHS],
     session: {
       expiresIn: SESSION_EXPIRES_IN_SECONDS,
       updateAge: SESSION_UPDATE_AGE_SECONDS,
@@ -163,7 +180,12 @@ export function createAuth({ env, db, mailer, userData }: AuthDependencies) {
     },
     // Mobile : token de session dans `Authorization: Bearer`, reçu signé dans `set-auth-token`.
     // Signature exigée : un token lu dans la table `sessions` ne suffit pas sans le secret.
-    plugins: [bearer({ requireSignature: true })],
+    plugins: [
+      bearer({ requireSignature: true }),
+      // BE-010 : rôles et permissions (access-control.ts) ; routes /v1/auth/admin/* réservées aux admins.
+      // Un compte banni perd ses sessions et ne peut plus se connecter.
+      admin({ ac, roles, defaultRole: DEFAULT_ROLE, adminRoles: [ADMIN_ROLE] }),
+    ],
   });
 }
 

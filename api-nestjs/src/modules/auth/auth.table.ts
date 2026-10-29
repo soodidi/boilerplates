@@ -33,6 +33,11 @@ export const users = pgTable('users', {
   email: text().notNull().unique(),
   emailVerified: boolean().notNull().default(false),
   image: text(),
+  // BE-010 : champs du plugin `admin`. Rôle par défaut `user` (aussi pour les comptes existants).
+  role: text().default('user'),
+  banned: boolean().default(false),
+  banReason: text(),
+  banExpires: timestamp({ withTimezone: true, precision: 3 }),
   ...timestamps,
 });
 
@@ -48,6 +53,8 @@ export const sessions = pgTable(
     expiresAt: timestamp({ withTimezone: true, precision: 3 }).notNull(),
     ipAddress: text(),
     userAgent: text(),
+    /** BE-010 : champ du plugin `admin`. Toujours vide : l'usurpation d'identité est désactivée. */
+    impersonatedBy: uuid(),
     ...timestamps,
   },
   (table) => [index('sessions_user_id_idx').on(table.userId)],

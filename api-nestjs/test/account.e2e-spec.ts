@@ -89,7 +89,15 @@ describe('Account data (e2e)', () => {
           notes: { title: string }[];
         };
       }>();
-      expect(body.data.account.user).toMatchObject({ email: 'ada@example.com', name: 'ada' });
+      expect(body.data.account.user).toMatchObject({
+        email: 'ada@example.com',
+        name: 'ada',
+        // BE-010 : rôle et bannissement font partie des données du compte.
+        role: 'user',
+        banned: false,
+        banReason: null,
+        banExpires: null,
+      });
       // Une session à la vérification de l'adresse, une à la connexion.
       expect(body.data.account.sessions).toHaveLength(2);
       expect(body.data.account.sessions).toContainEqual(

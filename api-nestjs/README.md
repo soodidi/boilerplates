@@ -37,6 +37,7 @@ Prérequis : Node 26 (`.nvmrc`), npm (fourni avec Node), Docker (base locale et 
 | `npm run db:generate`      | Génère une migration SQL depuis les fichiers `*.table.ts` (à relire avant de commiter)                                    |
 | `npm run db:migrate`       | Applique les migrations (après `npm run build`)                                                                           |
 | `npm run openapi`          | Écrit `openapi.json` (après `npm run build`)                                                                              |
+| `npm run user:promote`     | Donne le rôle `admin` à un compte existant : `npm run user:promote -- <email>` (après `npm run build`, BE-010)            |
 | `npm run arch`             | Vérifie les frontières entre modules (dependency-cruiser)                                                                 |
 | `npm run verify`           | Tout ce que vérifie la CI                                                                                                 |
 
@@ -52,8 +53,9 @@ src/
 ├── health/              # /health/live et /health/ready (publiques)
 ├── mail/                # envoi d'e-mails : interface Mailer, SMTP, gabarits (BE-009)
 └── modules/
-    ├── auth/            # Better Auth : configuration, tables, guard global (BE-006)
+    ├── auth/            # Better Auth : configuration, tables, guard global (BE-006), rôles (access-control.ts, BE-010)
     ├── account/         # export des données de l'utilisateur (GLB-013)
+    ├── admin/           # exemple de route réservée : GET /v1/admin/stats (BE-010)
     └── notes/           # module d'exemple complet, propre à chaque utilisateur
         ├── notes.controller.ts   # HTTP uniquement
         ├── notes.service.ts      # règles métier
@@ -105,6 +107,16 @@ Better Auth sert ses routes sous `/v1/auth` : `sign-up/email`, `sign-in/email`, 
 - **IP du client** (rate limiting, sessions) : dernière entrée de `X-Forwarded-For` ajoutée par les `TRUST_PROXY_HOPS` proxys de confiance (1 derrière Scaleway). Au premier déploiement en staging, vérifier que `sessions.ip_address` contient bien ta vraie IP.
 
 En local, l'e-mail de vérification arrive dans Mailpit (http://localhost:8025).
+
+## Rôles et permissions (BE-010)
+
+- **Rôles** `user` (par défaut) et `admin`, portés par le compte (plugin `admin` de Better Auth). Le rôle arrive avec la session (`get-session`) ; les clients ne s'en servent que pour l'affichage.
+- **Permissions** déclarées une seule fois dans `src/modules/auth/access-control.ts`. Une action s'y ajoute avant d'être utilisée.
+- **Route réservée** : `@UserHasPermission({ permissions: { stats: ['read'] } })` (ou `@Roles(['admin'])`), sur le modèle de `GET /v1/admin/stats`. Sans la permission : 403 en Problem Details. Chaque route réservée a son test e2e de refus. La permission ne remplace pas la vérification d'appartenance : la note d'un autre répond 404, jamais 403 (`GET /v1/notes/:id`).
+- **Administration des comptes** : routes `/v1/auth/admin/*` du plugin, réservées aux admins (`ADMIN_OPEN_PATHS`) : `list-users`, `get-user`, `set-role`, `ban-user`, `unban-user`, `revoke-user-sessions`. Leurs refus sont au format de Better Auth (`{ code, message }`), pas en Problem Details. Un compte banni perd ses sessions et ne peut plus se connecter.
+- **Fermées** (`ADMIN_DISABLED_PATHS`) : tout ce qui permet de prendre un compte (usurpation, mot de passe, e-mail, création d'un compte déjà vérifié), la liste des sessions d'un compte (elle contient les tokens) et la suppression par un admin (elle n'effacerait pas les données des modules, GLB-013). Ouvrir l'une d'elles demande un ADR de projet.
+- **Premier admin** : le compte s'inscrit et confirme son adresse, puis `npm run build && npm run user:promote -- <email>`. La commande ne promeut qu'une adresse vérifiée et lève un éventuel bannissement : elle sert aussi si plus aucun admin n'est actif (un admin peut en rétrograder ou en bannir un autre). Le rôle s'applique à la requête suivante.
+- **En staging et en production**, la base n'est joignable que depuis le réseau privé : la façon de lancer la commande (et toute intervention manuelle sur la base) reste à décider par un ADR.
 
 ## Données personnelles (GLB-013)
 

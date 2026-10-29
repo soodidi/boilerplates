@@ -1,3 +1,4 @@
+import { readFile } from 'node:fs/promises';
 import { Client } from 'pg';
 import { afterAll, beforeAll, describe, expect, inject, it } from 'vitest';
 import { runMigrations } from './run-migrations.js';
@@ -41,7 +42,11 @@ describe('runMigrations (PostgreSQL)', () => {
       const tables = await client.query(
         "select count(*)::int as count from information_schema.tables where table_name in ('notes', 'users')",
       );
-      expect(applied.rows[0]).toEqual({ count: 1 });
+      // Chaque migration du journal, une seule fois.
+      const journal = JSON.parse(await readFile('drizzle/meta/_journal.json', 'utf8')) as {
+        entries: unknown[];
+      };
+      expect(applied.rows[0]).toEqual({ count: journal.entries.length });
       expect(tables.rows[0]).toEqual({ count: 2 });
     } finally {
       await client.end();

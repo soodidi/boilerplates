@@ -4,13 +4,14 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  Param,
   Post,
   Query,
   SerializeOptions,
   StandardSchemaSerializerInterceptor,
   UseInterceptors,
 } from '@nestjs/common';
-import { ApiCreatedResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
+import { ApiCreatedResponse, ApiNotFoundResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { responseSchema } from '../../common/openapi.js';
 import { Session, type UserSession } from '../auth/index.js';
 import {
@@ -20,6 +21,7 @@ import {
   listNotesQuerySchema,
   type NotePageResponse,
   notePageResponseSchema,
+  noteIdSchema,
   type NoteResponse,
   noteResponseSchema,
 } from './notes.schemas.js';
@@ -51,6 +53,17 @@ export class NotesController {
   ): Promise<NotePageResponse> {
     const page = await this.notesService.list(session.user.id, query);
     return { data: page.notes.map(toResponse), nextCursor: page.nextCursor };
+  }
+
+  @Get(':id')
+  @SerializeOptions({ schema: noteResponseSchema })
+  @ApiOkResponse({ schema: responseSchema(noteResponseSchema) })
+  @ApiNotFoundResponse({ description: 'No such note for this user' })
+  async get(
+    @Session() session: UserSession,
+    @Param('id', { schema: noteIdSchema }) id: string,
+  ): Promise<NoteResponse> {
+    return toResponse(await this.notesService.get(session.user.id, id));
   }
 
   @Post()

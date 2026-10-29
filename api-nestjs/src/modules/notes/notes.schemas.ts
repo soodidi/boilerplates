@@ -13,6 +13,8 @@ export const listNotesQuerySchema = z.object({
   cursor: z.string().max(200).optional(),
 });
 
+export const noteIdSchema = z.uuid();
+
 /** BE-005 : seuls les champs déclarés ici sortent de l'API. */
 export const noteResponseSchema = z.object({
   id: z.uuid(),

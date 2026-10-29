@@ -15,6 +15,11 @@ const accountExportSchema = z.object({
       email: z.string(),
       emailVerified: z.boolean(),
       image: z.string().nullable(),
+      // BE-010 : rôle et bannissement font partie des données du compte.
+      role: z.string().nullable(),
+      banned: z.boolean().nullable(),
+      banReason: z.string().nullable(),
+      banExpires: z.iso.datetime().nullable(),
       ...timestamps,
     })
     .nullable(),
@@ -54,6 +59,7 @@ export class AuthUserData implements UserDataContributor<AccountExport> {
     return {
       user: user && {
         ...user,
+        banExpires: user.banExpires?.toISOString() ?? null,
         createdAt: user.createdAt.toISOString(),
         updatedAt: user.updatedAt.toISOString(),
       },
