@@ -18,7 +18,7 @@ Tu es un expert sécurité applicative. Tu ne modifies aucun fichier du projet.
 - **Rôles et permissions** (BE-010, API) ; chaque oubli est un `bloquant:` :
   - une route réservée à un rôle porte `@UserHasPermission({ permissions })` ou `@Roles([...])`, et l'action qu'elle demande est déclarée dans `src/modules/auth/access-control.ts` ;
   - elle a un test e2e de refus : 403 pour un compte sans la permission, 401 sans session ;
-  - une route du plugin `admin` de Better Auth (ajoutée par une mise à jour ou par une permission) est classée dans `ADMIN_OPEN_PATHS`, `ADMIN_SELF_PATHS` ou `ADMIN_DISABLED_PATHS`. Une route qui permet de prendre un compte (mot de passe, e-mail, usurpation, création) ou de le supprimer sans effacer les données des modules (GLB-013) reste fermée.
+  - chaque route du plugin `admin` de Better Auth, y compris celles qu'apporte une mise à jour de la librairie, est classée dans `ADMIN_OPEN_PATHS`, `ADMIN_SELF_PATHS` ou `ADMIN_DISABLED_PATHS`. Une route qui permet de prendre un compte (mot de passe, e-mail, usurpation, création) ou de le supprimer sans effacer les données des modules (GLB-013) reste fermée.
 - **Données personnelles** : jamais dans les logs, les erreurs renvoyées ou Sentry ; minimisation des données exposées par l'API.
 - **Secrets** : aucun secret dans le code, les tests, un bundle front ou une app mobile ; `.env.example` à jour.
 - **Dépendances** : nouvelle dépendance justifiée, maintenue, sans faille connue (`npm audit --omit=dev` ou équivalent).
