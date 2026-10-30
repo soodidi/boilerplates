@@ -122,6 +122,41 @@ describe('Roles and permissions (e2e)', () => {
       expect(response.json<{ total: number }>().total).toBe(2);
     });
 
+    describe('POST /v1/auth/admin/has-permission (ADMIN_SELF_PATHS)', () => {
+      const payload = { permissions: { stats: ['read'] } };
+
+      it('requires authentication (401)', async () => {
+        const response = await app.inject({
+          method: 'POST',
+          url: '/v1/auth/admin/has-permission',
+          payload,
+        });
+
+        expect(response.statusCode).toBe(401);
+      });
+
+      it('answers for the session only, whatever role or user id the body names', async () => {
+        const adminId = await database.userId('grace@example.com');
+
+        const forUser = await app.inject({
+          method: 'POST',
+          url: '/v1/auth/admin/has-permission',
+          headers: user,
+          payload: { ...payload, role: 'admin', userId: adminId },
+        });
+        const forAdmin = await app.inject({
+          method: 'POST',
+          url: '/v1/auth/admin/has-permission',
+          headers: admin,
+          payload,
+        });
+
+        expect(forUser.statusCode).toBe(200);
+        expect(forUser.json()).toMatchObject({ success: false });
+        expect(forAdmin.json()).toMatchObject({ success: true });
+      });
+    });
+
     it.each(ADMIN_DISABLED_PATHS)('%s stays closed, even to an admin (404)', async (path) => {
       const userId = await database.userId('ada@example.com');
 
