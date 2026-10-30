@@ -1,5 +1,32 @@
+import { admin } from 'better-auth/plugins';
 import { describe, expect, it } from 'vitest';
-import { roles } from './access-control.js';
+import {
+  ac,
+  ADMIN_DISABLED_PATHS,
+  ADMIN_OPEN_PATHS,
+  ADMIN_ROLE,
+  ADMIN_SELF_PATHS,
+  DEFAULT_ROLE,
+  roles,
+} from './access-control.js';
+
+// BE-010 : une route ajoutée au plugin `admin` (mise à jour de Better Auth) doit être classée
+// avant d'être servie : ouverte aux admins, ouverte à toute session, ou fermée.
+describe('admin plugin routes', () => {
+  // Mêmes options que dans auth.config.ts, au cas où une version n'exposerait une route que selon elles.
+  const plugin = admin({ ac, roles, defaultRole: DEFAULT_ROLE, adminRoles: [ADMIN_ROLE] });
+  const pluginPaths: string[] = Object.values(plugin.endpoints).map((endpoint) => endpoint.path);
+  const classified = [...ADMIN_OPEN_PATHS, ...ADMIN_SELF_PATHS, ...ADMIN_DISABLED_PATHS];
+
+  it('classifies every route of the plugin', () => {
+    expect(pluginPaths.filter((path) => !classified.includes(path))).toEqual([]);
+  });
+
+  it('lists only routes that exist, each in a single list', () => {
+    expect(classified.filter((path) => !pluginPaths.includes(path))).toEqual([]);
+    expect(new Set(classified).size).toBe(classified.length);
+  });
+});
 
 // BE-010 : ce que chaque rôle peut faire, verrouillé indépendamment des routes du plugin.
 describe('access control', () => {

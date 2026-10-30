@@ -43,6 +43,15 @@ export const ADMIN_OPEN_PATHS = [
 ];
 
 /**
+ * Routes du plugin `admin` ouvertes à toute session : elles ne renseignent que sur ses propres
+ * droits (le web demande ses permissions à l'API, BE-010). Par HTTP, une session est exigée et le
+ * `role` ou le `userId` du corps est ignoré (un `userId` mal formé reçoit 400, voir auth.config.ts).
+ * Côté serveur, `auth.api.userHasPermission` sans `headers` croit le `role` du corps : toujours
+ * lui passer les en-têtes de la requête.
+ */
+export const ADMIN_SELF_PATHS = ['/admin/has-permission'];
+
+/**
  * Routes du plugin `admin` fermées, même si un rôle recevait leur permission :
  * - prise de contrôle d'un compte : usurpation (l'activer demande un ADR de projet), mot de passe,
  *   e-mail (`update-user`), création d'un compte déjà vérifié sans les règles du mot de passe ;

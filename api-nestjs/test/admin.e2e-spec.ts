@@ -1,7 +1,11 @@
 import { type NestFastifyApplication } from '@nestjs/platform-fastify';
 import { afterAll, beforeAll, beforeEach, describe, expect, inject, it } from 'vitest';
 import { type InMemoryMailer } from '../src/mail/index.js';
-import { ADMIN_DISABLED_PATHS, ADMIN_OPEN_PATHS } from '../src/modules/auth/access-control.js';
+import {
+  ADMIN_DISABLED_PATHS,
+  ADMIN_OPEN_PATHS,
+  ADMIN_SELF_PATHS,
+} from '../src/modules/auth/access-control.js';
 import { UsersService } from '../src/modules/auth/index.js';
 import { createTestApp, PASSWORD, signUpAndSignIn } from './app.js';
 import { createTestDatabase } from './database.js';
@@ -120,6 +124,45 @@ describe('Roles and permissions (e2e)', () => {
 
       expect(response.statusCode).toBe(200);
       expect(response.json<{ total: number }>().total).toBe(2);
+    });
+
+    describe('routes open to any session (ADMIN_SELF_PATHS)', () => {
+      const payload = { permissions: { stats: ['read'] } };
+
+      it.each(ADMIN_SELF_PATHS)(
+        '%s requires a session, whatever role the body names (401)',
+        async (path) => {
+          const response = await app.inject({
+            method: 'POST',
+            url: `/v1/auth${path}`,
+            payload: { ...payload, role: 'admin' },
+          });
+
+          expect(response.statusCode).toBe(401);
+        },
+      );
+
+      it('has-permission answers for the session only, whatever role or user id the body names', async () => {
+        const adminId = await database.userId('grace@example.com');
+
+        const forUser = await app.inject({
+          method: 'POST',
+          url: '/v1/auth/admin/has-permission',
+          headers: user,
+          payload: { ...payload, role: 'admin', userId: adminId },
+        });
+        const forAdmin = await app.inject({
+          method: 'POST',
+          url: '/v1/auth/admin/has-permission',
+          headers: admin,
+          payload,
+        });
+
+        expect(forUser.statusCode).toBe(200);
+        expect(forUser.json()).toMatchObject({ success: false });
+        expect(forAdmin.statusCode).toBe(200);
+        expect(forAdmin.json()).toMatchObject({ success: true });
+      });
     });
 
     it.each(ADMIN_DISABLED_PATHS)('%s stays closed, even to an admin (404)', async (path) => {
