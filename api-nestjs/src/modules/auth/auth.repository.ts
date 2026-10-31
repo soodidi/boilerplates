@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { and, count, desc, eq, lt } from 'drizzle-orm';
+import { and, count, desc, eq, isNull, lt, or } from 'drizzle-orm';
 import { DB, type Database } from '../../database/database.module.js';
+import { ADMIN_ROLE } from './access-control.js';
 import { accounts, rateLimits, sessions, users, verifications } from './auth.table.js';
 
 /** Plus longue fenêtre de rate limiting (5 min, auth.config.ts) : au-delà, un compteur ne sert plus. */
@@ -40,17 +41,37 @@ export class AuthRepository {
   }
 
   /**
-   * BE-010 : rôle donné hors de Better Auth, par `npm run user:promote`, et bannissement levé.
-   * Seulement pour une adresse vérifiée : sinon, un inconnu inscrit d'avance avec l'adresse du futur
-   * admin (et son propre mot de passe) en hériterait. Renvoie false si aucun compte ne correspond.
+   * BE-010 : rôle donné hors de Better Auth (ADMIN_EMAILS au démarrage, `npm run user:promote` en
+   * local), et bannissement levé si `liftBan`. Seulement pour une adresse vérifiée : sinon, un
+   * inconnu inscrit d'avance avec l'adresse du futur admin (et son propre mot de passe) en
+   * hériterait. Renvoie false si aucun compte ne correspond.
    */
-  async setRoleOfVerifiedEmail(email: string, role: string): Promise<boolean> {
+  async setRoleOfVerifiedEmail(
+    email: string,
+    role: string,
+    { liftBan }: { liftBan: boolean },
+  ): Promise<boolean> {
     const updated = await this.db
       .update(users)
-      .set({ role, banned: false, banReason: null, banExpires: null })
+      .set(liftBan ? { role, banned: false, banReason: null, banExpires: null } : { role })
       .where(and(eq(users.email, email), eq(users.emailVerified, true)))
       .returning({ id: users.id });
     return updated.length > 0;
+  }
+
+  /** Un admin peut-il encore se connecter (non banni, ou bannissement expiré) ? */
+  async hasActiveAdmin(now = new Date()): Promise<boolean> {
+    const [row] = await this.db
+      .select({ id: users.id })
+      .from(users)
+      .where(
+        and(
+          eq(users.role, ADMIN_ROLE),
+          or(eq(users.banned, false), isNull(users.banned), lt(users.banExpires, now)),
+        ),
+      )
+      .limit(1);
+    return row !== undefined;
   }
 
   findSessions(userId: string) {

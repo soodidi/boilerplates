@@ -63,16 +63,18 @@ variable "state_passphrase" {
 }
 
 variable "admin_emails" {
-  description = "Adresses promues admin au démarrage de l'API, séparées par des virgules, 5 au plus (BE-010). Le compte doit s'être inscrit et avoir confirmé son adresse. Toute modification passe par une PR"
+  description = "Adresses promues admin au démarrage de l'API, séparées par des virgules, 5 au plus (BE-010). Le compte doit s'être inscrit et avoir confirmé son adresse. Toute modification passe par une PR ; le repo infra doit rester privé"
   type        = string
   default     = ""
-  sensitive   = true # Données personnelles : hors des plans affichés par la CI (GLB-013).
+  sensitive   = true # Données personnelles : masquées dans les plans affichés par la CI (GLB-013), mais en clair dans le repo.
 
+  # Même règle que l'API (`z.email()`, env.ts) : une adresse acceptée ici et refusée par l'API
+  # empêcherait le conteneur de démarrer.
   validation {
-    condition = length(compact(split(",", var.admin_emails))) <= 5 && alltrue([
+    condition = length(distinct(compact([for e in split(",", var.admin_emails) : lower(trimspace(e))]))) <= 5 && alltrue([
       for email in compact([for e in split(",", var.admin_emails) : trimspace(e)]) :
-      can(regex("^[^@\\s,]+@[^@\\s,]+\\.[^@\\s,]+$", email))
+      can(regex("^([A-Za-z0-9_'+-]+\\.)*[A-Za-z0-9_'+-]*[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9-]*\\.)+[A-Za-z]{2,}$", email))
     ])
-    error_message = "admin_emails : 5 adresses e-mail au plus, séparées par des virgules."
+    error_message = "admin_emails : 5 adresses e-mail valides au plus, séparées par des virgules."
   }
 }

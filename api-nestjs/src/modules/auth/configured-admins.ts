@@ -4,10 +4,12 @@ import { ENV, type Env } from '../../config/env.js';
 import { UsersService } from './users.service.js';
 
 /**
- * BE-010 : les comptes de `ADMIN_EMAILS` sont promus admins à chaque démarrage, après les
- * migrations (`app.listen` suit `runMigrations` dans main.ts). La liste vient de la configuration
- * de l'environnement, modifiable seulement par une PR sur l'infra : elle fait autorité, donc un admin
- * listé, rétrogradé ou banni depuis l'interface, le redevient au démarrage suivant.
+ * BE-010 : les comptes de `ADMIN_EMAILS` sont promus admins au démarrage de chaque instance (déploiement,
+ * réveil, montée en charge), après les migrations (`app.listen` suit `runMigrations` dans main.ts).
+ * La liste vient de la configuration de l'environnement, modifiable seulement par une PR sur l'infra :
+ * un admin listé rétrogradé depuis l'interface le redevient. Un bannissement, lui, tient tant qu'un
+ * autre admin peut se connecter (compte compromis écarté sans attendre la PR qui le retire de la
+ * liste) ; il n'est levé que si plus aucun admin n'est actif, pour reprendre la main.
  * Seuls des nombres sont journalisés, jamais d'adresse (BE-007, GLB-013).
  */
 @Injectable()
@@ -34,9 +36,10 @@ export class ConfiguredAdmins implements OnApplicationBootstrap {
   }
 
   async apply(): Promise<{ promoted: number; skipped: number }> {
+    const liftBan = !(await this.users.hasActiveAdmin());
     let promoted = 0;
     for (const email of this.env.ADMIN_EMAILS) {
-      if (await this.users.promoteToAdmin(email)) promoted += 1;
+      if (await this.users.promoteToAdmin(email, { liftBan })) promoted += 1;
     }
     // `skipped` : compte absent ou adresse pas encore vérifiée.
     const result = { promoted, skipped: this.env.ADMIN_EMAILS.length - promoted };
