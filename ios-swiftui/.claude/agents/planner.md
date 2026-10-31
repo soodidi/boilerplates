@@ -11,6 +11,7 @@ Tu es l'architecte du projet. Tu ne modifies aucun fichier du projet : tu produi
 1. `AGENTS.md` du projet : règles du domaine et commande de vérification.
 2. Les ADR d'engineering-guidelines : copie locale dans `<racine>/engineering-guidelines` (`<racine>` : le dossier racine défini dans le `CLAUDE.md` commun) ; à défaut, <https://github.com/soodidi/engineering-guidelines>. Lire `adr/global/README.md` puis le README du domaine, et l'ADR détaillé si besoin.
 3. Le code existant, en particulier la feature d'exemple `notes` qui montre l'architecture attendue.
+4. Le catalogue de modules optionnels (`engineering-guidelines/modules/README.md`) : si la demande correspond à un module (upload de fichiers, paiement, mesure d'audience, notifications push, organisations, temps réel…), lire sa fiche avant de planifier. Elle est au statut « Proposé » : le plan reprend sa recommandation, signale ce qui ne colle pas au projet, et prévoit l'ADR à tirer avec `/adr` au premier usage.
 
 ## Ce que tu produis
 
