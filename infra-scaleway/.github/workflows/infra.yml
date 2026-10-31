@@ -1,16 +1,18 @@
 name: infra
 
 # OPS-003 : vérifications sans secret sur chaque PR ; après fusion, plan affiché dans le résumé du
-# job puis `apply` (staging) ; production et shared : plan, puis apply après approbation.
+# job puis `apply` (staging). Production et shared : seulement par un lancement manuel depuis `main`
+# (onglet Actions), qui affiche le plan puis l'applique. Pour un repo privé, GitHub ne propose pas de
+# validation obligatoire (reviewers) hors Enterprise : le lancement manuel en tient lieu.
 #
 # OPS-006 : une PR exécute la version du workflow de sa branche, et n'importe quel plan lit le state
 # `iam` (toutes les clés) avec une passphrase commune : aucune PR n'a donc accès à un secret. Les
 # environnements `staging`, `production` et `production-plan` sont limités à la branche `main`
 # (« Deployment branches » dans GitHub) : c'est cette règle, pas le workflow, qui protège les secrets.
 #
-# À configurer dans GitHub (tous limités à `main`) :
-#   environnements `staging` et `production` (reviewers obligatoires pour production) pour l'apply,
-#   et `production-plan` (sans reviewers, clé API en lecture seule) pour le plan affiché avant l'approbation :
+# À configurer dans GitHub (créés et limités à `main` par /new-project ; GitHub Pro requis pour un repo privé) :
+#   environnements `staging` et `production` pour l'apply (reviewers sur production si le repo est public),
+#   et `production-plan` (clé API en lecture seule) pour le plan affiché avant l'apply :
 #     secrets : SCW_ACCESS_KEY, SCW_SECRET_KEY (sorties de envs/iam), TF_STATE_PASSPHRASE
 #     variables : SCW_DEFAULT_PROJECT_ID, SCW_DEFAULT_ORGANIZATION_ID
 #   les tfvars de chaque environnement sont versionnés dans envs/<env>/<env>.auto.tfvars
@@ -28,7 +30,7 @@ on:
         description: Environnement à appliquer
         type: choice
         # shared (registre, domaine d'envoi) : commun aux environnements, appliqué à la demande,
-        # avec l'approbation de l'environnement production.
+        # avec les secrets de l'environnement production.
         options: [staging, production, shared]
 
 permissions:
@@ -83,7 +85,7 @@ jobs:
           severity: CRITICAL,HIGH
           exit-code: '1'
 
-  # Plan de production ou de shared, affiché avant que l'apply attende la validation.
+  # Plan de production ou de shared, affiché avant l'apply (et avant la validation si le repo en a une).
   plan-protected:
     if: github.event_name == 'workflow_dispatch' && inputs.environment != 'staging' && github.ref == 'refs/heads/main'
     needs: checks
@@ -150,8 +152,7 @@ jobs:
           tofu_version_file: .opentofu-version
           tofu_wrapper: false
       - run: tofu -chdir="envs/$ENVIRONMENT" init -input=false
-      # Le plan appliqué est celui affiché (pour production et shared, il peut différer légèrement de
-      # celui relu avant l'approbation si l'infra a changé entre-temps).
+      # Le plan appliqué est celui affiché ici.
       - name: tofu plan
         run: |
           tofu -chdir="envs/$ENVIRONMENT" plan -input=false -no-color -out=tfplan > plan.txt
