@@ -50,6 +50,20 @@ export const envSchema = z
           .filter(Boolean),
       )
       .pipe(z.array(z.email())),
+    // BE-010 : comptes nommés administrateurs à chaque démarrage (adresse vérifiée exigée).
+    // La liste vient de la configuration de l'environnement (OpenTofu), jamais d'une requête.
+    ADMIN_EMAILS: z
+      .string()
+      .default('')
+      .transform((value) => [
+        ...new Set(
+          value
+            .split(',')
+            .map((email) => email.trim().toLowerCase())
+            .filter(Boolean),
+        ),
+      ])
+      .pipe(z.array(z.email()).max(5)),
     APP_VERSION: z.string().default('dev'),
     // BE-006 : nombre de proxys de confiance devant l'API (1 = l'Envoy de Scaleway Serverless Containers).
     // L'IP du client est la dernière entrée de X-Forwarded-For ajoutée par ce proxy.

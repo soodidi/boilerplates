@@ -24,6 +24,34 @@ describe('loadEnv', () => {
     expect(() => loadEnv({ ...base, SMTP_URL, SMTP_INSECURE: 'true' })).toThrow(/SMTP_INSECURE/);
   });
 
+  describe('ADMIN_EMAILS (BE-010)', () => {
+    const smtp = { SMTP_URL: 'smtp://localhost:1025' };
+
+    it('est vide par défaut', () => {
+      expect(loadEnv({ ...base, ...smtp }).ADMIN_EMAILS).toEqual([]);
+    });
+
+    it('normalise les adresses et retire les doublons', () => {
+      const env = loadEnv({
+        ...base,
+        ...smtp,
+        ADMIN_EMAILS: ' Grace@Example.com, ada@example.com,,grace@example.com ',
+      });
+      expect(env.ADMIN_EMAILS).toEqual(['grace@example.com', 'ada@example.com']);
+    });
+
+    it('refuse une entrée qui n’est pas une adresse', () => {
+      expect(() => loadEnv({ ...base, ...smtp, ADMIN_EMAILS: 'grace@example.com, admin' })).toThrow(
+        /ADMIN_EMAILS/,
+      );
+    });
+
+    it('refuse plus de 5 adresses', () => {
+      const ADMIN_EMAILS = Array.from({ length: 6 }, (_, i) => `admin${i}@example.com`).join(',');
+      expect(() => loadEnv({ ...base, ...smtp, ADMIN_EMAILS })).toThrow(/ADMIN_EMAILS/);
+    });
+  });
+
   it('refuse un secret Better Auth trop court', () => {
     expect(() =>
       loadEnv({ ...base, SMTP_URL: 'smtp://localhost:1025', BETTER_AUTH_SECRET: 'short' }),

@@ -1,3 +1,4 @@
+import { sql } from 'drizzle-orm';
 import { type NestFastifyApplication } from '@nestjs/platform-fastify';
 import { afterAll, beforeAll, beforeEach, describe, expect, inject, it } from 'vitest';
 import { type InMemoryMailer } from '../src/mail/index.js';
@@ -276,5 +277,91 @@ describe('Roles and permissions (e2e)', () => {
 
   it('promoting an unknown address changes nothing', async () => {
     expect(await app.get(UsersService).promoteToAdmin('nobody@example.com')).toBe(false);
+  });
+
+  describe('admins named by the configuration (ADMIN_EMAILS)', () => {
+    function signIn(email: string) {
+      return app.inject({
+        method: 'POST',
+        url: '/v1/auth/sign-in/email',
+        payload: { email, password: PASSWORD },
+      });
+    }
+
+    /** Redémarrage de l'API avec la liste (casse et espaces comme dans un fichier de configuration). */
+    async function restartWith(ADMIN_EMAILS: string) {
+      const restarted = await createTestApp(databaseUrl, { ADMIN_EMAILS });
+      await restarted.app.close();
+    }
+
+    async function banAda() {
+      const ban = await app.inject({
+        method: 'POST',
+        url: '/v1/auth/admin/ban-user',
+        headers: admin,
+        payload: { userId: await database.userId('ada@example.com') },
+      });
+      expect(ban.statusCode).toBe(200);
+      expect((await signIn('ada@example.com')).statusCode).toBe(403);
+    }
+
+    it('promotes listed verified accounts at startup, and only them', async () => {
+      await app.inject({
+        method: 'POST',
+        url: '/v1/auth/sign-up/email',
+        payload: { email: 'mallory@example.com', password: PASSWORD, name: 'Mallory' },
+      });
+
+      await restartWith(' ADA@example.com , mallory@example.com');
+
+      expect(await database.role('ada@example.com')).toBe('admin');
+      // Inscrit avec une adresse de la liste, sans l'avoir confirmée : rien.
+      expect(await database.role('mallory@example.com')).toBe('user');
+    });
+
+    it('keeps the ban of a listed admin while another admin can sign in', async () => {
+      await banAda();
+
+      await restartWith('ada@example.com');
+
+      expect(await database.role('ada@example.com')).toBe('admin');
+      expect((await signIn('ada@example.com')).statusCode).toBe(403);
+    });
+
+    it('lifts the ban when no admin can sign in any more', async () => {
+      await banAda();
+      await database.db.execute(
+        sql`update users set banned = true where email = 'grace@example.com'`,
+      );
+
+      await restartWith('ada@example.com');
+
+      expect((await signIn('ada@example.com')).statusCode).toBe(200);
+    });
+
+    // La liste désigne des adresses : aucun compte ne doit pouvoir prendre celle d'un autre.
+    it('never lets a user change their address', async () => {
+      const changeEmail = await app.inject({
+        method: 'POST',
+        url: '/v1/auth/change-email',
+        headers: user,
+        payload: { newEmail: 'grace@example.com' },
+      });
+      const updateUser = await app.inject({
+        method: 'POST',
+        url: '/v1/auth/update-user',
+        headers: user,
+        payload: { email: 'grace@example.com' },
+      });
+
+      expect(changeEmail.statusCode).toBe(400);
+      expect(changeEmail.json()).toMatchObject({ code: 'CHANGE_EMAIL_DISABLED' });
+      expect(updateUser.statusCode).toBe(400);
+      // L'adresse de grace n'a pas changé de compte.
+      expect(await database.userId('grace@example.com')).not.toBe(
+        await database.userId('ada@example.com'),
+      );
+      await expect(database.userId('ada@example.com')).resolves.toBeDefined();
+    });
   });
 });

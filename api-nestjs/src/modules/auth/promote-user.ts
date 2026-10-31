@@ -1,5 +1,5 @@
 // BE-010 : donne le rôle admin à un compte existant.
-//   npm run user:promote -- <email>      (en production : node dist/modules/auth/promote-user.js <email>)
+//   npm run user:promote -- <email>   (en local ; en staging et en production : ADMIN_EMAILS, voir README)
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 import { AuthRepository } from './auth.repository.js';
