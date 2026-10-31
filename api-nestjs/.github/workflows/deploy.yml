@@ -24,6 +24,9 @@ concurrency:
 
 jobs:
   image:
+    # OPS-006 : déploiement depuis `main` seulement, même lancé à la main (les environnements
+    # `staging` et `production` sont aussi limités à `main` dans GitHub).
+    if: github.ref == 'refs/heads/main'
     uses: ./.github/workflows/docker.yml
     with:
       push: true

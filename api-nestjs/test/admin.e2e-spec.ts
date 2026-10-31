@@ -1,3 +1,4 @@
+import { signJWT } from 'better-auth/crypto';
 import { sql } from 'drizzle-orm';
 import { type NestFastifyApplication } from '@nestjs/platform-fastify';
 import { afterAll, beforeAll, beforeEach, describe, expect, inject, it } from 'vitest';
@@ -337,6 +338,28 @@ describe('Roles and permissions (e2e)', () => {
       await restartWith('ada@example.com');
 
       expect((await signIn('ada@example.com')).statusCode).toBe(200);
+    });
+
+    // Défense en profondeur : avec le secret de Better Auth, un jeton de changement d'adresse forgé
+    // ouvrirait une session sur n'importe quel compte, même avec change-email désactivé.
+    it('refuses a verification link that changes an address', async () => {
+      const token = await signJWT(
+        {
+          email: 'grace@example.com',
+          updateTo: 'mallory@example.com',
+          requestType: 'change-email-verification',
+        },
+        'test-secret-with-at-least-32-characters',
+      );
+
+      const response = await app.inject({
+        method: 'GET',
+        url: `/v1/auth/verify-email?token=${token}`,
+      });
+
+      expect(response.statusCode).toBe(400);
+      expect(response.headers['set-cookie']).toBeUndefined();
+      expect(response.headers['set-auth-token']).toBeUndefined();
     });
 
     // La liste désigne des adresses : aucun compte ne doit pouvoir prendre celle d'un autre.

@@ -33,6 +33,19 @@ export const AUTH_BASE_PATH = '/v1/auth';
 const ARGON2_OPTIONS = { memoryCost: 19_456, timeCost: 2, parallelism: 1 };
 
 /** Borne l'expiration d'une session prolongée à sa durée de vie absolue (BE-006). */
+/** Le jeton JWT de vérification demande-t-il un changement d'adresse ? Lu sans vérifier la signature. */
+export function hasEmailChange(token: unknown): boolean {
+  if (typeof token !== 'string') return false;
+  const payload = token.split('.')[1];
+  if (!payload) return false;
+  try {
+    const claims: unknown = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8'));
+    return typeof claims === 'object' && claims !== null && 'updateTo' in claims;
+  } catch {
+    return false;
+  }
+}
+
 export function capSessionExpiry(expiresAt: Date, createdAt: Date): Date {
   const limit = new Date(createdAt.getTime() + SESSION_MAX_LIFETIME_MS);
   return expiresAt > limit ? limit : expiresAt;
@@ -133,6 +146,13 @@ export function createAuth({ env, db, mailer, userData }: AuthDependencies) {
         const userId = body?.userId ?? (ctx.query as { id?: unknown } | undefined)?.id;
         if (ctx.path.startsWith('/admin/') && userId !== undefined && !isUuid(userId)) {
           throw new APIError('BAD_REQUEST', { message: 'Invalid user id' });
+        }
+        // BE-010 : le changement d'adresse est désactivé, mais /verify-email suit encore un jeton
+        // qui porte `updateTo` (changement d'adresse) et ouvre alors une session sur le compte visé,
+        // sans vérifier l'option. Un tel jeton ne peut être que forgé (secret divulgué) : refusé.
+        const token = (ctx.query as { token?: unknown } | undefined)?.token;
+        if (ctx.path === '/verify-email' && hasEmailChange(token)) {
+          throw new APIError('BAD_REQUEST', { message: 'Invalid token' });
         }
         return Promise.resolve();
       }),

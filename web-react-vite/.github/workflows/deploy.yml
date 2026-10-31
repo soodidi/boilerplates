@@ -25,6 +25,9 @@ concurrency:
 
 jobs:
   build:
+    # OPS-006 : déploiement depuis `main` seulement, même lancé à la main (les environnements
+    # `staging` et `production` sont aussi limités à `main` dans GitHub).
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:

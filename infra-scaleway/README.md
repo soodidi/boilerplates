@@ -52,8 +52,8 @@ envs/
    tofu -chdir=envs/iam init && tofu -chdir=envs/iam apply
    tofu -chdir=envs/iam output -raw ci_access_key        # → SCW_ACCESS_KEY de staging et production (apply)
    tofu -chdir=envs/iam output -raw ci_secret_key        # → SCW_SECRET_KEY de staging et production
-   tofu -chdir=envs/iam output -raw ci_plan_access_key   # → SCW_ACCESS_KEY de staging-plan et production-plan
-   tofu -chdir=envs/iam output -raw ci_plan_secret_key   # → SCW_SECRET_KEY (lecture seule, plans des PR)
+   tofu -chdir=envs/iam output -raw ci_plan_access_key   # → SCW_ACCESS_KEY de production-plan
+   tofu -chdir=envs/iam output -raw ci_plan_secret_key   # → SCW_SECRET_KEY (lecture seule, plan avant l'approbation)
    # Repos applicatifs : une clé par pipeline (OPS-006), jamais la clé de la CI infra.
    tofu -chdir=envs/iam output -json deploy_access_keys   # web → repo web, api → repo API
    tofu -chdir=envs/iam output -json deploy_secret_keys
@@ -101,5 +101,6 @@ Commiter le fichier `.terraform.lock.hcl` créé par `tofu init` (versions des p
 - Le state contient des secrets générés (mot de passe de la base, clés API, secret d'auth) : il est chiffré par OpenTofu (`encryption`, passphrase `TF_VAR_state_passphrase`), en plus du chiffrement du bucket (OPS-006).
 - Auth (BE-006) : `BETTER_AUTH_SECRET` est généré par environnement (`random_password`). `api_url` DOIT être sur le même domaine que le front (ex. `api.app.example.com` et `app.example.com`) : sinon le navigateur n'envoie pas le cookie de session.
 - E-mails (BE-009) : chaque environnement a sa propre clé API, limitée à l'envoi SMTP (`TransactionalEmailEmailSmtpCreate`), créée par `envs/iam` et injectée dans l'API comme secret `SMTP_URL`. En staging, `mail_allowed_recipients` est obligatoire : aucun e-mail ne part vers d'autres adresses.
+- Secrets et PR (OPS-006) : une PR exécute la version du workflow de sa branche, et tout plan lit le state `iam` (qui contient toutes les clés) avec la passphrase commune. Les PR ne font donc que des vérifications sans secret (`fmt`, `validate`, tflint, trivy). Après fusion, le job d'apply affiche le plan de staging dans son résumé, puis l'applique. Le plan de production et de `shared` tourne depuis `main`, au lancement manuel du workflow, juste avant l'apply qui attend ta validation : relire ce plan avant de valider. Les environnements `staging`, `production` et `production-plan` sont **limités à la branche `main`** dans GitHub (commandes dans la checklist « nouveau projet ») : c'est cette règle qui empêche une PR d'atteindre leurs secrets. La CI refuse aussi `nonsensitive(`, `data "external"`, `data "http"`, `provisioner` et `local-exec`.
 - Admins (BE-010) : `admin_emails` (dans `<env>.auto.tfvars`, 5 adresses au plus) est passé à l'API, qui promeut ces comptes au démarrage de chaque instance (procédure dans le README de l'API). Une modification passe par une PR : sa fusion applique le staging ; la production s'applique en lançant le workflow `infra` (`workflow_dispatch`, environnement `production`), puis en validant l'Environment `production`. La variable est sensible : masquée dans les plans de la CI, mais **en clair dans le repo**, qui doit rester privé.
 - Passer à Kubernetes (Kapsule) seulement via un ADR (OPS-005).

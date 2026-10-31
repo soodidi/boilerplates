@@ -1,11 +1,16 @@
 name: infra
 
-# OPS-003 : vérifications sur chaque PR, `plan` visible dans le résumé du job,
-# `apply` par la CI après fusion (staging) ou après approbation (production).
+# OPS-003 : vérifications sans secret sur chaque PR ; après fusion, plan affiché dans le résumé du
+# job puis `apply` (staging) ; production et shared : plan, puis apply après approbation.
 #
-# À configurer dans GitHub :
+# OPS-006 : une PR exécute la version du workflow de sa branche, et n'importe quel plan lit le state
+# `iam` (toutes les clés) avec une passphrase commune : aucune PR n'a donc accès à un secret. Les
+# environnements `staging`, `production` et `production-plan` sont limités à la branche `main`
+# (« Deployment branches » dans GitHub) : c'est cette règle, pas le workflow, qui protège les secrets.
+#
+# À configurer dans GitHub (tous limités à `main`) :
 #   environnements `staging` et `production` (reviewers obligatoires pour production) pour l'apply,
-#   et `staging-plan` / `production-plan` (sans reviewers, clé API en lecture seule) pour le plan des PR :
+#   et `production-plan` (sans reviewers, clé API en lecture seule) pour le plan affiché avant l'approbation :
 #     secrets : SCW_ACCESS_KEY, SCW_SECRET_KEY (sorties de envs/iam), TF_STATE_PASSPHRASE
 #     variables : SCW_DEFAULT_PROJECT_ID, SCW_DEFAULT_ORGANIZATION_ID
 #   les tfvars de chaque environnement sont versionnés dans envs/<env>/<env>.auto.tfvars
@@ -61,6 +66,15 @@ jobs:
           export PATH="$RUNNER_TEMP:$PATH"
           tflint --init
           tflint --recursive
+      # OPS-006 : rien qui sorte un secret d'un plan (affiché dans le résumé du job) ou l'envoie au
+      # dehors pendant le plan. Filet de sécurité pour le code fusionné : une PR peut modifier ce
+      # workflow, la vraie barrière est la limitation des environnements à `main`.
+      - name: secrets hors des plans
+        run: |
+          if grep -rnE 'nonsensitive\(|data "(external|http)"|provisioner "|local-exec' envs modules; then
+            echo "::error::Construction interdite : elle peut révéler un secret dans un plan (OPS-006)."
+            exit 1
+          fi
       # Mauvaises configurations de sécurité (bucket public non voulu, chiffrement…).
       - uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
@@ -69,17 +83,14 @@ jobs:
           severity: CRITICAL,HIGH
           exit-code: '1'
 
-  plan:
-    if: github.event_name == 'pull_request'
+  # Plan de production ou de shared, affiché avant que l'apply attende la validation.
+  plan-protected:
+    if: github.event_name == 'workflow_dispatch' && inputs.environment != 'staging' && github.ref == 'refs/heads/main'
     needs: checks
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    strategy:
-      matrix:
-        environment: [shared, staging, production]
     environment:
-      # Clé `ci_plan` en lecture seule (envs/iam). shared utilise celle de production-plan.
-      name: ${{ matrix.environment == 'shared' && 'production' || matrix.environment }}-plan
+      name: production-plan
     env:
       SCW_ACCESS_KEY: ${{ secrets.SCW_ACCESS_KEY }}
       SCW_SECRET_KEY: ${{ secrets.SCW_SECRET_KEY }}
@@ -87,8 +98,8 @@ jobs:
       AWS_SECRET_ACCESS_KEY: ${{ secrets.SCW_SECRET_KEY }}
       SCW_DEFAULT_PROJECT_ID: ${{ vars.SCW_DEFAULT_PROJECT_ID }}
       SCW_DEFAULT_ORGANIZATION_ID: ${{ vars.SCW_DEFAULT_ORGANIZATION_ID }}
-      # OPS-006 : passphrase de chiffrement du state, nécessaire dès `tofu init`.
       TF_VAR_state_passphrase: ${{ secrets.TF_STATE_PASSPHRASE }}
+      ENVIRONMENT: ${{ inputs.environment }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -97,20 +108,25 @@ jobs:
         with:
           tofu_version_file: .opentofu-version
           tofu_wrapper: false
-      - run: tofu -chdir=envs/${{ matrix.environment }} init -input=false
+      - run: tofu -chdir="envs/$ENVIRONMENT" init -input=false
       - name: tofu plan
         run: |
-          tofu -chdir=envs/${{ matrix.environment }} plan -input=false -no-color -lock=false > plan.txt
+          tofu -chdir="envs/$ENVIRONMENT" plan -input=false -no-color -lock=false > plan.txt
           {
-            echo "### Plan ${{ matrix.environment }}"
+            echo "### Plan $ENVIRONMENT (à relire avant de valider l'apply)"
             echo '```'
             tail -c 60000 plan.txt
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
 
   apply:
-    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
-    needs: checks
+    # Seulement depuis `main` ; production et shared après leur plan, staging directement.
+    if: >-
+      !cancelled() && github.ref == 'refs/heads/main' && needs.checks.result == 'success' &&
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
+      (needs.plan-protected.result == 'success' ||
+       (needs.plan-protected.result == 'skipped' && (inputs.environment || 'staging') == 'staging'))
+    needs: [checks, plan-protected]
     runs-on: ubuntu-latest
     timeout-minutes: 30
     environment:
@@ -134,4 +150,15 @@ jobs:
           tofu_version_file: .opentofu-version
           tofu_wrapper: false
       - run: tofu -chdir="envs/$ENVIRONMENT" init -input=false
-      - run: tofu -chdir="envs/$ENVIRONMENT" apply -input=false -auto-approve
+      # Le plan appliqué est celui affiché (pour production et shared, il peut différer légèrement de
+      # celui relu avant l'approbation si l'infra a changé entre-temps).
+      - name: tofu plan
+        run: |
+          tofu -chdir="envs/$ENVIRONMENT" plan -input=false -no-color -out=tfplan > plan.txt
+          {
+            echo "### Plan $ENVIRONMENT (appliqué)"
+            echo '```'
+            tail -c 60000 plan.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - run: tofu -chdir="envs/$ENVIRONMENT" apply -input=false tfplan
