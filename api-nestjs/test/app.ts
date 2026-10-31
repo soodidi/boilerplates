@@ -21,6 +21,7 @@ export async function createTestApp(databaseUrl: string, overrides: Record<strin
     WEB_URL: WEB_ORIGIN,
     TRUST_PROXY_HOPS: '1',
     AUTH_RATE_LIMIT: 'false',
+    ADMIN_EMAILS: '',
     ...overrides,
   });
   const mailer = new InMemoryMailer();

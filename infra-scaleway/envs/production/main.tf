@@ -116,8 +116,10 @@ module "api" {
   }
 
   secret_environment_variables = {
-    DATABASE_URL       = module.database.database_url
-    SMTP_URL           = data.terraform_remote_state.iam.outputs.smtp_urls["production"]
+    DATABASE_URL = module.database.database_url
+    SMTP_URL     = data.terraform_remote_state.iam.outputs.smtp_urls["production"]
+    # BE-010 : sensible pour rester hors des plans ; l'API ne journalise jamais ces adresses.
+    ADMIN_EMAILS       = var.admin_emails
     BETTER_AUTH_SECRET = random_password.auth_secret.result
   }
 

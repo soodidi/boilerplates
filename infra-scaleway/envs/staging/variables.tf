@@ -61,3 +61,18 @@ variable "state_passphrase" {
     error_message = "La passphrase du state doit faire au moins 16 caractères."
   }
 }
+
+variable "admin_emails" {
+  description = "Adresses promues admin au démarrage de l'API, séparées par des virgules, 5 au plus (BE-010). Le compte doit s'être inscrit et avoir confirmé son adresse. Toute modification passe par une PR"
+  type        = string
+  default     = ""
+  sensitive   = true # Données personnelles : hors des plans affichés par la CI (GLB-013).
+
+  validation {
+    condition = length(compact(split(",", var.admin_emails))) <= 5 && alltrue([
+      for email in compact([for e in split(",", var.admin_emails) : trimspace(e)]) :
+      can(regex("^[^@\\s,]+@[^@\\s,]+\\.[^@\\s,]+$", email))
+    ])
+    error_message = "admin_emails : 5 adresses e-mail au plus, séparées par des virgules."
+  }
+}

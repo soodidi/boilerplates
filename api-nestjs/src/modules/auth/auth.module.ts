@@ -7,6 +7,7 @@ import { Mailer } from '../../mail/index.js';
 import { createAuth } from './auth.config.js';
 import { AuthRepository } from './auth.repository.js';
 import { AuthUserData } from './auth.user-data.js';
+import { ConfiguredAdmins } from './configured-admins.js';
 import { ExpiredAuthDataPurge } from './expired-auth-data.purge.js';
 import { UsersService } from './users.service.js';
 
@@ -23,7 +24,7 @@ import { UsersService } from './users.service.js';
       }),
     }),
   ],
-  providers: [AuthRepository, AuthUserData, ExpiredAuthDataPurge, UsersService],
+  providers: [AuthRepository, AuthUserData, ConfiguredAdmins, ExpiredAuthDataPurge, UsersService],
   // BE-002 : ce que les autres modules peuvent utiliser. Jamais le repository.
   exports: [UsersService],
 })

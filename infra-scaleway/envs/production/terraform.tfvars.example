@@ -6,3 +6,5 @@ api_url        = "https://api.app.example.com"
 web_domain     = "app.example.com"
 api_sentry_dsn = ""
 mail_from      = "Mon app <noreply@mail.example.com>"
+# BE-010 : votre adresse, une fois le compte inscrit et confirmé ; le rôle admin s'applique au démarrage suivant.
+admin_emails = "moi@example.com"

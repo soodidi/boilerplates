@@ -277,4 +277,59 @@ describe('Roles and permissions (e2e)', () => {
   it('promoting an unknown address changes nothing', async () => {
     expect(await app.get(UsersService).promoteToAdmin('nobody@example.com')).toBe(false);
   });
+
+  describe('admins named by the configuration (ADMIN_EMAILS)', () => {
+    it('promotes listed verified accounts at startup, and only them', async () => {
+      await app.inject({
+        method: 'POST',
+        url: '/v1/auth/sign-up/email',
+        payload: { email: 'mallory@example.com', password: PASSWORD, name: 'Mallory' },
+      });
+      const userId = await database.userId('ada@example.com');
+      await app.inject({
+        method: 'POST',
+        url: '/v1/auth/admin/ban-user',
+        headers: admin,
+        payload: { userId },
+      });
+
+      // Redémarrage de l'API avec la liste (casse et espaces comme dans un fichier de configuration).
+      const restarted = await createTestApp(databaseUrl, {
+        ADMIN_EMAILS: ' ADA@example.com , mallory@example.com',
+      });
+      await restarted.app.close();
+
+      expect(await database.role('ada@example.com')).toBe('admin');
+      // Inscrit avec une adresse de la liste, sans l'avoir confirmée : rien.
+      expect(await database.role('mallory@example.com')).toBe('user');
+      const signIn = await app.inject({
+        method: 'POST',
+        url: '/v1/auth/sign-in/email',
+        payload: { email: 'ada@example.com', password: PASSWORD },
+      });
+      expect(signIn.statusCode).toBe(200);
+    });
+
+    // La liste désigne des adresses : aucun compte ne doit pouvoir prendre celle d'un autre.
+    it('never lets a user change their address', async () => {
+      const changeEmail = await app.inject({
+        method: 'POST',
+        url: '/v1/auth/change-email',
+        headers: user,
+        payload: { newEmail: 'grace@example.com' },
+      });
+      const updateUser = await app.inject({
+        method: 'POST',
+        url: '/v1/auth/update-user',
+        headers: user,
+        payload: { email: 'grace@example.com' },
+      });
+
+      expect(changeEmail.statusCode).toBe(400);
+      expect(changeEmail.json()).toMatchObject({ code: 'CHANGE_EMAIL_DISABLED' });
+      expect(updateUser.statusCode).toBe(400);
+      expect(await database.role('ada@example.com')).toBe('user');
+      expect(await database.userId('ada@example.com')).toBeDefined();
+    });
+  });
 });
