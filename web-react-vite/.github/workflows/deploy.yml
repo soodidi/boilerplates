@@ -102,16 +102,24 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          run_id=$(gh run list -R "$GITHUB_REPOSITORY" --workflow deploy.yml --event push \
+          run_id=$(gh run list -R "$GITHUB_REPOSITORY" --workflow deploy.yml --event push --branch main \
             --commit "$GITHUB_SHA" --status success --limit 1 --json databaseId -q '.[0].databaseId')
           if [ -z "$run_id" ]; then
             echo "::error::Le commit $GITHUB_SHA n'a pas encore été déployé en staging avec succès."
+            exit 1
+          fi
+          artifact=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run_id/artifacts?name=dist" \
+            -q '.artifacts[] | select(.expired | not) | .id')
+          if [ -z "$artifact" ]; then
+            echo "::error::Le build du staging a expiré (30 jours) : fusionner un nouveau commit sur main."
             exit 1
           fi
           echo "run-id=$run_id" >> "$GITHUB_OUTPUT"
 
   production:
     needs: staged-build
+    # Réévalué à chaque relance : un « Re-run » par quelqu'un d'autre ne remet rien en production.
+    if: github.ref == 'refs/heads/main' && github.triggering_actor == github.repository_owner
     permissions:
       contents: read
       actions: read

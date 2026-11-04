@@ -103,7 +103,7 @@ La feature `notes` est là pour montrer les patterns : la supprimer (et sa route
 
 ## Déploiement
 
-Le workflow `deploy` construit l'app **une seule fois** par commit sur `main`, la publie automatiquement en staging. La production se lance à la main depuis `main` (onglet Actions ou `gh workflow run deploy`), par le propriétaire du repo : elle reçoit le build déjà déployé en staging pour ce commit, sans le reconstruire (OPS-004). La configuration de chaque environnement (URL d'API, DSN Sentry) est écrite dans `config.json` au déploiement. Les secrets et variables à créer sont listés en tête de `.github/workflows/deploy.yml`. Le bucket et le CDN se créent avec le boilerplate `infra-scaleway`.
+Le workflow `deploy` construit l'app **une seule fois** par commit sur `main`, la publie automatiquement en staging. La production se lance à la main depuis `main` (onglet Actions ou `gh workflow run deploy`), par le propriétaire du repo : elle reçoit le build déjà déployé en staging pour ce commit, sans le reconstruire (OPS-004). Ce build est gardé 30 jours : au-delà, fusionner un nouveau commit sur `main` avant de mettre en production. La configuration de chaque environnement (URL d'API, DSN Sentry) est écrite dans `config.json` au déploiement. Les secrets et variables à créer sont listés en tête de `.github/workflows/deploy.yml`. Le bucket et le CDN se créent avec le boilerplate `infra-scaleway`.
 
 ## Libs partagées
 
