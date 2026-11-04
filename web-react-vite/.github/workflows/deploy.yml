@@ -1,9 +1,10 @@
 name: deploy
 
-# OPS-004 : « build once, deploy many ». Un seul build par commit sur main,
-# déployé automatiquement en staging, puis en production. Pour un repo privé, GitHub ne propose pas
-# de validation obligatoire (reviewers) hors Enterprise : à régler avant le premier déploiement réel
-# (décision en attente, engineering-guidelines/docs/suivi/HANDOFF.md).
+# OPS-004 : « build once, deploy many ». Un seul build par commit sur main, déployé automatiquement
+# en staging. La production se lance à la main (onglet Actions, ou `gh workflow run deploy`), depuis
+# `main`, par le propriétaire du repo : elle reçoit le build déjà déployé en staging pour ce commit
+# (artefact gardé 30 jours), sans rien reconstruire. Pour un repo privé, GitHub ne propose pas de
+# validation obligatoire (reviewers) hors Enterprise : le lancement manuel en tient lieu.
 #
 # À configurer dans GitHub (Settings → Environments) :
 #   staging / production (limités à la branche `main`, OPS-006) :
@@ -15,20 +16,34 @@ name: deploy
 on:
   push:
     branches: [main]
+  # Mise en production du dernier commit de `main`, une fois déployé en staging.
   workflow_dispatch:
 
 permissions:
   contents: read
 
+# Staging et production ont chacun leur file : une fusion ne remplace pas une mise en production en attente.
 concurrency:
-  group: deploy
+  group: deploy-${{ github.event_name == 'workflow_dispatch' && 'production' || 'staging' }}
   cancel-in-progress: false
 
 jobs:
+  # Un lancement manuel qui ne vient pas du propriétaire, ou pas de `main`, échoue (au lieu d'un run
+  # vert sans déploiement, qu'on pourrait croire en production).
+  refuse:
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      (github.triggering_actor != github.repository_owner || github.ref != 'refs/heads/main')
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - run: |
+          echo "::error::Seul le propriétaire du repo met en production, depuis main (OPS-004, OPS-006)."
+          exit 1
+
   build:
-    # OPS-006 : déploiement depuis `main` seulement, même lancé à la main (les environnements
-    # `staging` et `production` sont aussi limités à `main` dans GitHub).
-    if: github.ref == 'refs/heads/main'
+    # OPS-006 : depuis `main` seulement (les environnements sont aussi limités à `main` dans GitHub).
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     # OPS-006 : SENTRY_AUTH_TOKEN est un secret de l'environnement staging (limité à `main`), jamais du
     # repo, que n'importe quelle branche poussée pourrait lire.
     environment: staging
@@ -62,14 +77,54 @@ jobs:
 
   staging:
     needs: build
+    # deploy-environment lit l'artefact `dist` (même run ici, run du staging pour la production).
+    permissions:
+      contents: read
+      actions: read
     uses: ./.github/workflows/deploy-environment.yml
     with:
       environment: staging
     secrets: inherit
 
+  # La production ne reçoit qu'un build qui a passé le staging : celui du déploiement réussi de ce commit.
+  staged-build:
+    if: >-
+      github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' &&
+      github.triggering_actor == github.repository_owner
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    permissions:
+      actions: read
+    outputs:
+      run-id: ${{ steps.find.outputs.run-id }}
+    steps:
+      - id: find
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          run_id=$(gh run list -R "$GITHUB_REPOSITORY" --workflow deploy.yml --event push --branch main \
+            --commit "$GITHUB_SHA" --status success --limit 1 --json databaseId -q '.[0].databaseId')
+          if [ -z "$run_id" ]; then
+            echo "::error::Le commit $GITHUB_SHA n'a pas encore été déployé en staging avec succès."
+            exit 1
+          fi
+          artifact=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run_id/artifacts?name=dist" \
+            -q '.artifacts[] | select(.expired | not) | .id')
+          if [ -z "$artifact" ]; then
+            echo "::error::Le build du staging a expiré (30 jours) : fusionner un nouveau commit sur main."
+            exit 1
+          fi
+          echo "run-id=$run_id" >> "$GITHUB_OUTPUT"
+
   production:
-    needs: staging
+    needs: staged-build
+    # Réévalué à chaque relance : un « Re-run » par quelqu'un d'autre ne remet rien en production.
+    if: github.ref == 'refs/heads/main' && github.triggering_actor == github.repository_owner
+    permissions:
+      contents: read
+      actions: read
     uses: ./.github/workflows/deploy-environment.yml
     with:
       environment: production
+      run-id: ${{ needs.staged-build.outputs.run-id }}
     secrets: inherit

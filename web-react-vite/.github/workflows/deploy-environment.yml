@@ -6,9 +6,14 @@ on:
       environment:
         type: string
         required: true
+      # Run du déploiement staging dont la production reprend le build (vide : ce run-ci).
+      run-id:
+        type: string
+        default: ''
 
 permissions:
   contents: read
+  actions: read
 
 jobs:
   deploy:
@@ -30,6 +35,8 @@ jobs:
         with:
           name: dist
           path: dist
+          run-id: ${{ inputs.run-id || github.run_id }}
+          github-token: ${{ github.token }}
 
       # OPS-004 : la configuration propre à l'environnement est injectée au déploiement.
       - name: Écrire config.json

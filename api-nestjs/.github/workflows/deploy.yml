@@ -1,14 +1,15 @@
 name: deploy
 
-# OPS-004 : une image par commit sur main (taguée avec le SHA), déployée en staging, puis en
-# production. Pour un repo privé, GitHub ne propose pas de validation obligatoire (reviewers) hors
-# Enterprise : à régler avant le premier déploiement réel (décision en attente,
-# engineering-guidelines/docs/suivi/HANDOFF.md).
+# OPS-004 : une image par commit sur main (taguée avec le SHA), déployée automatiquement en staging.
+# La production se lance à la main (onglet Actions, ou `gh workflow run deploy`), depuis `main`, par
+# le propriétaire du repo : elle reçoit l'image déjà déployée en staging pour ce commit, sans rien
+# reconstruire. Pour un repo privé, GitHub ne propose pas de validation obligatoire (reviewers) hors
+# Enterprise : le lancement manuel en tient lieu.
 #
 # À configurer dans GitHub :
 #   repo : variable REGISTRY_IMAGE (ex. rg.fr-par.scw.cloud/mon-projet/api). Aucun secret au niveau du repo :
 #     n'importe quelle branche poussée pourrait le lire (OPS-006) ; l'image est poussée depuis l'environnement staging
-#   environnements staging / production :
+#   environnements staging / production (limités à la branche `main`) :
 #     secrets : SCW_ACCESS_KEY, SCW_SECRET_KEY (clé deploy-api de envs/iam). Pas de DATABASE_URL :
 #     les migrations s'appliquent au démarrage de l'API, dans le réseau privé (BE-003)
 #     variables : SCW_DEFAULT_PROJECT_ID, CONTAINER_ID (ID du Serverless Container créé par infra-scaleway)
@@ -16,20 +17,34 @@ name: deploy
 on:
   push:
     branches: [main]
+  # Mise en production du dernier commit de `main`, une fois déployé en staging.
   workflow_dispatch:
 
 permissions:
   contents: read
 
+# Staging et production ont chacun leur file : une fusion ne remplace pas une mise en production en attente.
 concurrency:
-  group: deploy
+  group: deploy-${{ github.event_name == 'workflow_dispatch' && 'production' || 'staging' }}
   cancel-in-progress: false
 
 jobs:
+  # Un lancement manuel qui ne vient pas du propriétaire, ou pas de `main`, échoue (au lieu d'un run
+  # vert sans déploiement, qu'on pourrait croire en production).
+  refuse:
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      (github.triggering_actor != github.repository_owner || github.ref != 'refs/heads/main')
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - run: |
+          echo "::error::Seul le propriétaire du repo met en production, depuis main (OPS-004, OPS-006)."
+          exit 1
+
   image:
-    # OPS-006 : déploiement depuis `main` seulement, même lancé à la main (les environnements
-    # `staging` et `production` sont aussi limités à `main` dans GitHub).
-    if: github.ref == 'refs/heads/main'
+    # OPS-006 : depuis `main` seulement (les environnements sont aussi limités à `main` dans GitHub).
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     uses: ./.github/workflows/docker.yml
     with:
       push: true
@@ -43,10 +58,38 @@ jobs:
       image: ${{ needs.image.outputs.image }}
     secrets: inherit
 
+  # La production ne reçoit qu'une image qui a passé le staging : celle du déploiement réussi de ce commit.
+  staged-image:
+    if: >-
+      github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' &&
+      github.triggering_actor == github.repository_owner
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    permissions:
+      actions: read
+    outputs:
+      image: ${{ steps.find.outputs.image }}
+    steps:
+      - id: find
+        env:
+          GH_TOKEN: ${{ github.token }}
+          IMAGE: ${{ vars.REGISTRY_IMAGE }}
+        run: |
+          [ -n "$IMAGE" ] || { echo "::error::Variable REGISTRY_IMAGE absente du repo."; exit 1; }
+          run_id=$(gh run list -R "$GITHUB_REPOSITORY" --workflow deploy.yml --event push --branch main \
+            --commit "$GITHUB_SHA" --status success --limit 1 --json databaseId -q '.[0].databaseId')
+          if [ -z "$run_id" ]; then
+            echo "::error::Le commit $GITHUB_SHA n'a pas encore été déployé en staging avec succès."
+            exit 1
+          fi
+          echo "image=$IMAGE:$GITHUB_SHA" >> "$GITHUB_OUTPUT"
+
   production:
-    needs: [image, staging]
+    needs: staged-image
+    # Réévalué à chaque relance : un « Re-run » par quelqu'un d'autre ne remet rien en production.
+    if: github.ref == 'refs/heads/main' && github.triggering_actor == github.repository_owner
     uses: ./.github/workflows/deploy-environment.yml
     with:
       environment: production
-      image: ${{ needs.image.outputs.image }}
+      image: ${{ needs.staged-image.outputs.image }}
     secrets: inherit

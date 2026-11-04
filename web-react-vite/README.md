@@ -77,7 +77,7 @@ La feature `notes` est là pour montrer les patterns : la supprimer (et sa route
 | Config d'exécution par environnement (`config.json`)                                                                                                                            | `src/lib/config.ts`, `.github/workflows/deploy-environment.yml`                          | OPS-004          |
 | Hooks Git : format, lint, secrets, commitlint, tests au push                                                                                                                    | `lefthook.yml`                                                                           | GLB-002, GLB-005 |
 | CI : vérifications, E2E, gitleaks, titre de PR                                                                                                                                  | `.github/workflows/ci.yml`                                                               | OPS-002          |
-| Déploiement staging puis production (approbation) sur Object Storage                                                                                                            | `.github/workflows/deploy.yml`                                                           | OPS-004, OPS-005 |
+| Déploiement staging (automatique) puis production (lancée à la main) sur Object Storage                                                                                         | `.github/workflows/deploy.yml`                                                           | OPS-004, OPS-005 |
 | Templates de PR (Definition of Done) et de bug                                                                                                                                  | `.github/`                                                                               | GLB-003, GLB-009 |
 
 ## Authentification (BE-006)
@@ -103,7 +103,7 @@ La feature `notes` est là pour montrer les patterns : la supprimer (et sa route
 
 ## Déploiement
 
-Le workflow `deploy` construit l'app **une seule fois** par commit sur `main`, la publie en staging, puis en production après approbation dans GitHub. La configuration de chaque environnement (URL d'API, DSN Sentry) est écrite dans `config.json` au déploiement. Les secrets et variables à créer sont listés en tête de `.github/workflows/deploy.yml`. Le bucket et le CDN se créent avec le boilerplate `infra-scaleway`.
+Le workflow `deploy` construit l'app **une seule fois** par commit sur `main`, la publie automatiquement en staging. La production se lance à la main depuis `main` (onglet Actions ou `gh workflow run deploy`), par le propriétaire du repo : elle reçoit le build déjà déployé en staging pour ce commit, sans le reconstruire (OPS-004). Ce build est gardé 30 jours : au-delà, fusionner un nouveau commit sur `main` avant de mettre en production. La configuration de chaque environnement (URL d'API, DSN Sentry) est écrite dans `config.json` au déploiement. Les secrets et variables à créer sont listés en tête de `.github/workflows/deploy.yml`. Le bucket et le CDN se créent avec le boilerplate `infra-scaleway`.
 
 ## Libs partagées
 
