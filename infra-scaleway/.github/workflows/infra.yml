@@ -38,7 +38,7 @@ permissions:
 # Un groupe par environnement : un push sur `main` (staging) ne remplace pas un lancement de
 # production en attente. Les PR ont chacune le leur.
 concurrency:
-  group: infra-${{ github.event_name == 'pull_request' && github.ref || inputs.environment || 'staging' }}
+  group: infra-${{ github.ref }}-${{ github.event_name == 'pull_request' && 'checks' || inputs.environment || 'staging' }}
   cancel-in-progress: false
 
 jobs:
@@ -70,23 +70,23 @@ jobs:
           tflint --init
           tflint --recursive
       # OPS-006 : rien qui sorte un secret d'un plan (affiché dans le résumé du job) ou l'envoie au
-      # dehors. Filet de sécurité pour le code fusionné : une PR peut modifier ce workflow, la vraie
-      # barrière est la limitation des environnements à `main`. Après `tofu init` (validate), les
-      # fichiers de verrouillage listent tous les fournisseurs, même ajoutés implicitement.
+      # dehors. Filet contre les erreurs, pas contre du code malveillant : une PR peut modifier ce
+      # workflow, la vraie barrière est la limitation des environnements à `main`. Après `tofu init`
+      # (validate), les fichiers de verrouillage listent tous les fournisseurs, même implicites.
       - name: secrets hors des plans
         run: |
           fail=0
-          if find envs modules -name '*.tf.json' | grep .; then
-            echo "::error::Fichiers *.tf.json interdits : la règle ne sait pas les lire."; fail=1
+          if find envs modules -name .terraform -prune -o \( -name '*.tf.json' -o -name '*.tofu.json' \) -print | grep .; then
+            echo "::error::Fichiers *.tf.json et *.tofu.json interdits : la règle ne sait pas les lire."; fail=1
           fi
-          if grep -rnE 'nonsensitive[[:space:]]*\(|data[[:space:]]+"?(external|http)"?[[:space:]]|provisioner[[:space:]]+"?[a-z-]+"?[[:space:]]*\{|local-exec' envs modules; then
-            echo "::error::Construction interdite : elle peut révéler un secret (OPS-006)."; fail=1
+          if grep -rnE --exclude-dir=.terraform --include='*.tf' --include='*.tofu' 'nonsensitive|data[[:space:]]+"?(external|http)"?[[:space:]]|provisioner[[:space:]]|local-exec|api_url[[:space:]]*=' envs modules; then
+            echo "::error::Construction interdite : elle peut révéler un secret ou l'envoyer ailleurs (OPS-006)."; fail=1
           fi
           # Fournisseurs autorisés : scaleway/scaleway, hashicorp/random. Modules : locaux seulement.
           if grep -h '^provider "' envs/*/.terraform.lock.hcl | grep -vE '"registry\.opentofu\.org/(scaleway/scaleway|hashicorp/random)"'; then
             echo "::error::Fournisseur non autorisé : l'ajouter à cette liste dans une PR dédiée."; fail=1
           fi
-          if grep -rhoE '^[[:space:]]*source[[:space:]]*=[[:space:]]*"[^"]+"' envs modules | grep -vE '"(\.\./\.\./modules/[a-z-]+|scaleway/scaleway|hashicorp/random)"$'; then
+          if grep -rhoE --exclude-dir=.terraform 'source[[:space:]]*=[[:space:]]*"[^"]*"' envs modules | grep -vE '"(\.\./\.\./modules/[a-z-]+|scaleway/scaleway|hashicorp/random)"$'; then
             echo "::error::Source de module non autorisée : modules locaux seulement."; fail=1
           fi
           exit "$fail"
@@ -97,6 +97,17 @@ jobs:
           scan-ref: .
           severity: CRITICAL,HIGH
           exit-code: '1'
+
+  # Un lancement manuel qui ne vient pas du propriétaire du repo échoue (au lieu d'un run vert
+  # sans apply, qu'on pourrait croire appliqué).
+  refuse:
+    if: github.event_name == 'workflow_dispatch' && github.triggering_actor != github.repository_owner
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - run: |
+          echo "::error::Seul le propriétaire du repo lance un apply manuel (OPS-006)."
+          exit 1
 
   apply:
     # Seulement depuis `main`. Un lancement manuel doit venir du propriétaire du repo : une PR qui
@@ -129,7 +140,7 @@ jobs:
           tofu_version_file: .opentofu-version
           tofu_wrapper: false
       - run: tofu -chdir="envs/$ENVIRONMENT" init -input=false
-      # Le plan appliqué est celui affiché ici.
+      # Le plan appliqué est celui affiché ici (tronqué dans le résumé s'il est très long).
       - name: tofu plan
         run: |
           tofu -chdir="envs/$ENVIRONMENT" plan -input=false -no-color -out=tfplan > plan.txt
