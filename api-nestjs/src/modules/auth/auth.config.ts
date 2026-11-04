@@ -32,20 +32,25 @@ export const AUTH_BASE_PATH = '/v1/auth';
 /** Recommandation OWASP pour Argon2id : 19 Mio, 2 passes, 1 fil. Argon2id est l'algorithme par défaut. */
 const ARGON2_OPTIONS = { memoryCost: 19_456, timeCost: 2, parallelism: 1 };
 
-/** Borne l'expiration d'une session prolongée à sa durée de vie absolue (BE-006). */
-/** Le jeton JWT de vérification demande-t-il un changement d'adresse ? Lu sans vérifier la signature. */
+/**
+ * Le jeton de vérification demande-t-il un changement d'adresse, ou est-il illisible ? Lu sans
+ * vérifier la signature, décodé comme le fait jose pour Better Auth (TextDecoder retire un BOM
+ * éventuel). En cas de doute, vrai : le jeton est refusé (un jeton légitime se lit toujours).
+ */
 export function hasEmailChange(token: unknown): boolean {
-  if (typeof token !== 'string') return false;
+  if (token === undefined) return false;
+  if (typeof token !== 'string') return true;
   const payload = token.split('.')[1];
-  if (!payload) return false;
+  if (!payload) return true;
   try {
-    const claims: unknown = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8'));
-    return typeof claims === 'object' && claims !== null && 'updateTo' in claims;
+    const claims: unknown = JSON.parse(new TextDecoder().decode(Buffer.from(payload, 'base64url')));
+    return typeof claims !== 'object' || claims === null || 'updateTo' in claims;
   } catch {
-    return false;
+    return true;
   }
 }
 
+/** Borne l'expiration d'une session prolongée à sa durée de vie absolue (BE-006). */
 export function capSessionExpiry(expiresAt: Date, createdAt: Date): Date {
   const limit = new Date(createdAt.getTime() + SESSION_MAX_LIFETIME_MS);
   return expiresAt > limit ? limit : expiresAt;

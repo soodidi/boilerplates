@@ -1,19 +1,18 @@
 name: infra
 
-# OPS-003 : vérifications sans secret sur chaque PR ; après fusion, plan affiché dans le résumé du
-# job puis `apply` (staging). Production et shared : seulement par un lancement manuel depuis `main`
-# (onglet Actions), qui affiche le plan puis l'applique. Pour un repo privé, GitHub ne propose pas de
-# validation obligatoire (reviewers) hors Enterprise : le lancement manuel en tient lieu.
+# OPS-003 : vérifications sans secret sur chaque PR. Après fusion : plan affiché dans le résumé du job,
+# puis `apply` de staging. Production et shared : seulement par un lancement manuel depuis `main`
+# (onglet Actions, par le propriétaire du repo), qui affiche le plan puis l'applique. Pour un repo
+# privé, GitHub ne propose pas de validation obligatoire (reviewers) hors Enterprise.
 #
-# OPS-006 : une PR exécute la version du workflow de sa branche, et n'importe quel plan lit le state
-# `iam` (toutes les clés) avec une passphrase commune : aucune PR n'a donc accès à un secret. Les
-# environnements `staging`, `production` et `production-plan` sont limités à la branche `main`
-# (« Deployment branches » dans GitHub) : c'est cette règle, pas le workflow, qui protège les secrets.
+# OPS-006 : une PR exécute la version du workflow de sa branche, et tout plan lit le state `iam`
+# (toutes les clés) avec la passphrase commune : aucune PR n'a donc accès à un secret. Les
+# environnements `staging` et `production` sont limités à la branche `main` (« Deployment branches »
+# dans GitHub) : c'est cette règle, pas le workflow, qui protège les secrets.
 #
-# À configurer dans GitHub (créés et limités à `main` par /new-project ; GitHub Pro requis pour un repo privé) :
-#   environnements `staging` et `production` pour l'apply (reviewers sur production si le repo est public),
-#   et `production-plan` (clé API en lecture seule) pour le plan affiché avant l'apply :
-#     secrets : SCW_ACCESS_KEY, SCW_SECRET_KEY (sorties de envs/iam), TF_STATE_PASSPHRASE
+# À configurer dans GitHub (créés et limités à `main` par /new-project ; GitHub Pro requis pour un
+# repo privé) : environnements `staging` et `production`, avec
+#     secrets : SCW_ACCESS_KEY, SCW_SECRET_KEY (clé CI de envs/iam), TF_STATE_PASSPHRASE
 #     variables : SCW_DEFAULT_PROJECT_ID, SCW_DEFAULT_ORGANIZATION_ID
 #   les tfvars de chaque environnement sont versionnés dans envs/<env>/<env>.auto.tfvars
 #   (aucun secret dedans).
@@ -36,8 +35,10 @@ on:
 permissions:
   contents: read
 
+# Un groupe par environnement : un push sur `main` (staging) ne remplace pas un lancement de
+# production en attente. Les PR ont chacune le leur.
 concurrency:
-  group: infra-${{ github.ref }}
+  group: infra-${{ github.event_name == 'pull_request' && github.ref || inputs.environment || 'staging' }}
   cancel-in-progress: false
 
 jobs:
@@ -69,14 +70,26 @@ jobs:
           tflint --init
           tflint --recursive
       # OPS-006 : rien qui sorte un secret d'un plan (affiché dans le résumé du job) ou l'envoie au
-      # dehors pendant le plan. Filet de sécurité pour le code fusionné : une PR peut modifier ce
-      # workflow, la vraie barrière est la limitation des environnements à `main`.
+      # dehors. Filet de sécurité pour le code fusionné : une PR peut modifier ce workflow, la vraie
+      # barrière est la limitation des environnements à `main`. Après `tofu init` (validate), les
+      # fichiers de verrouillage listent tous les fournisseurs, même ajoutés implicitement.
       - name: secrets hors des plans
         run: |
-          if grep -rnE 'nonsensitive\(|data "(external|http)"|provisioner "|local-exec' envs modules; then
-            echo "::error::Construction interdite : elle peut révéler un secret dans un plan (OPS-006)."
-            exit 1
+          fail=0
+          if find envs modules -name '*.tf.json' | grep .; then
+            echo "::error::Fichiers *.tf.json interdits : la règle ne sait pas les lire."; fail=1
           fi
+          if grep -rnE 'nonsensitive[[:space:]]*\(|data[[:space:]]+"?(external|http)"?[[:space:]]|provisioner[[:space:]]+"?[a-z-]+"?[[:space:]]*\{|local-exec' envs modules; then
+            echo "::error::Construction interdite : elle peut révéler un secret (OPS-006)."; fail=1
+          fi
+          # Fournisseurs autorisés : scaleway/scaleway, hashicorp/random. Modules : locaux seulement.
+          if grep -h '^provider "' envs/*/.terraform.lock.hcl | grep -vE '"registry\.opentofu\.org/(scaleway/scaleway|hashicorp/random)"'; then
+            echo "::error::Fournisseur non autorisé : l'ajouter à cette liste dans une PR dédiée."; fail=1
+          fi
+          if grep -rhoE '^[[:space:]]*source[[:space:]]*=[[:space:]]*"[^"]+"' envs modules | grep -vE '"(\.\./\.\./modules/[a-z-]+|scaleway/scaleway|hashicorp/random)"$'; then
+            echo "::error::Source de module non autorisée : modules locaux seulement."; fail=1
+          fi
+          exit "$fail"
       # Mauvaises configurations de sécurité (bucket public non voulu, chiffrement…).
       - uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
@@ -85,50 +98,14 @@ jobs:
           severity: CRITICAL,HIGH
           exit-code: '1'
 
-  # Plan de production ou de shared, affiché avant l'apply (et avant la validation si le repo en a une).
-  plan-protected:
-    if: github.event_name == 'workflow_dispatch' && inputs.environment != 'staging' && github.ref == 'refs/heads/main'
-    needs: checks
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    environment:
-      name: production-plan
-    env:
-      SCW_ACCESS_KEY: ${{ secrets.SCW_ACCESS_KEY }}
-      SCW_SECRET_KEY: ${{ secrets.SCW_SECRET_KEY }}
-      AWS_ACCESS_KEY_ID: ${{ secrets.SCW_ACCESS_KEY }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.SCW_SECRET_KEY }}
-      SCW_DEFAULT_PROJECT_ID: ${{ vars.SCW_DEFAULT_PROJECT_ID }}
-      SCW_DEFAULT_ORGANIZATION_ID: ${{ vars.SCW_DEFAULT_ORGANIZATION_ID }}
-      TF_VAR_state_passphrase: ${{ secrets.TF_STATE_PASSPHRASE }}
-      ENVIRONMENT: ${{ inputs.environment }}
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: opentofu/setup-opentofu@a1320f892987e89d278cc92dc5adc984fb93aca4 # v2.0.2
-        with:
-          tofu_version_file: .opentofu-version
-          tofu_wrapper: false
-      - run: tofu -chdir="envs/$ENVIRONMENT" init -input=false
-      - name: tofu plan
-        run: |
-          tofu -chdir="envs/$ENVIRONMENT" plan -input=false -no-color -lock=false > plan.txt
-          {
-            echo "### Plan $ENVIRONMENT (à relire avant de valider l'apply)"
-            echo '```'
-            tail -c 60000 plan.txt
-            echo '```'
-          } >> "$GITHUB_STEP_SUMMARY"
-
   apply:
-    # Seulement depuis `main` ; production et shared après leur plan, staging directement.
+    # Seulement depuis `main`. Un lancement manuel doit venir du propriétaire du repo : une PR qui
+    # obtiendrait `actions: write` ne peut pas déclencher la production à sa place.
     if: >-
-      !cancelled() && github.ref == 'refs/heads/main' && needs.checks.result == 'success' &&
-      (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
-      (needs.plan-protected.result == 'success' ||
-       (needs.plan-protected.result == 'skipped' && (inputs.environment || 'staging') == 'staging'))
-    needs: [checks, plan-protected]
+      github.ref == 'refs/heads/main' &&
+      (github.event_name == 'push' ||
+       (github.event_name == 'workflow_dispatch' && github.triggering_actor == github.repository_owner))
+    needs: checks
     runs-on: ubuntu-latest
     timeout-minutes: 30
     environment:

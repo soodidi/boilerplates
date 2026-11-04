@@ -19,15 +19,28 @@ describe('hasEmailChange', () => {
   const jwt = (claims: object) =>
     `header.${Buffer.from(JSON.stringify(claims)).toString('base64url')}.signature`;
 
-  it('spots a change-email verification token', () => {
-    expect(hasEmailChange(jwt({ email: 'a@example.com', updateTo: 'b@example.com' }))).toBe(true);
+  const withBom = (claims: object) =>
+    `header.${Buffer.concat([
+      Buffer.from([0xef, 0xbb, 0xbf]),
+      Buffer.from(JSON.stringify(claims)),
+    ]).toString('base64url')}.signature`;
+
+  it.each([
+    ['a change-email token', jwt({ email: 'a@example.com', updateTo: 'b@example.com' })],
+    // jose retire le BOM avant de lire le jeton : une lecture plus naïve le laisserait passer.
+    ['a change-email token with a BOM', withBom({ email: 'a@example.com', updateTo: 'b@x.com' })],
+    ['a malformed token', 'not-a-jwt'],
+    ['an unreadable payload', 'header.%%%.signature'],
+    ['a payload that is not an object', `header.${Buffer.from('"x"').toString('base64url')}.sig`],
+    ['a repeated token', ['a', 'b']],
+  ])('refuses %s', (_label, token) => {
+    expect(hasEmailChange(token)).toBe(true);
   });
 
   it.each([
     ['a sign-up token', jwt({ email: 'a@example.com' })],
+    ['a sign-up token with a BOM', withBom({ email: 'a@example.com' })],
     ['no token', undefined],
-    ['a malformed token', 'not-a-jwt'],
-    ['an unreadable payload', 'header.%%%.signature'],
   ])('lets %s through to Better Auth', (_label, token) => {
     expect(hasEmailChange(token)).toBe(false);
   });

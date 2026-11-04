@@ -1,3 +1,4 @@
+import { createHmac } from 'node:crypto';
 import { signJWT } from 'better-auth/crypto';
 import { sql } from 'drizzle-orm';
 import { type NestFastifyApplication } from '@nestjs/platform-fastify';
@@ -9,7 +10,7 @@ import {
   ADMIN_SELF_PATHS,
 } from '../src/modules/auth/access-control.js';
 import { UsersService } from '../src/modules/auth/index.js';
-import { createTestApp, PASSWORD, signUpAndSignIn } from './app.js';
+import { createTestApp, PASSWORD, signUpAndSignIn, TEST_AUTH_SECRET } from './app.js';
 import { createTestDatabase } from './database.js';
 
 // BE-010 : rôles et permissions, appliqués par l'API contre une vraie base.
@@ -342,19 +343,34 @@ describe('Roles and permissions (e2e)', () => {
 
     // Défense en profondeur : avec le secret de Better Auth, un jeton de changement d'adresse forgé
     // ouvrirait une session sur n'importe quel compte, même avec change-email désactivé.
-    it('refuses a verification link that changes an address', async () => {
-      const token = await signJWT(
-        {
-          email: 'grace@example.com',
-          updateTo: 'mallory@example.com',
-          requestType: 'change-email-verification',
-        },
-        'test-secret-with-at-least-32-characters',
-      );
+    const changeEmail = {
+      email: 'grace@example.com',
+      updateTo: 'mallory@example.com',
+      requestType: 'change-email-verification',
+    };
 
+    /** Jeton HS256 signé à la main, payload précédé d'un BOM (que jose retire avant de le lire). */
+    function signWithBom(claims: object): string {
+      const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString(
+        'base64url',
+      );
+      const payload = Buffer.concat([
+        Buffer.from([0xef, 0xbb, 0xbf]),
+        Buffer.from(JSON.stringify({ ...claims, exp: Math.floor(Date.now() / 1000) + 3600 })),
+      ]).toString('base64url');
+      const signature = createHmac('sha256', TEST_AUTH_SECRET)
+        .update(`${header}.${payload}`)
+        .digest('base64url');
+      return `${header}.${payload}.${signature}`;
+    }
+
+    it.each([
+      ['signed by Better Auth', () => signJWT(changeEmail, TEST_AUTH_SECRET)],
+      ['with a BOM before its payload', () => Promise.resolve(signWithBom(changeEmail))],
+    ])('refuses a verification link that changes an address (%s)', async (_label, sign) => {
       const response = await app.inject({
         method: 'GET',
-        url: `/v1/auth/verify-email?token=${token}`,
+        url: `/v1/auth/verify-email?token=${await sign()}`,
       });
 
       expect(response.statusCode).toBe(400);

@@ -5,6 +5,7 @@ import { configureApp, createFastifyAdapter } from '../src/app.setup.js';
 import { InMemoryMailer, Mailer } from '../src/mail/index.js';
 
 export const WEB_ORIGIN = 'http://localhost:5173';
+export const TEST_AUTH_SECRET = 'test-secret-with-at-least-32-characters';
 
 /** L'API complète, comme en production, avec les e-mails gardés en mémoire. */
 export async function createTestApp(databaseUrl: string, overrides: Record<string, string> = {}) {
@@ -16,7 +17,7 @@ export async function createTestApp(databaseUrl: string, overrides: Record<strin
     CORS_ORIGINS: WEB_ORIGIN,
     SMTP_URL: 'smtp://localhost:1025',
     MAIL_FROM: 'Test <noreply@localhost>',
-    BETTER_AUTH_SECRET: 'test-secret-with-at-least-32-characters',
+    BETTER_AUTH_SECRET: TEST_AUTH_SECRET,
     BETTER_AUTH_URL: 'http://localhost:3000',
     WEB_URL: WEB_ORIGIN,
     TRUST_PROXY_HOPS: '1',
