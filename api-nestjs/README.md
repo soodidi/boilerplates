@@ -87,7 +87,7 @@ Le module `notes` sert d'exemple et correspond à la feature `notes` du boilerpl
 | E-mails : `Mailer` injectable, SMTP hors requête avec reprises, gabarits FR, Mailpit en local                                                                                                                                        | `src/mail/`, `compose.yaml`                             | BE-009           |
 | RGPD : export des données (`GET /v1/account/export`), suppression du compte avec mot de passe (`POST /v1/auth/delete-user`), registre `UserDataContributor`                                                                          | `src/common/user-data/`, `src/modules/account/`         | GLB-013          |
 | Image Docker multi-stage non-root, scan Trivy                                                                                                                                                                                        | `Dockerfile`, `.github/workflows/docker.yml`            | OPS-001          |
-| Déploiement : Serverless Container (migrations au démarrage, sous verrou), staging puis production                                                                                                                                   | `.github/workflows/deploy*.yml`                         | OPS-004, OPS-005 |
+| Déploiement : Serverless Container (migrations au démarrage, sous verrou), staging automatique, production lancée à la main (`gh workflow run deploy`, même image)                                                                   | `.github/workflows/deploy*.yml`                         | OPS-004, OPS-005 |
 
 ## À ajouter selon le projet
 
