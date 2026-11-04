@@ -10,7 +10,7 @@ variable "domain" {
 }
 
 variable "bucket_application_ids" {
-  description = "Applications IAM qui accèdent au bucket : CI infra (apply), plans des PR (lecture), déploiement du front"
+  description = "Applications IAM qui accèdent au bucket : CI infra (apply), déploiement du front"
   type        = list(string)
 }
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { capSessionExpiry, SESSION_MAX_LIFETIME_MS } from './auth.config.js';
+import { capSessionExpiry, hasEmailChange, SESSION_MAX_LIFETIME_MS } from './auth.config.js';
 
 describe('capSessionExpiry', () => {
   const createdAt = new Date('2026-01-01T00:00:00.000Z');
@@ -12,5 +12,36 @@ describe('capSessionExpiry', () => {
 
   it('caps an expiry beyond 90 days of sign-in', () => {
     expect(capSessionExpiry(new Date('2026-06-01T00:00:00.000Z'), createdAt)).toEqual(limit);
+  });
+});
+
+describe('hasEmailChange', () => {
+  const jwt = (claims: object) =>
+    `header.${Buffer.from(JSON.stringify(claims)).toString('base64url')}.signature`;
+
+  const withBom = (claims: object) =>
+    `header.${Buffer.concat([
+      Buffer.from([0xef, 0xbb, 0xbf]),
+      Buffer.from(JSON.stringify(claims)),
+    ]).toString('base64url')}.signature`;
+
+  it.each([
+    ['a change-email token', jwt({ email: 'a@example.com', updateTo: 'b@example.com' })],
+    // jose retire le BOM avant de lire le jeton : une lecture plus naïve le laisserait passer.
+    ['a change-email token with a BOM', withBom({ email: 'a@example.com', updateTo: 'b@x.com' })],
+    ['a malformed token', 'not-a-jwt'],
+    ['an unreadable payload', 'header.%%%.signature'],
+    ['a payload that is not an object', `header.${Buffer.from('"x"').toString('base64url')}.sig`],
+    ['a repeated token', ['a', 'b']],
+  ])('refuses %s', (_label, token) => {
+    expect(hasEmailChange(token)).toBe(true);
+  });
+
+  it.each([
+    ['a sign-up token', jwt({ email: 'a@example.com' })],
+    ['a sign-up token with a BOM', withBom({ email: 'a@example.com' })],
+    ['no token', undefined],
+  ])('lets %s through to Better Auth', (_label, token) => {
+    expect(hasEmailChange(token)).toBe(false);
   });
 });

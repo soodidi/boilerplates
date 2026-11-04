@@ -1,12 +1,18 @@
 name: infra
 
-# OPS-003 : vérifications sur chaque PR, `plan` visible dans le résumé du job,
-# `apply` par la CI après fusion (staging) ou après approbation (production).
+# OPS-003 : vérifications sans secret sur chaque PR. Après fusion : plan affiché dans le résumé du job,
+# puis `apply` de staging. Production et shared : seulement par un lancement manuel depuis `main`
+# (onglet Actions, par le propriétaire du repo), qui affiche le plan puis l'applique. Pour un repo
+# privé, GitHub ne propose pas de validation obligatoire (reviewers) hors Enterprise.
 #
-# À configurer dans GitHub :
-#   environnements `staging` et `production` (reviewers obligatoires pour production) pour l'apply,
-#   et `staging-plan` / `production-plan` (sans reviewers, clé API en lecture seule) pour le plan des PR :
-#     secrets : SCW_ACCESS_KEY, SCW_SECRET_KEY (sorties de envs/iam), TF_STATE_PASSPHRASE
+# OPS-006 : une PR exécute la version du workflow de sa branche, et tout plan lit le state `iam`
+# (toutes les clés) avec la passphrase commune : aucune PR n'a donc accès à un secret. Les
+# environnements `staging` et `production` sont limités à la branche `main` (« Deployment branches »
+# dans GitHub) : c'est cette règle, pas le workflow, qui protège les secrets.
+#
+# À configurer dans GitHub (créés et limités à `main` par /new-project ; GitHub Pro requis pour un
+# repo privé) : environnements `staging` et `production`, avec
+#     secrets : SCW_ACCESS_KEY, SCW_SECRET_KEY (clé CI de envs/iam), TF_STATE_PASSPHRASE
 #     variables : SCW_DEFAULT_PROJECT_ID, SCW_DEFAULT_ORGANIZATION_ID
 #   les tfvars de chaque environnement sont versionnés dans envs/<env>/<env>.auto.tfvars
 #   (aucun secret dedans).
@@ -23,14 +29,16 @@ on:
         description: Environnement à appliquer
         type: choice
         # shared (registre, domaine d'envoi) : commun aux environnements, appliqué à la demande,
-        # avec l'approbation de l'environnement production.
+        # avec les secrets de l'environnement production.
         options: [staging, production, shared]
 
 permissions:
   contents: read
 
+# Un groupe par environnement : un push sur `main` (staging) ne remplace pas un lancement de
+# production en attente. Les PR ont chacune le leur.
 concurrency:
-  group: infra-${{ github.ref }}
+  group: infra-${{ github.ref }}-${{ github.event_name == 'pull_request' && 'checks' || inputs.environment || 'staging' }}
   cancel-in-progress: false
 
 jobs:
@@ -61,6 +69,27 @@ jobs:
           export PATH="$RUNNER_TEMP:$PATH"
           tflint --init
           tflint --recursive
+      # OPS-006 : rien qui sorte un secret d'un plan (affiché dans le résumé du job) ou l'envoie au
+      # dehors. Filet contre les erreurs, pas contre du code malveillant : une PR peut modifier ce
+      # workflow, la vraie barrière est la limitation des environnements à `main`. Après `tofu init`
+      # (validate), les fichiers de verrouillage listent tous les fournisseurs, même implicites.
+      - name: secrets hors des plans
+        run: |
+          fail=0
+          if find envs modules -name .terraform -prune -o \( -name '*.tf.json' -o -name '*.tofu.json' \) -print | grep .; then
+            echo "::error::Fichiers *.tf.json et *.tofu.json interdits : la règle ne sait pas les lire."; fail=1
+          fi
+          if grep -rnE --exclude-dir=.terraform --include='*.tf' --include='*.tofu' 'nonsensitive|data[[:space:]]+"?(external|http)"?[[:space:]]|provisioner[[:space:]]|local-exec|api_url[[:space:]]*=' envs modules; then
+            echo "::error::Construction interdite : elle peut révéler un secret ou l'envoyer ailleurs (OPS-006)."; fail=1
+          fi
+          # Fournisseurs autorisés : scaleway/scaleway, hashicorp/random. Modules : locaux seulement.
+          if grep -h '^provider "' envs/*/.terraform.lock.hcl | grep -vE '"registry\.opentofu\.org/(scaleway/scaleway|hashicorp/random)"'; then
+            echo "::error::Fournisseur non autorisé : l'ajouter à cette liste dans une PR dédiée."; fail=1
+          fi
+          if grep -rhoE --exclude-dir=.terraform 'source[[:space:]]*=[[:space:]]*"[^"]*"' envs modules | grep -vE '"(\.\./\.\./modules/[a-z-]+|scaleway/scaleway|hashicorp/random)"$'; then
+            echo "::error::Source de module non autorisée : modules locaux seulement."; fail=1
+          fi
+          exit "$fail"
       # Mauvaises configurations de sécurité (bucket public non voulu, chiffrement…).
       - uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
@@ -69,47 +98,24 @@ jobs:
           severity: CRITICAL,HIGH
           exit-code: '1'
 
-  plan:
-    if: github.event_name == 'pull_request'
-    needs: checks
+  # Un lancement manuel qui ne vient pas du propriétaire du repo échoue (au lieu d'un run vert
+  # sans apply, qu'on pourrait croire appliqué).
+  refuse:
+    if: github.event_name == 'workflow_dispatch' && github.triggering_actor != github.repository_owner
     runs-on: ubuntu-latest
-    timeout-minutes: 15
-    strategy:
-      matrix:
-        environment: [shared, staging, production]
-    environment:
-      # Clé `ci_plan` en lecture seule (envs/iam). shared utilise celle de production-plan.
-      name: ${{ matrix.environment == 'shared' && 'production' || matrix.environment }}-plan
-    env:
-      SCW_ACCESS_KEY: ${{ secrets.SCW_ACCESS_KEY }}
-      SCW_SECRET_KEY: ${{ secrets.SCW_SECRET_KEY }}
-      AWS_ACCESS_KEY_ID: ${{ secrets.SCW_ACCESS_KEY }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.SCW_SECRET_KEY }}
-      SCW_DEFAULT_PROJECT_ID: ${{ vars.SCW_DEFAULT_PROJECT_ID }}
-      SCW_DEFAULT_ORGANIZATION_ID: ${{ vars.SCW_DEFAULT_ORGANIZATION_ID }}
-      # OPS-006 : passphrase de chiffrement du state, nécessaire dès `tofu init`.
-      TF_VAR_state_passphrase: ${{ secrets.TF_STATE_PASSPHRASE }}
+    timeout-minutes: 2
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: opentofu/setup-opentofu@a1320f892987e89d278cc92dc5adc984fb93aca4 # v2.0.2
-        with:
-          tofu_version_file: .opentofu-version
-          tofu_wrapper: false
-      - run: tofu -chdir=envs/${{ matrix.environment }} init -input=false
-      - name: tofu plan
-        run: |
-          tofu -chdir=envs/${{ matrix.environment }} plan -input=false -no-color -lock=false > plan.txt
-          {
-            echo "### Plan ${{ matrix.environment }}"
-            echo '```'
-            tail -c 60000 plan.txt
-            echo '```'
-          } >> "$GITHUB_STEP_SUMMARY"
+      - run: |
+          echo "::error::Seul le propriétaire du repo lance un apply manuel (OPS-006)."
+          exit 1
 
   apply:
-    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    # Seulement depuis `main`. Un lancement manuel doit venir du propriétaire du repo : une PR qui
+    # obtiendrait `actions: write` ne peut pas déclencher la production à sa place.
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      (github.event_name == 'push' ||
+       (github.event_name == 'workflow_dispatch' && github.triggering_actor == github.repository_owner))
     needs: checks
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -134,4 +140,14 @@ jobs:
           tofu_version_file: .opentofu-version
           tofu_wrapper: false
       - run: tofu -chdir="envs/$ENVIRONMENT" init -input=false
-      - run: tofu -chdir="envs/$ENVIRONMENT" apply -input=false -auto-approve
+      # Le plan appliqué est celui affiché ici (tronqué dans le résumé s'il est très long).
+      - name: tofu plan
+        run: |
+          tofu -chdir="envs/$ENVIRONMENT" plan -input=false -no-color -out=tfplan > plan.txt
+          {
+            echo "### Plan $ENVIRONMENT (appliqué)"
+            echo '```'
+            tail -c 60000 plan.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - run: tofu -chdir="envs/$ENVIRONMENT" apply -input=false tfplan

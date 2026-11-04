@@ -1,15 +1,16 @@
 name: deploy
 
 # OPS-004 : « build once, deploy many ». Un seul build par commit sur main,
-# déployé automatiquement en staging, puis en production après approbation
-# (GitHub Environment `production` avec reviewers obligatoires).
+# déployé automatiquement en staging, puis en production. Pour un repo privé, GitHub ne propose pas
+# de validation obligatoire (reviewers) hors Enterprise : à régler avant le premier déploiement réel
+# (décision en attente, engineering-guidelines/docs/suivi/HANDOFF.md).
 #
 # À configurer dans GitHub (Settings → Environments) :
-#   staging / production :
+#   staging / production (limités à la branche `main`, OPS-006) :
 #     secrets : SCW_ACCESS_KEY, SCW_SECRET_KEY (clé deploy-web de envs/iam : Object Storage seulement, OPS-006)
 #     variables : BUCKET (nom du bucket), API_URL, SENTRY_DSN
-#   repo :
-#     secret : SENTRY_AUTH_TOKEN ; variables : SENTRY_ORG, SENTRY_PROJECT
+#   staging seulement : secret SENTRY_AUTH_TOKEN (envoi des source maps au build)
+#   repo : variables SENTRY_ORG, SENTRY_PROJECT (aucun secret au niveau du repo)
 
 on:
   push:
@@ -25,6 +26,12 @@ concurrency:
 
 jobs:
   build:
+    # OPS-006 : déploiement depuis `main` seulement, même lancé à la main (les environnements
+    # `staging` et `production` sont aussi limités à `main` dans GitHub).
+    if: github.ref == 'refs/heads/main'
+    # OPS-006 : SENTRY_AUTH_TOKEN est un secret de l'environnement staging (limité à `main`), jamais du
+    # repo, que n'importe quelle branche poussée pourrait lire.
+    environment: staging
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:

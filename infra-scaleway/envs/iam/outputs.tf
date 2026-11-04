@@ -32,17 +32,6 @@ output "deploy_secret_keys" {
 
 # Lus par staging et production pour autoriser l'écriture dans le bucket du front (bucket policy).
 output "web_bucket_application_ids" {
-  description = "Applications IAM citées dans la bucket policy du front : CI infra, plans des PR, deploy-web"
-  value       = [module.ci.application_id, module.ci_plan.application_id, module.deploy["web"].application_id]
-}
-
-output "ci_plan_access_key" {
-  description = "SCW_ACCESS_KEY des environnements GitHub staging-plan et production-plan (repo infra)"
-  value       = module.ci_plan.access_key
-}
-
-output "ci_plan_secret_key" {
-  description = "SCW_SECRET_KEY des environnements GitHub staging-plan et production-plan (repo infra)"
-  value       = module.ci_plan.secret_key
-  sensitive   = true
+  description = "Applications IAM citées dans la bucket policy du front : CI infra, deploy-web"
+  value       = [module.ci.application_id, module.deploy["web"].application_id]
 }
