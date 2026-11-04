@@ -57,35 +57,31 @@ describe('AdminPage', () => {
     ).toBeVisible();
   });
 
-  it('nomme un administrateur après confirmation, puis lui retire ce rôle', async () => {
+  it('rend le focus au bouton « Suspendre » après « Annuler », sans rien envoyer', async () => {
     signInAsDemo();
     const user = userEvent.setup();
     renderRoute('/admin');
 
-    await user.click(
-      await screen.findByRole('button', { name: `Nommer administrateur ${OTHER_USER.name}` }),
-    );
+    await user.click(await screen.findByRole('button', { name: `Suspendre ${OTHER_USER.name}` }));
     await user.click(screen.getByRole('button', { name: 'Annuler' }));
-    expect(db.users.find((candidate) => candidate.id === OTHER_USER.id)?.role).toBe('user');
-    // Le focus revient sur le bouton qui a ouvert la confirmation.
-    expect(
-      screen.getByRole('button', { name: `Nommer administrateur ${OTHER_USER.name}` }),
-    ).toHaveFocus();
 
-    await user.click(
-      screen.getByRole('button', { name: `Nommer administrateur ${OTHER_USER.name}` }),
-    );
-    await user.click(screen.getByRole('button', { name: 'Confirmer' }));
-    const demote = await screen.findByRole('button', {
-      name: `Retirer le rôle administrateur ${OTHER_USER.name}`,
-    });
-    expect(db.users.find((candidate) => candidate.id === OTHER_USER.id)?.role).toBe('admin');
+    expect(screen.getByRole('button', { name: `Suspendre ${OTHER_USER.name}` })).toHaveFocus();
+    expect(db.users.find((candidate) => candidate.id === OTHER_USER.id)?.banned).toBe(false);
+  });
 
-    // Retirer le rôle ne se confirme pas : l'effet est sans risque.
-    await user.click(demote);
+  it('n’offre aucune action sur un autre administrateur (défini par la configuration)', async () => {
+    signInAsDemo();
+    const other = db.users.find((candidate) => candidate.id === OTHER_USER.id);
+    if (other) other.role = 'admin';
+    renderRoute('/admin');
+
+    const accounts = await screen.findByRole('region', { name: 'Comptes' });
     expect(
-      await screen.findByRole('button', { name: `Nommer administrateur ${OTHER_USER.name}` }),
+      await within(accounts).findByText('Administrateur défini par la configuration du serveur.'),
     ).toBeVisible();
+    expect(
+      within(accounts).queryByRole('button', { name: new RegExp(OTHER_USER.name) }),
+    ).not.toBeInTheDocument();
   });
 
   it('signale l’échec d’une action', async () => {
@@ -108,16 +104,14 @@ describe('AdminPage', () => {
   it('signale un droit retiré pendant la session (403 de l’API sur une action)', async () => {
     signInAsDemo();
     server.use(
-      http.post('*/v1/auth/admin/set-role', () =>
+      http.post('*/v1/auth/admin/ban-user', () =>
         HttpResponse.json({ code: 'FORBIDDEN' }, { status: 403 }),
       ),
     );
     const user = userEvent.setup();
     renderRoute('/admin');
 
-    await user.click(
-      await screen.findByRole('button', { name: `Nommer administrateur ${OTHER_USER.name}` }),
-    );
+    await user.click(await screen.findByRole('button', { name: `Suspendre ${OTHER_USER.name}` }));
     await user.click(screen.getByRole('button', { name: 'Confirmer' }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
@@ -128,16 +122,14 @@ describe('AdminPage', () => {
   it('renvoie vers la connexion quand la session expire pendant une action (401)', async () => {
     signInAsDemo();
     server.use(
-      http.post('*/v1/auth/admin/set-role', () =>
+      http.post('*/v1/auth/admin/ban-user', () =>
         HttpResponse.json({ code: 'UNAUTHORIZED' }, { status: 401 }),
       ),
     );
     const user = userEvent.setup();
     const { router } = renderRoute('/admin');
 
-    await user.click(
-      await screen.findByRole('button', { name: `Nommer administrateur ${OTHER_USER.name}` }),
-    );
+    await user.click(await screen.findByRole('button', { name: `Suspendre ${OTHER_USER.name}` }));
     await user.click(screen.getByRole('button', { name: 'Confirmer' }));
 
     await expect.poll(() => router.state.location.pathname).toBe('/login');

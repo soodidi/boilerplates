@@ -208,45 +208,23 @@ describe('Roles and permissions (e2e)', () => {
       expect(wrong.statusCode).toBe(401);
     });
 
-    it('a user cannot promote themselves', async () => {
-      const userId = await database.userId('ada@example.com');
-      const response = await app.inject({
-        method: 'POST',
-        url: '/v1/auth/admin/set-role',
-        headers: user,
-        payload: { userId, role: 'admin' },
-      });
+    it('never lets an admin ban another admin or cut their sessions (403)', async () => {
+      // Deux admins : grace (session `admin`) et ada, nommée comme le ferait la liste.
+      expect(await app.get(UsersService).promoteToAdmin('ada@example.com')).toBe(true);
+      const ada = await database.userId('ada@example.com');
 
-      expect(response.statusCode).toBe(403);
-      expect(await database.role('ada@example.com')).toBe('user');
-    });
-
-    it('refuses an unknown role', async () => {
-      const userId = await database.userId('ada@example.com');
-      const response = await app.inject({
-        method: 'POST',
-        url: '/v1/auth/admin/set-role',
-        headers: admin,
-        payload: { userId, role: 'superadmin' },
-      });
-
-      expect(response.statusCode).toBe(400);
-      expect(await database.role('ada@example.com')).toBe('user');
-    });
-
-    it('a demoted admin is refused from the next request', async () => {
-      const userId = await database.userId('grace@example.com');
-      const demote = await app.inject({
-        method: 'POST',
-        url: '/v1/auth/admin/set-role',
-        headers: admin,
-        payload: { userId, role: 'user' },
-      });
-      expect(demote.statusCode).toBe(200);
-
-      const response = await app.inject({ method: 'GET', url: '/v1/admin/stats', headers: admin });
-
-      expect(response.statusCode).toBe(403);
+      for (const path of ['/admin/ban-user', '/admin/revoke-user-sessions']) {
+        const response = await app.inject({
+          method: 'POST',
+          url: `/v1/auth${path}`,
+          headers: admin,
+          payload: { userId: ada },
+        });
+        expect(response.statusCode).toBe(403);
+      }
+      // ada garde sa session et son accès.
+      const stats = await app.inject({ method: 'GET', url: '/v1/admin/stats', headers: user });
+      expect(stats.statusCode).toBe(200);
     });
   });
 
@@ -307,6 +285,14 @@ describe('Roles and permissions (e2e)', () => {
       expect((await signIn('ada@example.com')).statusCode).toBe(403);
     }
 
+    it('demotes admins missing from the list, and cuts their sessions', async () => {
+      await restartWith('ada@example.com');
+
+      expect(await database.role('grace@example.com')).toBe('user');
+      const stats = await app.inject({ method: 'GET', url: '/v1/admin/stats', headers: admin });
+      expect(stats.statusCode).toBe(401);
+    });
+
     it('promotes listed verified accounts at startup, and only them', async () => {
       await app.inject({
         method: 'POST',
@@ -324,7 +310,7 @@ describe('Roles and permissions (e2e)', () => {
     it('keeps the ban of a listed admin while another admin can sign in', async () => {
       await banAda();
 
-      await restartWith('ada@example.com');
+      await restartWith('ada@example.com, grace@example.com');
 
       expect(await database.role('ada@example.com')).toBe('admin');
       expect((await signIn('ada@example.com')).statusCode).toBe(403);

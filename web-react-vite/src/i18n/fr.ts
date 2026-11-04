@@ -154,11 +154,8 @@ export const fr = {
       banned: 'Suspendu',
       ban: 'Suspendre',
       unban: 'Réactiver',
-      makeAdmin: 'Nommer administrateur',
-      makeUser: 'Retirer le rôle administrateur',
+      managedByConfig: 'Administrateur défini par la configuration du serveur.',
       confirmBan: (name: string) => `Suspendre ${name} ? Ses sessions sont fermées tout de suite.`,
-      confirmAdmin: (name: string) =>
-        `Nommer ${name} administrateur ? Ce compte pourra gérer tous les autres.`,
       confirm: 'Confirmer',
       cancel: 'Annuler',
       saved: 'Modification enregistrée.',

@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { and, count, desc, eq, isNull, lt, or } from 'drizzle-orm';
+import { and, count, desc, eq, inArray, isNull, lt, notInArray, or } from 'drizzle-orm';
 import { DB, type Database } from '../../database/database.module.js';
-import { ADMIN_ROLE } from './access-control.js';
+import { ADMIN_ROLE, DEFAULT_ROLE } from './access-control.js';
 import { accounts, rateLimits, sessions, users, verifications } from './auth.table.js';
 
 /** Plus longue fenêtre de rate limiting (5 min, auth.config.ts) : au-delà, un compteur ne sert plus. */
@@ -57,6 +57,23 @@ export class AuthRepository {
       .where(and(eq(users.email, email), eq(users.emailVerified, true)))
       .returning({ id: users.id });
     return updated.length > 0;
+  }
+
+  /**
+   * BE-010 : rôle `user` pour tout admin dont l'adresse n'est pas dans la liste, et ses sessions
+   * révoquées, dans une transaction. Renvoie le nombre de comptes rétrogradés.
+   */
+  async demoteAdminsNotIn(emails: readonly string[]): Promise<number> {
+    return this.db.transaction(async (tx) => {
+      const demoted = await tx
+        .update(users)
+        .set({ role: DEFAULT_ROLE })
+        .where(and(eq(users.role, ADMIN_ROLE), notInArray(users.email, [...emails])))
+        .returning({ id: users.id });
+      const ids = demoted.map(({ id }) => id);
+      if (ids.length > 0) await tx.delete(sessions).where(inArray(sessions.userId, ids));
+      return ids.length;
+    });
   }
 
   /** Un admin peut-il encore se connecter (non banni, ou bannissement expiré) ? */

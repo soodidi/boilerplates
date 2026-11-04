@@ -31,12 +31,12 @@ export function adminUsersQueryOptions() {
   });
 }
 
-export type AdminUserAction =
-  | { type: 'ban'; userId: string }
-  | { type: 'unban'; userId: string }
-  | { type: 'set-role'; userId: string; role: 'user' | 'admin' };
+export type AdminUserAction = { type: 'ban'; userId: string } | { type: 'unban'; userId: string };
 
-/** Bannir, lever le bannissement ou changer le rôle d'un compte, puis relire la liste. */
+/**
+ * Bannir ou lever le bannissement d'un compte ordinaire, puis relire la liste. Les rôles ne changent
+ * pas depuis l'interface : les admins sont la liste ADMIN_EMAILS de l'API (BE-010).
+ */
 export function useAdminUserAction() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -47,8 +47,6 @@ export function useAdminUserAction() {
           return unwrapProtected(await admin.banUser({ userId: action.userId }));
         case 'unban':
           return unwrapProtected(await admin.unbanUser({ userId: action.userId }));
-        case 'set-role':
-          return unwrapProtected(await admin.setRole({ userId: action.userId, role: action.role }));
       }
     },
     onError: (error) =>

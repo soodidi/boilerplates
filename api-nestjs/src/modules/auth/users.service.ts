@@ -23,6 +23,11 @@ export class UsersService {
     });
   }
 
+  /** BE-010 : seuls les comptes de la liste restent admins ; les autres perdent le rôle et leurs sessions. */
+  demoteAdminsNotIn(emails: readonly string[]): Promise<number> {
+    return this.repository.demoteAdminsNotIn(emails);
+  }
+
   hasActiveAdmin(): Promise<boolean> {
     return this.repository.hasActiveAdmin();
   }

@@ -19,11 +19,12 @@ export const roles = {
   /** Rôle par défaut : aucune action d'administration. */
   user: ac.newRole({ ...userAc.statements }),
   /**
-   * BE-010 : lister les comptes, changer leur rôle, les bannir, révoquer leurs sessions. Rien qui
-   * permette de prendre un compte (mot de passe, e-mail, création, usurpation) ni de le supprimer.
+   * BE-010 : lister les comptes, bannir un compte ordinaire, révoquer ses sessions. Rien qui permette
+   * de prendre un compte (mot de passe, e-mail, création, usurpation), de le supprimer, ni de changer
+   * un rôle : les admins sont exactement la liste ADMIN_EMAILS (ConfiguredAdmins).
    */
   admin: ac.newRole({
-    user: ['list', 'get', 'set-role', 'ban'],
+    user: ['list', 'get', 'ban'],
     session: ['revoke'],
     stats: ['read'],
   }),
@@ -36,7 +37,6 @@ export const ADMIN_ROLE = 'admin';
 export const ADMIN_OPEN_PATHS = [
   '/admin/list-users',
   '/admin/get-user',
-  '/admin/set-role',
   '/admin/ban-user',
   '/admin/unban-user',
   '/admin/revoke-user-sessions',
@@ -60,6 +60,8 @@ export const ADMIN_SELF_PATHS = ['/admin/has-permission'];
  *   l'utilisateur supprime son compte (`/delete-user`) ; un admin peut le bannir.
  */
 export const ADMIN_DISABLED_PATHS = [
+  // Les rôles viennent de la configuration (ADMIN_EMAILS), jamais de l'interface (BE-010).
+  '/admin/set-role',
   '/admin/impersonate-user',
   '/admin/stop-impersonating',
   '/admin/set-user-password',

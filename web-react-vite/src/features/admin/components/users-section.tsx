@@ -10,9 +10,12 @@ import {
 import { useMessages } from '@/i18n';
 import { ForbiddenError } from '@/lib/errors';
 
-type ActionType = 'ban' | 'unban' | 'set-role';
+type ActionType = 'ban' | 'unban';
 
-/** BE-010 : comptes, avec suspension et changement de rôle. L'API vérifie chaque action. */
+/**
+ * BE-010 : comptes, avec suspension des comptes ordinaires. Les admins viennent de la configuration
+ * de l'API (ADMIN_EMAILS) : aucune action sur eux ici. L'API vérifie chaque action.
+ */
 export function UsersSection() {
   const m = useMessages();
   const titleId = useId();
@@ -23,11 +26,7 @@ export function UsersSection() {
   function run(user: AdminUser, type: ActionType) {
     // Un second clic pendant l'envoi est ignoré (le bouton garde le focus : pas de `disabled`).
     if (action.isPending) return;
-    if (type === 'set-role') {
-      action.mutate({ type, userId: user.id, role: user.role === 'admin' ? 'user' : 'admin' });
-    } else {
-      action.mutate({ type, userId: user.id });
-    }
+    action.mutate({ type, userId: user.id });
   }
 
   return (
@@ -74,14 +73,14 @@ function UserCard({ user, isSelf, isPending, onAction }: UserCardProps) {
   const m = useMessages();
   const role = user.role ?? 'user';
   const isAdmin = role === 'admin';
-  // Suspendre et nommer administrateur se confirment : un clic de travers aurait de lourds effets.
-  const [confirming, setConfirming] = useState<'ban' | 'set-role' | null>(null);
+  // Suspendre se confirme : un clic de travers fermerait les sessions du compte.
+  const [confirming, setConfirming] = useState(false);
   // Après « Confirmer » ou « Annuler », le focus revient sur le bouton qui a ouvert la confirmation.
-  const returnFocusTo = useRef<'ban' | 'set-role' | null>(null);
-  const restoreFocus = (kind: 'ban' | 'set-role') => (button: HTMLButtonElement | null) => {
-    if (button && returnFocusTo.current === kind) {
+  const returnFocus = useRef(false);
+  const restoreFocus = (button: HTMLButtonElement | null) => {
+    if (button && returnFocus.current) {
       button.focus();
-      returnFocusTo.current = null;
+      returnFocus.current = false;
     }
   };
   const confirmButton = useRef<HTMLButtonElement>(null);
@@ -90,12 +89,12 @@ function UserCard({ user, isSelf, isPending, onAction }: UserCardProps) {
     if (confirming) confirmButton.current?.focus();
   }, [confirming]);
   function close() {
-    returnFocusTo.current = confirming;
-    setConfirming(null);
+    returnFocus.current = true;
+    setConfirming(false);
   }
-  function open(kind: 'ban' | 'set-role') {
+  function open() {
     // Pendant un envoi, rien ne s'ouvre : la confirmation serait ignorée.
-    if (!isPending) setConfirming(kind);
+    if (!isPending) setConfirming(true);
   }
 
   return (
@@ -113,19 +112,17 @@ function UserCard({ user, isSelf, isPending, onAction }: UserCardProps) {
           ) : null}
         </p>
       </div>
-      {isSelf ? null : confirming ? (
+      {isSelf ? null : isAdmin ? (
+        <p className="text-sm text-muted-foreground">{m.admin.users.managedByConfig}</p>
+      ) : confirming ? (
         <div className="grid gap-2">
-          <p className="text-sm">
-            {confirming === 'ban'
-              ? m.admin.users.confirmBan(user.name)
-              : m.admin.users.confirmAdmin(user.name)}
-          </p>
+          <p className="text-sm">{m.admin.users.confirmBan(user.name)}</p>
           <div className="flex flex-wrap gap-2">
             <Button
-              variant={confirming === 'ban' ? 'destructive' : 'primary'}
+              variant="destructive"
               ref={confirmButton}
               onClick={() => {
-                onAction(confirming);
+                onAction('ban');
                 close();
               }}
             >
@@ -139,25 +136,14 @@ function UserCard({ user, isSelf, isPending, onAction }: UserCardProps) {
       ) : (
         <div className="flex flex-wrap gap-2">
           <ActionButton
-            label={isAdmin ? m.admin.users.makeUser : m.admin.users.makeAdmin}
-            name={user.name}
-            variant="secondary"
-            isPending={isPending}
-            buttonRef={restoreFocus('set-role')}
-            onClick={() => {
-              if (isAdmin) onAction('set-role');
-              else open('set-role');
-            }}
-          />
-          <ActionButton
             label={user.banned ? m.admin.users.unban : m.admin.users.ban}
             name={user.name}
             variant={user.banned ? 'secondary' : 'destructive'}
             isPending={isPending}
-            buttonRef={restoreFocus('ban')}
+            buttonRef={restoreFocus}
             onClick={() => {
               if (user.banned) onAction('unban');
-              else open('ban');
+              else open();
             }}
           />
         </div>

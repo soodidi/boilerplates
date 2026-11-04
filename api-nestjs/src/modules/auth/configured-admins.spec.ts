@@ -14,6 +14,7 @@ describe('ConfiguredAdmins', () => {
         Promise.resolve(verified.includes(email)),
       ),
       hasActiveAdmin: vi.fn(() => Promise.resolve(activeAdmin)),
+      demoteAdminsNotIn: vi.fn((_emails: readonly string[]) => Promise.resolve(0)),
     };
     const service = new ConfiguredAdmins(
       { ADMIN_EMAILS: emails } as unknown as Env,
@@ -28,8 +29,19 @@ describe('ConfiguredAdmins', () => {
       ['grace@example.com'],
     );
 
-    await expect(service.apply()).resolves.toEqual({ promoted: 1, skipped: 1 });
+    await expect(service.apply()).resolves.toEqual({ promoted: 1, skipped: 1, demoted: 0 });
     expect(users.promoteToAdmin).toHaveBeenCalledTimes(2);
+  });
+
+  it('demotes admins missing from the list before counting the active ones', async () => {
+    const { service, users } = configuredAdmins(['grace@example.com'], ['grace@example.com']);
+    users.demoteAdminsNotIn.mockResolvedValueOnce(1);
+
+    await expect(service.apply()).resolves.toMatchObject({ demoted: 1 });
+    expect(users.demoteAdminsNotIn).toHaveBeenCalledWith(['grace@example.com']);
+    expect(users.demoteAdminsNotIn.mock.invocationCallOrder[0]).toBeLessThan(
+      users.hasActiveAdmin.mock.invocationCallOrder[0] ?? 0,
+    );
   });
 
   it('keeps bans while another admin can sign in', async () => {
@@ -58,6 +70,8 @@ describe('ConfiguredAdmins', () => {
     await service.onApplicationBootstrap();
 
     expect(users.promoteToAdmin).not.toHaveBeenCalled();
+    // Liste vide : les admins nommés en local par `npm run user:promote` gardent leur rôle.
+    expect(users.demoteAdminsNotIn).not.toHaveBeenCalled();
   });
 
   it('never logs an address (BE-007)', async () => {

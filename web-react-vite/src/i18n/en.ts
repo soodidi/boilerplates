@@ -153,11 +153,8 @@ export const en: Messages = {
       banned: 'Suspended',
       ban: 'Suspend',
       unban: 'Reactivate',
-      makeAdmin: 'Make administrator',
-      makeUser: 'Remove administrator role',
+      managedByConfig: 'Administrator set by the server configuration.',
       confirmBan: (name: string) => `Suspend ${name}? Their sessions are closed at once.`,
-      confirmAdmin: (name: string) =>
-        `Make ${name} an administrator? This account will be able to manage all the others.`,
       confirm: 'Confirm',
       cancel: 'Cancel',
       saved: 'Change saved.',

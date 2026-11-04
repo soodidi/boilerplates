@@ -22,7 +22,7 @@ const publicUser = (user: MockUser) => ({
  */
 const ROLE_PERMISSIONS: Record<MockUser['role'], Record<string, string[]>> = {
   user: {},
-  admin: { user: ['list', 'get', 'set-role', 'ban'], session: ['revoke'], stats: ['read'] },
+  admin: { user: ['list', 'get', 'ban'], session: ['revoke'], stats: ['read'] },
 };
 
 const hasPermissions = (user: MockUser, permissions: Record<string, string[]>) =>
@@ -134,6 +134,8 @@ export const handlers = [
     if (refused) return refused;
     const user = findUser(((await request.json()) as { userId?: unknown }).userId);
     if (!user) return authError(404, 'USER_NOT_FOUND');
+    // Comme l'API : un admin ne se bannit pas depuis l'interface (BE-010).
+    if (user.role === 'admin') return authError(403, 'FORBIDDEN');
     user.banned = true;
     // Comme l'API : un compte banni perd ses sessions.
     if (db.sessionUserId === user.id) db.sessionUserId = null;
@@ -146,17 +148,6 @@ export const handlers = [
     const user = findUser(((await request.json()) as { userId?: unknown }).userId);
     if (!user) return authError(404, 'USER_NOT_FOUND');
     user.banned = false;
-    return HttpResponse.json({ user: publicUser(user) });
-  }),
-
-  http.post('*/v1/auth/admin/set-role', async ({ request }) => {
-    const refused = adminGuard({ user: ['set-role'] });
-    if (refused) return refused;
-    const body = (await request.json()) as { userId?: unknown; role?: unknown };
-    const user = findUser(body.userId);
-    if (!user) return authError(404, 'USER_NOT_FOUND');
-    if (body.role !== 'user' && body.role !== 'admin') return authError(400, 'BAD_REQUEST');
-    user.role = body.role;
     return HttpResponse.json({ user: publicUser(user) });
   }),
 
