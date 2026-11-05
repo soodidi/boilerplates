@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { and, count, desc, eq, inArray, isNull, lt, ne, notInArray, or } from 'drizzle-orm';
 import { DB, type Database } from '../../database/database.module.js';
-import { ADMIN_ROLE, DEFAULT_ROLE } from './access-control.js';
+import { ADMIN_ROLE, DEFAULT_ROLE, hasAdminRole } from './access-control.js';
 import { accounts, rateLimits, sessions, users, verifications } from './auth.table.js';
 
 /** Plus longue fenêtre de rate limiting (5 min, auth.config.ts) : au-delà, un compteur ne sert plus. */
@@ -44,27 +44,38 @@ export class AuthRepository {
    * BE-010 : rôle donné hors de Better Auth, seulement par la liste ADMIN_EMAILS (ConfiguredAdmins),
    * et bannissement levé si `liftBan`. Seulement pour une adresse vérifiée : sinon, un
    * inconnu inscrit d'avance avec l'adresse du futur admin (et son propre mot de passe) en
-   * hériterait. Renvoie false si aucun compte ne correspond.
+   * hériterait. Renvoie null si aucun compte ne correspond.
    */
   async setRoleOfVerifiedEmail(
     email: string,
     role: string,
     { liftBan }: { liftBan: boolean },
-  ): Promise<boolean> {
-    const updated = await this.db
-      .update(users)
-      .set(liftBan ? { role, banned: false, banReason: null, banExpires: null } : { role })
-      .where(and(eq(users.email, email), eq(users.emailVerified, true)))
-      .returning({ id: users.id });
-    return updated.length > 0;
+  ): Promise<{ id: string; granted: boolean } | null> {
+    return this.db.transaction(async (tx) => {
+      const verified = and(eq(users.email, email), eq(users.emailVerified, true));
+      // Verrou de ligne : deux instances qui démarrent ensemble ne journalisent pas deux fois.
+      const [current] = await tx
+        .select({ role: users.role })
+        .from(users)
+        .where(verified)
+        .for('update');
+      if (!current) return null;
+      const [updated] = await tx
+        .update(users)
+        .set(liftBan ? { role, banned: false, banReason: null, banExpires: null } : { role })
+        .where(verified)
+        .returning({ id: users.id });
+      // `granted` : le compte n'avait pas ce rôle avant (journalisé par ConfiguredAdmins).
+      return updated ? { id: updated.id, granted: !hasAdminRole(current.role) } : null;
+    });
   }
 
   /**
    * BE-010 : rôle `user` pour tout compte hors de la liste dont le rôle n'est pas `user` (`admin`,
    * mais aussi une valeur multiple comme `user,admin`), et ses sessions révoquées, dans une
-   * transaction. Liste vide : tous ces comptes. Renvoie le nombre de comptes rétrogradés.
+   * transaction. Liste vide : tous ces comptes. Renvoie les ids des comptes rétrogradés.
    */
-  async demoteAdminsNotIn(emails: readonly string[]): Promise<number> {
+  async demoteAdminsNotIn(emails: readonly string[]): Promise<string[]> {
     return this.db.transaction(async (tx) => {
       const demoted = await tx
         .update(users)
@@ -78,7 +89,7 @@ export class AuthRepository {
         .returning({ id: users.id });
       const ids = demoted.map(({ id }) => id);
       if (ids.length > 0) await tx.delete(sessions).where(inArray(sessions.userId, ids));
-      return ids.length;
+      return ids;
     });
   }
 

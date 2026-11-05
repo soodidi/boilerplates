@@ -1,8 +1,10 @@
+import { APIError } from 'better-auth/api';
 import { describe, expect, it } from 'vitest';
+import { hasAdminRole } from './access-control.js';
 import {
   capSessionExpiry,
-  hasAdminRole,
   hasEmailChange,
+  isAdminActionSuccess,
   SESSION_MAX_LIFETIME_MS,
 } from './auth.config.js';
 
@@ -62,4 +64,20 @@ describe('hasAdminRole', () => {
       expect(hasAdminRole(role)).toBe(false);
     },
   );
+});
+
+describe('isAdminActionSuccess', () => {
+  it.each([[{ user: { id: 'x' } }], [{ success: true }]])('reads %j as a success', (returned) => {
+    expect(isAdminActionSuccess(returned)).toBe(true);
+  });
+
+  it.each([
+    [undefined],
+    [null],
+    [{ success: false }],
+    [{ code: 'VALIDATION_ERROR', message: 'Invalid body' }],
+    [new APIError('BAD_REQUEST')],
+  ])('reads %j as a failure', (returned) => {
+    expect(isAdminActionSuccess(returned)).toBe(false);
+  });
 });

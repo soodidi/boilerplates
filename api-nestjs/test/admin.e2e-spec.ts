@@ -1,8 +1,9 @@
+import { Logger } from '@nestjs/common';
 import { createHmac } from 'node:crypto';
 import { signJWT } from 'better-auth/crypto';
 import { sql } from 'drizzle-orm';
 import { type NestFastifyApplication } from '@nestjs/platform-fastify';
-import { afterAll, beforeAll, beforeEach, describe, expect, inject, it } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, inject, it, vi } from 'vitest';
 import { type InMemoryMailer } from '../src/mail/index.js';
 import {
   ADMIN_DISABLED_PATHS,
@@ -31,7 +32,7 @@ describe('Roles and permissions (e2e)', () => {
     user = bearer(await signUpAndSignIn(app, mailer, 'ada@example.com'));
     const adminSession = await signUpAndSignIn(app, mailer, 'grace@example.com');
     // Comme la liste ADMIN_EMAILS au démarrage ; le rôle s'applique à la requête suivante (pas de cache de session).
-    expect(await app.get(UsersService).promoteToAdmin(' Grace@Example.com ')).toBe(true);
+    expect(await app.get(UsersService).promoteToAdmin(' Grace@Example.com ')).not.toBeNull();
     admin = bearer(adminSession);
   });
 
@@ -181,6 +182,67 @@ describe('Roles and permissions (e2e)', () => {
       expect(response.statusCode).toBe(404);
     });
 
+    it('logs each successful admin action with ids only (BE-007)', async () => {
+      const log = vi.spyOn(Logger.prototype, 'log');
+      try {
+        const target = await database.userId('ada@example.com');
+        const actor = await database.userId('grace@example.com');
+
+        for (const path of [
+          '/admin/ban-user',
+          '/admin/unban-user',
+          '/admin/revoke-user-sessions',
+        ]) {
+          const response = await app.inject({
+            method: 'POST',
+            url: `/v1/auth${path}`,
+            headers: admin,
+            payload: { userId: target },
+          });
+          expect(response.statusCode).toBe(200);
+        }
+
+        const actions = log.mock.calls.filter(([, message]) => message === 'Admin action');
+        expect(actions.map(([entry]): unknown => entry)).toEqual([
+          { action: 'user.banned', actorId: actor, targetId: target },
+          { action: 'user.unbanned', actorId: actor, targetId: target },
+          { action: 'user.sessions_revoked', actorId: actor, targetId: target },
+        ]);
+        expect(JSON.stringify(actions)).not.toContain('@');
+      } finally {
+        log.mockRestore();
+      }
+    });
+
+    it('never logs a refused admin action, whatever refuses it', async () => {
+      const log = vi.spyOn(Logger.prototype, 'log');
+      try {
+        const target = await database.userId('ada@example.com');
+        const refused = [
+          // Compte ordinaire : refus du plugin (403).
+          { headers: user, payload: { userId: await database.userId('grace@example.com') } },
+          { headers: user, payload: { userId: target } },
+          // Corps invalide : erreur de validation (400), qui n'est pas une APIError du core.
+          { headers: admin, payload: { userId: target, banReason: 42 } },
+          // Sans session (401).
+          { headers: {}, payload: { userId: target } },
+        ];
+        for (const { headers, payload } of refused) {
+          const response = await app.inject({
+            method: 'POST',
+            url: '/v1/auth/admin/ban-user',
+            headers,
+            payload,
+          });
+          expect(response.statusCode).toBeGreaterThanOrEqual(400);
+        }
+
+        expect(log.mock.calls.filter(([, message]) => message === 'Admin action')).toEqual([]);
+      } finally {
+        log.mockRestore();
+      }
+    });
+
     it('a banned user loses their session and cannot sign in again', async () => {
       const userId = await database.userId('ada@example.com');
       const ban = await app.inject({
@@ -210,7 +272,7 @@ describe('Roles and permissions (e2e)', () => {
 
     it('never lets an admin ban another admin or cut their sessions (403)', async () => {
       // Deux admins : grace (session `admin`) et ada, nommée comme le ferait la liste.
-      expect(await app.get(UsersService).promoteToAdmin('ada@example.com')).toBe(true);
+      expect(await app.get(UsersService).promoteToAdmin('ada@example.com')).not.toBeNull();
       const ada = await database.userId('ada@example.com');
 
       for (const path of ['/admin/ban-user', '/admin/revoke-user-sessions']) {
@@ -252,9 +314,9 @@ describe('Roles and permissions (e2e)', () => {
 
     const users = app.get(UsersService);
     // Inscrit d'avance avec l'adresse du futur admin, sans l'avoir confirmée : rien.
-    expect(await users.promoteToAdmin('mallory@example.com')).toBe(false);
+    expect(await users.promoteToAdmin('mallory@example.com')).toBeNull();
     expect(await database.role('mallory@example.com')).toBe('user');
-    expect(await users.promoteToAdmin('ada@example.com')).toBe(true);
+    expect(await users.promoteToAdmin('ada@example.com')).not.toBeNull();
     const signIn = await app.inject({
       method: 'POST',
       url: '/v1/auth/sign-in/email',
@@ -264,7 +326,7 @@ describe('Roles and permissions (e2e)', () => {
   });
 
   it('promoting an unknown address changes nothing', async () => {
-    expect(await app.get(UsersService).promoteToAdmin('nobody@example.com')).toBe(false);
+    expect(await app.get(UsersService).promoteToAdmin('nobody@example.com')).toBeNull();
   });
 
   describe('admins named by the configuration (ADMIN_EMAILS)', () => {
