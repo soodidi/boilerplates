@@ -182,36 +182,65 @@ describe('Roles and permissions (e2e)', () => {
       expect(response.statusCode).toBe(404);
     });
 
-    it('logs each admin action with ids only (BE-007)', async () => {
+    it('logs each successful admin action with ids only (BE-007)', async () => {
       const log = vi.spyOn(Logger.prototype, 'log');
-      const target = await database.userId('ada@example.com');
-      const actor = await database.userId('grace@example.com');
+      try {
+        const target = await database.userId('ada@example.com');
+        const actor = await database.userId('grace@example.com');
 
-      for (const path of ['/admin/ban-user', '/admin/unban-user', '/admin/revoke-user-sessions']) {
-        const response = await app.inject({
-          method: 'POST',
-          url: `/v1/auth${path}`,
-          headers: admin,
-          payload: { userId: target },
-        });
-        expect(response.statusCode).toBe(200);
+        for (const path of [
+          '/admin/ban-user',
+          '/admin/unban-user',
+          '/admin/revoke-user-sessions',
+        ]) {
+          const response = await app.inject({
+            method: 'POST',
+            url: `/v1/auth${path}`,
+            headers: admin,
+            payload: { userId: target },
+          });
+          expect(response.statusCode).toBe(200);
+        }
+
+        const actions = log.mock.calls.filter(([, message]) => message === 'Admin action');
+        expect(actions.map(([entry]): unknown => entry)).toEqual([
+          { action: 'user.banned', actorId: actor, targetId: target },
+          { action: 'user.unbanned', actorId: actor, targetId: target },
+          { action: 'user.sessions_revoked', actorId: actor, targetId: target },
+        ]);
+        expect(JSON.stringify(actions)).not.toContain('@');
+      } finally {
+        log.mockRestore();
       }
-      // Une action refusée n'est pas journalisée.
-      await app.inject({
-        method: 'POST',
-        url: '/v1/auth/admin/ban-user',
-        headers: user,
-        payload: { userId: actor },
-      });
+    });
 
-      const actions = log.mock.calls.filter(([, message]) => message === 'Admin action');
-      log.mockRestore();
-      expect(actions.map(([entry]): unknown => entry)).toEqual([
-        { action: 'user.banned', actorId: actor, targetId: target },
-        { action: 'user.unbanned', actorId: actor, targetId: target },
-        { action: 'user.sessions_revoked', actorId: actor, targetId: target },
-      ]);
-      expect(JSON.stringify(actions)).not.toContain('@');
+    it('never logs a refused admin action, whatever refuses it', async () => {
+      const log = vi.spyOn(Logger.prototype, 'log');
+      try {
+        const target = await database.userId('ada@example.com');
+        const refused = [
+          // Compte ordinaire : refus du plugin (403).
+          { headers: user, payload: { userId: await database.userId('grace@example.com') } },
+          { headers: user, payload: { userId: target } },
+          // Corps invalide : erreur de validation (400), qui n'est pas une APIError du core.
+          { headers: admin, payload: { userId: target, banReason: 42 } },
+          // Sans session (401).
+          { headers: {}, payload: { userId: target } },
+        ];
+        for (const { headers, payload } of refused) {
+          const response = await app.inject({
+            method: 'POST',
+            url: '/v1/auth/admin/ban-user',
+            headers,
+            payload,
+          });
+          expect(response.statusCode).toBeGreaterThanOrEqual(400);
+        }
+
+        expect(log.mock.calls.filter(([, message]) => message === 'Admin action')).toEqual([]);
+      } finally {
+        log.mockRestore();
+      }
     });
 
     it('a banned user loses their session and cannot sign in again', async () => {

@@ -20,7 +20,8 @@ export const REAPPLY_INTERVAL_MS = 10 * 60 * 1000;
  * un déploiement avec l'ancienne liste. La liste vient de la configuration de l'environnement,
  * modifiable seulement par une PR sur l'infra ; l'interface ne change aucun rôle.
  * Le bannissement d'un compte listé n'est levé que si plus aucun admin n'est actif (reprise en main).
- * Seuls des nombres sont journalisés, jamais d'adresse (BE-007, GLB-013).
+ * Journalisés : des nombres au démarrage, et les ids des comptes qui changent de rôle ; jamais
+ * d'adresse (BE-007, GLB-013).
  */
 @Injectable()
 export class ConfiguredAdmins implements OnApplicationBootstrap, OnApplicationShutdown {
@@ -49,7 +50,10 @@ export class ConfiguredAdmins implements OnApplicationBootstrap, OnApplicationSh
       if (atStartup) this.logger.log(counts, 'Configured admins applied');
       // BE-010 : chaque changement de rôle par la liste, avec des ids seulement (BE-007, GLB-013).
       if (grantedIds.length > 0 || revokedIds.length > 0) {
-        this.logger.log({ action: 'admin.role_changed', grantedIds, revokedIds }, 'Admin action');
+        this.logger.log(
+          { action: 'admin.role_changed', actor: 'config', grantedIds, revokedIds },
+          'Admin action',
+        );
       }
     } catch (error) {
       // Réessayé au passage suivant ; l'API reste disponible.

@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { and, count, desc, eq, inArray, isNull, lt, ne, notInArray, or } from 'drizzle-orm';
 import { DB, type Database } from '../../database/database.module.js';
-import { ADMIN_ROLE, DEFAULT_ROLE } from './access-control.js';
+import { ADMIN_ROLE, DEFAULT_ROLE, hasAdminRole } from './access-control.js';
 import { accounts, rateLimits, sessions, users, verifications } from './auth.table.js';
 
 /** Plus longue fenêtre de rate limiting (5 min, auth.config.ts) : au-delà, un compteur ne sert plus. */
@@ -44,7 +44,7 @@ export class AuthRepository {
    * BE-010 : rôle donné hors de Better Auth, seulement par la liste ADMIN_EMAILS (ConfiguredAdmins),
    * et bannissement levé si `liftBan`. Seulement pour une adresse vérifiée : sinon, un
    * inconnu inscrit d'avance avec l'adresse du futur admin (et son propre mot de passe) en
-   * hériterait. Renvoie false si aucun compte ne correspond.
+   * hériterait. Renvoie null si aucun compte ne correspond.
    */
   async setRoleOfVerifiedEmail(
     email: string,
@@ -53,7 +53,12 @@ export class AuthRepository {
   ): Promise<{ id: string; granted: boolean } | null> {
     return this.db.transaction(async (tx) => {
       const verified = and(eq(users.email, email), eq(users.emailVerified, true));
-      const [current] = await tx.select({ role: users.role }).from(users).where(verified);
+      // Verrou de ligne : deux instances qui démarrent ensemble ne journalisent pas deux fois.
+      const [current] = await tx
+        .select({ role: users.role })
+        .from(users)
+        .where(verified)
+        .for('update');
       if (!current) return null;
       const [updated] = await tx
         .update(users)
@@ -61,7 +66,7 @@ export class AuthRepository {
         .where(verified)
         .returning({ id: users.id });
       // `granted` : le compte n'avait pas ce rôle avant (journalisé par ConfiguredAdmins).
-      return updated ? { id: updated.id, granted: current.role !== role } : null;
+      return updated ? { id: updated.id, granted: !hasAdminRole(current.role) } : null;
     });
   }
 

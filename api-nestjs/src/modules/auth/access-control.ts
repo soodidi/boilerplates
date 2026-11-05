@@ -34,6 +34,11 @@ export const roles = {
 export const DEFAULT_ROLE = 'user';
 export const ADMIN_ROLE = 'admin';
 
+/** Le plugin `admin` lit un rôle à plusieurs valeurs (`"user,admin"`) : admin si l'une l'est. */
+export function hasAdminRole(role: unknown): boolean {
+  return typeof role === 'string' && role.split(',').some((value) => value.trim() === ADMIN_ROLE);
+}
+
 /** Routes du plugin `admin` ouvertes aux admins (BE-010) : elles exigent les permissions du rôle `admin`. */
 export const ADMIN_OPEN_PATHS = [
   '/admin/list-users',

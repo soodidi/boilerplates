@@ -107,7 +107,12 @@ describe('ConfiguredAdmins', () => {
     service.onApplicationShutdown();
 
     expect(log).toHaveBeenCalledWith(
-      { action: 'admin.role_changed', grantedIds: ['id-grace'], revokedIds: ['id-old-admin'] },
+      {
+        action: 'admin.role_changed',
+        actor: 'config',
+        grantedIds: ['id-grace'],
+        revokedIds: ['id-old-admin'],
+      },
       'Admin action',
     );
     expect(JSON.stringify(log.mock.calls)).not.toContain('@');
