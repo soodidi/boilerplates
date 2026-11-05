@@ -90,7 +90,7 @@ jobs:
       # API : la stack de dev dans l'image de production (setup, migrations, inscription, e-mail).
       - if: env.RUN == 'true' && matrix.project == 'api-nestjs'
         id: stack
-        run: npm run setup && npm run stack && npm run stack:smoke
+        run: npm run up && npm run stack:smoke
       - if: failure() && steps.stack.outcome == 'failure'
         run: docker compose --profile app logs
 

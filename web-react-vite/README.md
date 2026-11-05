@@ -17,7 +17,7 @@ npm run dev
 
 Prérequis : Node 26 (voir `.nvmrc`), npm (fourni avec Node), [gitleaks](https://github.com/gitleaks/gitleaks#installing) pour le hook de pré-commit (`brew install gitleaks`).
 
-L'app démarre avec des **mocks MSW** : tout fonctionne sans backend. Compte de démonstration : `demo@example.com` / `demo-password-123` (ou créer un compte : les mocks confirment l'adresse tout de suite). Pour travailler contre l'API locale (boilerplate `api-nestjs`, lancé avec `npm run setup` puis `npm run dev` ou `npm run stack`) : `npm run dev:api`. Les e-mails de confirmation arrivent dans Mailpit (http://localhost:8025). Rien à configurer : seul le `config.json` servi change.
+L'app démarre avec des **mocks MSW** : tout fonctionne sans backend. Compte de démonstration : `demo@example.com` / `demo-password-123` (ou créer un compte : les mocks confirment l'adresse tout de suite). Pour travailler contre l'API locale (boilerplate `api-nestjs`, lancé avec `npm run up`, ou `npm run setup` puis `npm run dev` pour coder l'API) : `npm run dev:api`. Les e-mails de confirmation arrivent dans Mailpit (http://localhost:8025). Rien à configurer : seul le `config.json` servi change.
 
 À personnaliser : `name` dans `package.json`, titre dans `index.html`, `app.name` dans `src/i18n/fr.ts` et `en.ts`, couleurs dans `src/styles.css`.
 
