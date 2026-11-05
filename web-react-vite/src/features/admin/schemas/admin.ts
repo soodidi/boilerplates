@@ -7,3 +7,9 @@ export const adminStatsSchema = z.object({
 });
 
 export type AdminStats = z.infer<typeof adminStatsSchema>;
+
+/** Contrat de `GET /v1/admin/users/:id/export` (GLB-013) : le même fichier que l'export de « Mon compte ». */
+export const suspendedUserExportSchema = z.object({
+  exportedAt: z.iso.datetime(),
+  data: z.record(z.string(), z.unknown()),
+});

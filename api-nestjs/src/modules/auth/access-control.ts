@@ -12,6 +12,8 @@ export const statements = {
   ...defaultStatements,
   // Exemple de permission propre à l'app : les statistiques de GET /v1/admin/stats.
   stats: ['read'],
+  // GLB-013 : export et effacement des données d'un compte suspendu, qui ne peut plus le faire lui-même.
+  account: ['export', 'erase'],
 } as const;
 
 export const ac = createAccessControl(statements);
@@ -28,6 +30,7 @@ export const roles = {
     user: ['list', 'get', 'ban'],
     session: ['revoke'],
     stats: ['read'],
+    account: ['export', 'erase'],
   }),
 };
 

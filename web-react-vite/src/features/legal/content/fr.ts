@@ -106,6 +106,7 @@ export const fr: LegalContent = (info) => ({
             'exporter toutes vos données dans un fichier (droit d’accès et de portabilité) ;',
             `supprimer votre compte et toutes vos données, immédiatement et définitivement (droit à l’effacement) ; seules les sauvegardes les conservent, ${info.backupRetentionDays} jours au plus.`,
           ],
+          `Si votre compte est suspendu, vous ne pouvez plus vous connecter : écrivez à ${info.contactEmail} depuis l’adresse de votre compte, et nous vous enverrons vos données ou supprimerons votre compte, dans un délai d’un mois.`,
           `Vous pouvez aussi demander la rectification de vos données, la limitation de leur traitement, vous opposer à un traitement, ou définir des directives sur leur sort après votre décès, en écrivant à ${info.contactEmail}. Si vous estimez que vos droits ne sont pas respectés, vous pouvez adresser une réclamation à la CNIL (www.cnil.fr).`,
         ],
       },

@@ -154,6 +154,12 @@ export const en: Messages = {
       ban: 'Suspend',
       unban: 'Reactivate',
       managedByConfig: 'Administrator set by the server configuration.',
+      exportData: 'Export their data',
+      erase: 'Delete the account',
+      confirmErase: (name: string) =>
+        `Delete ${name}'s account and all their data? This cannot be undone.`,
+      exported: 'File downloaded. Send it to the person who asked for it.',
+      erased: (name: string) => `${name}'s account and data have been deleted.`,
       confirmBan: (name: string) => `Suspend ${name}? Their sessions are closed at once.`,
       confirm: 'Confirm',
       cancel: 'Cancel',

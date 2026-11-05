@@ -30,6 +30,16 @@ export class UsersService {
     return this.repository.demoteAdminsNotIn(emails);
   }
 
+  /** GLB-013 : rôle et bannissement d'un compte, `null` s'il n'existe pas. */
+  accountState(userId: string): Promise<{ role: string | null; banned: boolean } | null> {
+    return this.repository.findAccountState(userId);
+  }
+
+  /** GLB-013 : supprime le compte et ses données d'authentification (les modules d'abord). */
+  deleteAccount(userId: string): Promise<void> {
+    return this.repository.deleteAccount(userId);
+  }
+
   hasActiveAdmin(): Promise<boolean> {
     return this.repository.hasActiveAdmin();
   }

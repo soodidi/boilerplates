@@ -22,7 +22,12 @@ const publicUser = (user: MockUser) => ({
  */
 const ROLE_PERMISSIONS: Record<MockUser['role'], Record<string, string[]>> = {
   user: {},
-  admin: { user: ['list', 'get', 'ban'], session: ['revoke'], stats: ['read'] },
+  admin: {
+    user: ['list', 'get', 'ban'],
+    session: ['revoke'],
+    stats: ['read'],
+    account: ['export', 'erase'],
+  },
 };
 
 const hasPermissions = (user: MockUser, permissions: Record<string, string[]>) =>
@@ -39,6 +44,18 @@ const adminGuard = (permissions: Record<string, string[]>) => {
 };
 
 const findUser = (userId: unknown) => db.users.find((user) => user.id === userId);
+
+/** Compte suspendu visé par une action d'admin, ou la réponse d'erreur de l'API. */
+const suspendedTarget = (id: unknown, action: 'export' | 'erase'): MockUser | Response => {
+  const user = currentUser();
+  if (!user) return problem(401, { title: 'Unauthorized' });
+  if (!hasPermissions(user, { account: [action] })) return problem(403, { title: 'Forbidden' });
+  const target = findUser(id);
+  if (!target) return problem(404, { title: 'Not Found' });
+  if (target.role === 'admin') return problem(403, { title: 'Forbidden' });
+  if (!target.banned) return problem(409, { title: 'Conflict' });
+  return target;
+};
 
 const problem = (status: number, body: Record<string, unknown>) =>
   HttpResponse.json(
@@ -157,6 +174,27 @@ export const handlers = [
     if (!user) return problem(401, { title: 'Unauthorized' });
     if (!hasPermissions(user, { stats: ['read'] })) return problem(403, { title: 'Forbidden' });
     return HttpResponse.json({ users: db.users.length, notes: db.notes.length });
+  }),
+
+  // GLB-013 : export et effacement d'un compte suspendu, mêmes règles que l'API.
+  http.get('*/v1/admin/users/:id/export', ({ params }) => {
+    const refused = suspendedTarget(params.id, 'export');
+    if (refused instanceof Response) return refused;
+    const notes = db.notes
+      .filter((note) => note.ownerId === refused.id)
+      .map(({ ownerId: _ownerId, ...note }) => ({ ...note, updatedAt: note.createdAt }));
+    return HttpResponse.json({
+      exportedAt: new Date().toISOString(),
+      data: { account: { user: publicUser(refused), sessions: [], signInMethods: [] }, notes },
+    });
+  }),
+
+  http.delete('*/v1/admin/users/:id', ({ params }) => {
+    const refused = suspendedTarget(params.id, 'erase');
+    if (refused instanceof Response) return refused;
+    db.users = db.users.filter((user) => user.id !== refused.id);
+    db.notes = db.notes.filter((note) => note.ownerId !== refused.id);
+    return new HttpResponse(null, { status: 204 });
   }),
 
   // GLB-013 : export des données de l'utilisateur connecté, une section par module.

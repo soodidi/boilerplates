@@ -76,6 +76,113 @@ describe('Roles and permissions (e2e)', () => {
     });
   });
 
+  // GLB-013 : un compte suspendu ne peut plus exporter ni effacer ses données ; l'admin le fait.
+  describe('data of a suspended account (/v1/admin/users/:id)', () => {
+    async function suspendAda() {
+      const userId = await database.userId('ada@example.com');
+      const ban = await app.inject({
+        method: 'POST',
+        url: '/v1/auth/admin/ban-user',
+        headers: admin,
+        payload: { userId },
+      });
+      expect(ban.statusCode).toBe(200);
+      return userId;
+    }
+
+    it.each([
+      ['GET', 'export'],
+      ['DELETE', ''],
+    ] as const)(
+      'refuses %s without session (401), to a user (403), on a bad id (400)',
+      async (method, suffix) => {
+        const ada = await database.userId('ada@example.com');
+        const grace = await database.userId('grace@example.com');
+        // L'export est limité à 5 par minute et les compteurs sont partagés en e2e : une IP par appel.
+        let call = 0;
+        const status = async (id: string, headers: Record<string, string> = {}) => {
+          call += 1;
+          const ip = `198.51.100.${(method === 'GET' ? 0 : 50) + call}`;
+          const response = await app.inject({
+            method,
+            url: `/v1/admin/users/${id}${suffix ? `/${suffix}` : ''}`,
+            headers: { ...headers, 'x-forwarded-for': ip },
+          });
+          return response.statusCode;
+        };
+
+        expect(await status(ada)).toBe(401);
+        expect(await status(ada, user)).toBe(403);
+        expect(await status('not-a-uuid', admin)).toBe(400);
+        expect(await status('01900000-0000-7000-8000-000000000000', admin)).toBe(404);
+        // Compte non suspendu, puis admin (géré par la configuration).
+        expect(await status(ada, admin)).toBe(409);
+        expect(await status(grace, admin)).toBe(403);
+        expect(await database.role('ada@example.com')).toBe('user');
+      },
+    );
+
+    it('exports the data of a suspended account, like « Mon compte »', async () => {
+      await app.inject({
+        method: 'POST',
+        url: '/v1/notes',
+        headers: user,
+        payload: { title: 'note of ada' },
+      });
+      const ada = await suspendAda();
+      const log = vi.spyOn(Logger.prototype, 'log');
+      try {
+        const response = await app.inject({
+          method: 'GET',
+          url: `/v1/admin/users/${ada}/export`,
+          headers: { ...admin, 'x-forwarded-for': '203.0.113.12' },
+        });
+
+        expect(response.statusCode).toBe(200);
+        expect(response.headers['content-disposition']).toContain('account-export.json');
+        const body = response.json<{
+          data: { account: { user: { email: string } }; notes: unknown[] };
+        }>();
+        expect(body.data.account.user.email).toBe('ada@example.com');
+        expect(body.data.notes).toHaveLength(1);
+        const grace = await database.userId('grace@example.com');
+        expect(log).toHaveBeenCalledWith(
+          { action: 'user.data_exported', actorId: grace, targetId: ada },
+          'Admin action',
+        );
+      } finally {
+        log.mockRestore();
+      }
+    });
+
+    it('erases a suspended account and all its data', async () => {
+      await app.inject({
+        method: 'POST',
+        url: '/v1/notes',
+        headers: user,
+        payload: { title: 'note of ada' },
+      });
+      const ada = await suspendAda();
+
+      const response = await app.inject({
+        method: 'DELETE',
+        url: `/v1/admin/users/${ada}`,
+        headers: admin,
+      });
+
+      expect(response.statusCode).toBe(204);
+      await expect(database.userId('ada@example.com')).rejects.toThrow();
+      const stats = await app.inject({ method: 'GET', url: '/v1/admin/stats', headers: admin });
+      expect(stats.json()).toEqual({ users: 1, notes: 0 });
+      const signIn = await app.inject({
+        method: 'POST',
+        url: '/v1/auth/sign-in/email',
+        payload: { email: 'ada@example.com', password: PASSWORD },
+      });
+      expect(signIn.statusCode).toBe(401);
+    });
+  });
+
   describe('account administration (/v1/auth/admin/*)', () => {
     /** Méthode et charge de chaque route ouverte, pour un compte cible. */
     function request(path: string, userId: string) {

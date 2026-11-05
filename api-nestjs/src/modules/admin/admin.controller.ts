@@ -1,13 +1,28 @@
 import {
   Controller,
+  Delete,
   Get,
+  HttpCode,
+  Param,
+  ParseUUIDPipe,
+  Res,
   SerializeOptions,
   StandardSchemaSerializerInterceptor,
   UseInterceptors,
 } from '@nestjs/common';
-import { ApiForbiddenResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiConflictResponse,
+  ApiForbiddenResponse,
+  ApiNoContentResponse,
+  ApiNotFoundResponse,
+  ApiOkResponse,
+  ApiTags,
+} from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
+import { type FastifyReply } from 'fastify';
 import { responseSchema } from '../../common/openapi.js';
-import { UserHasPermission } from '../auth/index.js';
+import { type AccountExportResponse, accountExportResponseSchema } from '../account/index.js';
+import { Session, UserHasPermission, type UserSession } from '../auth/index.js';
 import { type AdminStatsResponse, adminStatsResponseSchema } from './admin.schemas.js';
 import { AdminService } from './admin.service.js';
 
@@ -29,5 +44,38 @@ export class AdminController {
   @ApiForbiddenResponse({ description: 'Permission stats:read missing' })
   stats(): Promise<AdminStatsResponse> {
     return this.adminService.stats();
+  }
+
+  // GLB-013 : un compte suspendu ne peut plus exporter ni effacer ses données ; l'admin le fait à sa
+  // demande. Jamais sur un admin (403), seulement sur un compte suspendu (409).
+  @Get('users/:id/export')
+  @UserHasPermission({ permissions: { account: ['export'] } })
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @SerializeOptions({ schema: accountExportResponseSchema })
+  @ApiOkResponse({ schema: responseSchema(accountExportResponseSchema) })
+  @ApiNotFoundResponse({ description: 'Unknown account' })
+  @ApiConflictResponse({ description: 'Account not suspended' })
+  async exportUser(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Session() session: UserSession,
+    @Res({ passthrough: true }) reply: FastifyReply,
+  ): Promise<AccountExportResponse> {
+    const result = await this.adminService.exportSuspended(id, session.user.id);
+    reply.header('Cache-Control', 'no-store');
+    reply.header('Content-Disposition', 'attachment; filename="account-export.json"');
+    return result;
+  }
+
+  @Delete('users/:id')
+  @HttpCode(204)
+  @UserHasPermission({ permissions: { account: ['erase'] } })
+  @ApiNoContentResponse({ description: 'Account and its data erased' })
+  @ApiNotFoundResponse({ description: 'Unknown account' })
+  @ApiConflictResponse({ description: 'Account not suspended' })
+  eraseUser(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Session() session: UserSession,
+  ): Promise<void> {
+    return this.adminService.eraseSuspended(id, session.user.id);
   }
 }

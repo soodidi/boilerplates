@@ -155,6 +155,12 @@ export const fr = {
       ban: 'Suspendre',
       unban: 'Réactiver',
       managedByConfig: 'Administrateur défini par la configuration du serveur.',
+      exportData: 'Exporter ses données',
+      erase: 'Supprimer le compte',
+      confirmErase: (name: string) =>
+        `Supprimer le compte de ${name} et toutes ses données ? C'est définitif.`,
+      exported: 'Fichier téléchargé. Envoyez-le à la personne qui l’a demandé.',
+      erased: (name: string) => `Le compte de ${name} et ses données ont été supprimés.`,
       confirmBan: (name: string) => `Suspendre ${name} ? Ses sessions sont fermées tout de suite.`,
       confirm: 'Confirmer',
       cancel: 'Annuler',

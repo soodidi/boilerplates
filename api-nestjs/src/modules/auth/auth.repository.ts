@@ -93,6 +93,27 @@ export class AuthRepository {
     });
   }
 
+  /** BE-010 / GLB-013 : rôle et bannissement d'un compte, pour les actions d'administration. */
+  async findAccountState(userId: string): Promise<{ role: string | null; banned: boolean } | null> {
+    const [user] = await this.db
+      .select({ role: users.role, banned: users.banned })
+      .from(users)
+      .where(eq(users.id, userId));
+    return user ? { role: user.role, banned: user.banned === true } : null;
+  }
+
+  /**
+   * GLB-013 : supprime le compte, ses sessions et ses moyens de connexion, comme Better Auth après
+   * `/delete-user`. Les données des modules sont effacées avant, par le registre.
+   */
+  async deleteAccount(userId: string): Promise<void> {
+    await this.db.transaction(async (tx) => {
+      await tx.delete(sessions).where(eq(sessions.userId, userId));
+      await tx.delete(accounts).where(eq(accounts.userId, userId));
+      await tx.delete(users).where(eq(users.id, userId));
+    });
+  }
+
   /** Un admin peut-il encore se connecter (non banni, ou bannissement expiré) ? */
   async hasActiveAdmin(now = new Date()): Promise<boolean> {
     const [row] = await this.db

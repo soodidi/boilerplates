@@ -1,6 +1,6 @@
 import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { http, HttpResponse } from 'msw/http';
 import { db, OTHER_USER, signInAsDemo, signInAsUser } from '@/mocks/db';
 import { server } from '@/mocks/server';
@@ -8,6 +8,11 @@ import { renderRoute } from '@/test/render';
 
 // BE-010 : page réservée. L'API (mockée par MSW) applique les mêmes permissions.
 describe('AdminPage', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
   it('montre les chiffres et les comptes à un administrateur', async () => {
     signInAsDemo();
     renderRoute('/admin');
@@ -97,6 +102,78 @@ describe('AdminPage', () => {
     expect(
       screen.queryByRole('button', { name: `Suspendre ${OTHER_USER.name}` }),
     ).not.toBeInTheDocument();
+  });
+
+  it('n’offre ni export ni suppression sur un compte non suspendu', async () => {
+    signInAsDemo();
+    renderRoute('/admin');
+
+    await screen.findByRole('button', { name: `Suspendre ${OTHER_USER.name}` });
+    expect(
+      screen.queryByRole('button', { name: `Exporter ses données ${OTHER_USER.name}` }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: `Supprimer le compte ${OTHER_USER.name}` }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('exporte les données d’un compte suspendu (GLB-013)', async () => {
+    // jsdom ne sait ni créer d'URL de Blob ni télécharger : on observe le lien créé.
+    vi.stubGlobal(
+      'URL',
+      class extends URL {
+        static override createObjectURL = vi.fn(() => 'blob:export');
+        static override revokeObjectURL = vi.fn();
+      },
+    );
+    const click = vi
+      .spyOn(HTMLAnchorElement.prototype, 'click')
+      .mockImplementation(() => undefined);
+    signInAsDemo();
+    const other = db.users.find((candidate) => candidate.id === OTHER_USER.id);
+    if (other) other.banned = true;
+    const user = userEvent.setup();
+    renderRoute('/admin');
+
+    await user.click(
+      await screen.findByRole('button', { name: `Exporter ses données ${OTHER_USER.name}` }),
+    );
+
+    expect(await screen.findByRole('status')).toHaveTextContent('Fichier téléchargé.');
+    const link = click.mock.contexts[0] as HTMLAnchorElement;
+    expect(link.download).toMatch(
+      new RegExp(`^export-${OTHER_USER.id}-\\d{4}-\\d{2}-\\d{2}\\.json$`),
+    );
+  });
+
+  it('supprime un compte suspendu après confirmation (GLB-013)', async () => {
+    signInAsDemo();
+    const other = db.users.find((candidate) => candidate.id === OTHER_USER.id);
+    if (other) other.banned = true;
+    const user = userEvent.setup();
+    renderRoute('/admin');
+
+    await user.click(
+      await screen.findByRole('button', { name: `Supprimer le compte ${OTHER_USER.name}` }),
+    );
+    expect(screen.getByText(/C'est définitif/)).toBeVisible();
+    await user.click(screen.getByRole('button', { name: 'Annuler' }));
+    // Le focus revient sur le bouton qui a ouvert la confirmation ; rien n'est supprimé.
+    expect(
+      screen.getByRole('button', { name: `Supprimer le compte ${OTHER_USER.name}` }),
+    ).toHaveFocus();
+    expect(db.users.some((candidate) => candidate.id === OTHER_USER.id)).toBe(true);
+
+    await user.click(
+      screen.getByRole('button', { name: `Supprimer le compte ${OTHER_USER.name}` }),
+    );
+    await user.click(screen.getByRole('button', { name: 'Confirmer' }));
+
+    expect(await screen.findByRole('status')).toHaveTextContent(
+      `Le compte de ${OTHER_USER.name} et ses données ont été supprimés.`,
+    );
+    const accounts = screen.getByRole('region', { name: 'Comptes' });
+    await expect.poll(() => within(accounts).queryByText(OTHER_USER.email)).toBeNull();
   });
 
   it('signale l’échec d’une action', async () => {
