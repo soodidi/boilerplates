@@ -18,7 +18,7 @@ Puis ouvrir le dossier dans Android Studio (JDK 17), et :
 
 1. Renommer le package `com.example.app` (*Refactor → Rename* sur le package) et mettre à jour `namespace` / `applicationId` dans `app/build.gradle.kts`.
 2. Changer `app_name` dans `res/values*/strings.xml` et les URL de production (`API_BASE_URL` et `WEB_BASE_URL`, buildType `release`). `WEB_BASE_URL` est le front web : il DOIT figurer dans `CORS_ORIGINS` de l'API, sinon l'inscription et le mot de passe oublié sont refusés (`INVALID_CALLBACK_URL`).
-3. Lancer l'API locale (boilerplate `api-nestjs`, `npm run setup && npm run stack`) : l'émulateur la joint sur `http://10.0.2.2:3000`. Les e-mails arrivent dans Mailpit (`http://localhost:8025`), et leurs liens s'ouvrent dans le navigateur de la machine.
+3. Lancer l'API locale (boilerplate `api-nestjs`, `npm run up`) : l'émulateur la joint sur `http://10.0.2.2:3000`. Les e-mails arrivent dans Mailpit (`http://localhost:8025`), et leurs liens s'ouvrent dans le navigateur de la machine.
 4. Reporter dans `res/values/legal.xml` la durée de conservation des sauvegardes (`legal_backup_retention_days`) : même valeur que `backupRetentionDays` du web (`legal-info.ts`) et que l'infra de production. Elle est annoncée à l'utilisateur avant la suppression de son compte.
 
 Les liens de « Mon compte » (politique de confidentialité, export) s'ouvrent dans le navigateur de l'émulateur, où `localhost` désigne l'émulateur lui-même. En debug, rediriger le port du front web : `adb reverse tcp:5173 tcp:5173`.

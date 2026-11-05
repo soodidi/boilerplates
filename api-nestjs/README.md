@@ -13,8 +13,9 @@ npx degit soodidi/boilerplates/api-nestjs mon-api
 cd mon-api
 git init -b main
 npm install        # installe aussi les hooks Git (lefthook)
-npm run setup      # .env prêt (secrets de dev générés), PostgreSQL + Mailpit, migrations
-npm run dev        # http://localhost:3000, docs sur /docs, e-mails sur http://localhost:8025
+npm run up         # tout en une commande : .env prêt, PostgreSQL + Mailpit, migrations, API (image de prod)
+# ou, pour coder l'API avec rechargement à chaud :
+npm run setup && npm run dev   # http://localhost:3000, docs sur /docs, e-mails sur http://localhost:8025
 ```
 
 `npm run setup` se relance sans risque : il ne fait que compléter le `.env` avec les variables apparues dans `.env.example`, sans toucher aux valeurs existantes.
@@ -32,6 +33,7 @@ Prérequis : Node 26 (`.nvmrc`), npm (fourni avec Node), Docker (base locale et 
 | `npm run setup`            | Prépare le dev : `.env` créé ou complété, PostgreSQL et Mailpit, migrations (relançable)                                  |
 | `npm run dev`              | API en mode watch (lit `.env`)                                                                                            |
 | `npm run stack`            | API dans l'image de production, avec PostgreSQL et Mailpit (`stack:down` pour arrêter, `stack:smoke` pour tester)         |
+| `npm run up`               | Tout le local en une commande : `setup` puis `stack`, relançable sans risque                                              |
 | `npm run test`             | Tests unitaires                                                                                                           |
 | `npm run test:integration` | Tests d'intégration et e2e sur un vrai PostgreSQL (Testcontainers ; sans Docker : `TEST_DATABASE_URL` vers une base vide) |
 | `npm run db:generate`      | Génère une migration SQL depuis les fichiers `*.table.ts` (à relire avant de commiter)                                    |

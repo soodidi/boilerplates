@@ -11,6 +11,7 @@
     "setup": "node scripts/setup.mjs",
     "dev": "nest start --watch --exec \"node --env-file-if-exists=.env --import ./dist/instrument.js\"",
     "stack": "docker compose --profile app up --build --detach --wait",
+    "up": "npm run setup && npm run stack",
     "stack:down": "docker compose --profile app down",
     "stack:smoke": "node scripts/smoke.mjs",
     "build": "nest build",
