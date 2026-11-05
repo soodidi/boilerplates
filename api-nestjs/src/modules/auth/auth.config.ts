@@ -29,6 +29,14 @@ export const SESSION_MAX_LIFETIME_MS = 90 * DAY_SECONDS * 1000;
 /** Préfixe des routes de Better Auth, dans la version 1 de l'API (BE-004). */
 export const AUTH_BASE_PATH = '/v1/auth';
 
+/** Le plugin `admin` lit un rôle à plusieurs valeurs (`"user,admin"`) : admin si l'une l'est. */
+export function hasAdminRole(role: unknown): boolean {
+  return typeof role === 'string' && role.split(',').some((value) => value.trim() === ADMIN_ROLE);
+}
+
+/** Routes du plugin `admin` qui visent un compte et ne doivent jamais viser un admin (BE-010). */
+const ADMIN_PROTECTED_PATHS = new Set(['/admin/ban-user', '/admin/revoke-user-sessions']);
+
 /** Recommandation OWASP pour Argon2id : 19 Mio, 2 passes, 1 fil. Argon2id est l'algorithme par défaut. */
 const ARGON2_OPTIONS = { memoryCost: 19_456, timeCost: 2, parallelism: 1 };
 
@@ -142,7 +150,7 @@ export function createAuth({ env, db, mailer, userData }: AuthDependencies) {
       // jour. On exige toujours sa ressaisie (une chaîne vide compte comme absente pour Better Auth).
       // Un compte sans mot de passe (connexion sociale, passkey) ne pourrait pas être supprimé :
       // revoir cette règle avec GLB-013 avant d'ajouter un tel moyen de connexion.
-      before: createAuthMiddleware((ctx) => {
+      before: createAuthMiddleware(async (ctx) => {
         const body = ctx.body as { password?: unknown; userId?: unknown } | undefined;
         if (ctx.path === '/delete-user' && (typeof body?.password !== 'string' || !body.password)) {
           throw new APIError('BAD_REQUEST', { message: 'Password is required' });
@@ -159,7 +167,21 @@ export function createAuth({ env, db, mailer, userData }: AuthDependencies) {
         if (ctx.path === '/verify-email' && hasEmailChange(token)) {
           throw new APIError('BAD_REQUEST', { message: 'Invalid token' });
         }
-        return Promise.resolve();
+        // BE-010 : les admins sont exactement la liste ADMIN_EMAILS. Aucun admin n'en bannit un autre
+        // ni ne coupe ses sessions depuis l'interface : un compte volé ne peut pas enfermer les autres
+        // dehors. Écarter un admin : le retirer de la liste, puis redéployer.
+        // Sans identifiant (ni cookie ni `Authorization`), le plugin répond 401 : rien n'indique alors
+        // si le compte visé est un admin. La session elle-même n'est pas encore lisible ici (le jeton
+        // Bearer est converti par le hook du plugin `bearer`, qui passe après celui-ci).
+        const hasCredentials = Boolean(
+          ctx.headers?.get('cookie') ?? ctx.headers?.get('authorization'),
+        );
+        if (ADMIN_PROTECTED_PATHS.has(ctx.path) && typeof userId === 'string' && hasCredentials) {
+          const target = await ctx.context.internalAdapter.findUserById(userId);
+          if (hasAdminRole((target as { role?: unknown } | null)?.role)) {
+            throw new APIError('FORBIDDEN', { message: 'Admins are managed by configuration' });
+          }
+        }
       }),
     },
     // Suppression par lien e-mail : non utilisée (GLB-013), la route reste fermée.

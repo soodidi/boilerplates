@@ -1,20 +1,31 @@
-import { Inject, Injectable, Logger, type OnApplicationBootstrap } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  Logger,
+  type OnApplicationBootstrap,
+  type OnApplicationShutdown,
+} from '@nestjs/common';
 import * as Sentry from '@sentry/nestjs';
 import { ENV, type Env } from '../../config/env.js';
 import { UsersService } from './users.service.js';
 
+export const REAPPLY_INTERVAL_MS = 10 * 60 * 1000;
+
 /**
- * BE-010 : les comptes de `ADMIN_EMAILS` sont promus admins au démarrage de chaque instance (déploiement,
- * réveil, montée en charge), après les migrations (`app.listen` suit `runMigrations` dans main.ts).
- * La liste vient de la configuration de l'environnement, modifiable seulement par une PR sur l'infra :
- * un admin listé rétrogradé depuis l'interface le redevient. Un bannissement, lui, tient tant qu'un
- * autre admin peut se connecter (compte compromis écarté sans attendre la PR qui le retire de la
- * liste) ; il n'est levé que si plus aucun admin n'est actif, pour reprendre la main.
+ * BE-010 : les admins sont exactement les comptes de `ADMIN_EMAILS`, liste vide comprise (aucun
+ * admin). Au démarrage de chaque instance, après les migrations (`app.listen` suit `runMigrations`
+ * dans main.ts), puis toutes les 10 minutes : tout compte hors liste dont le rôle n'est pas `user`
+ * redevient `user` et perd ses sessions, puis chaque compte listé dont l'adresse est vérifiée devient
+ * admin. Le passage régulier rattrape une instance de l'ancienne version qui aurait redémarré pendant
+ * un déploiement avec l'ancienne liste. La liste vient de la configuration de l'environnement,
+ * modifiable seulement par une PR sur l'infra ; l'interface ne change aucun rôle.
+ * Le bannissement d'un compte listé n'est levé que si plus aucun admin n'est actif (reprise en main).
  * Seuls des nombres sont journalisés, jamais d'adresse (BE-007, GLB-013).
  */
 @Injectable()
-export class ConfiguredAdmins implements OnApplicationBootstrap {
+export class ConfiguredAdmins implements OnApplicationBootstrap, OnApplicationShutdown {
   private readonly logger = new Logger(ConfiguredAdmins.name);
+  private timer: NodeJS.Timeout | undefined;
 
   constructor(
     @Inject(ENV) private readonly env: Env,
@@ -22,11 +33,23 @@ export class ConfiguredAdmins implements OnApplicationBootstrap {
   ) {}
 
   async onApplicationBootstrap() {
-    if (this.env.ADMIN_EMAILS.length === 0) return;
+    await this.run(true);
+    this.timer = setInterval(() => void this.run(false), REAPPLY_INTERVAL_MS);
+    // N'empêche pas le processus de s'arrêter.
+    this.timer.unref();
+  }
+
+  onApplicationShutdown() {
+    clearInterval(this.timer);
+  }
+
+  private async run(atStartup: boolean) {
     try {
-      await this.apply();
+      const result = await this.apply();
+      // Journalisé au démarrage, puis seulement quand un compte a perdu le rôle.
+      if (atStartup || result.demoted > 0) this.logger.log(result, 'Configured admins applied');
     } catch (error) {
-      // Réessayé au prochain démarrage ; l'API reste disponible.
+      // Réessayé au passage suivant ; l'API reste disponible.
       Sentry.captureException(error);
       this.logger.error(
         'Configured admins could not be applied',
@@ -35,15 +58,15 @@ export class ConfiguredAdmins implements OnApplicationBootstrap {
     }
   }
 
-  async apply(): Promise<{ promoted: number; skipped: number }> {
+  async apply(): Promise<{ promoted: number; skipped: number; demoted: number }> {
+    // Avant tout : un admin retiré de la liste ne compte plus parmi les admins actifs.
+    const demoted = await this.users.demoteAdminsNotIn(this.env.ADMIN_EMAILS);
     const liftBan = !(await this.users.hasActiveAdmin());
     let promoted = 0;
     for (const email of this.env.ADMIN_EMAILS) {
       if (await this.users.promoteToAdmin(email, { liftBan })) promoted += 1;
     }
     // `skipped` : compte absent ou adresse pas encore vérifiée.
-    const result = { promoted, skipped: this.env.ADMIN_EMAILS.length - promoted };
-    this.logger.log(result, 'Configured admins applied');
-    return result;
+    return { promoted, skipped: this.env.ADMIN_EMAILS.length - promoted, demoted };
   }
 }

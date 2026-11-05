@@ -36,10 +36,10 @@ describe('access control', () => {
     expect(roles.user.authorize({ stats: ['read'] }).success).toBe(false);
   });
 
-  it('lets an admin list, change roles, ban and revoke sessions, and read stats', () => {
+  it('lets an admin list, ban and revoke sessions, and read stats', () => {
     expect(
       roles.admin.authorize({
-        user: ['list', 'get', 'set-role', 'ban'],
+        user: ['list', 'get', 'ban'],
         session: ['revoke'],
         stats: ['read'],
       }).success,
@@ -47,6 +47,7 @@ describe('access control', () => {
   });
 
   it.each([
+    'set-role',
     'impersonate',
     'impersonate-admins',
     'delete',
