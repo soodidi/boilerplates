@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { and, count, desc, eq, inArray, isNull, lt, ne, notInArray, or } from 'drizzle-orm';
-import { DB, type Database } from '../../database/database.module.js';
+import { DB, type Database, type Transaction } from '../../database/database.module.js';
 import { ADMIN_ROLE, DEFAULT_ROLE, hasAdminRole } from './access-control.js';
 import { accounts, rateLimits, sessions, users, verifications } from './auth.table.js';
 
@@ -93,6 +93,48 @@ export class AuthRepository {
     });
   }
 
+  /**
+   * BE-010 / GLB-013 : rôle et suspension d'un compte, pour les actions d'administration. Une
+   * suspension expirée ne compte plus (Better Auth la lève à la connexion suivante).
+   */
+  async findAccountState(
+    userId: string,
+    now = new Date(),
+  ): Promise<{ role: string | null; suspended: boolean } | null> {
+    const [user] = await this.db
+      .select({ role: users.role, banned: users.banned, banExpires: users.banExpires })
+      .from(users)
+      .where(eq(users.id, userId));
+    return user ? { role: user.role, suspended: isSuspended(user, now) } : null;
+  }
+
+  /**
+   * GLB-013 : efface un compte suspendu, comme Better Auth après `/delete-user` (données des modules,
+   * puis sessions, moyens de connexion et compte), en une transaction qui verrouille le compte et
+   * revérifie qu'il est suspendu et pas admin : un compte réactivé ou promu entre-temps est épargné.
+   */
+  async eraseSuspendedAccount(
+    userId: string,
+    eraseModules: (tx: Transaction) => Promise<void>,
+    now = new Date(),
+  ): Promise<'erased' | 'not_found' | 'admin' | 'not_suspended'> {
+    return this.db.transaction(async (tx) => {
+      const [user] = await tx
+        .select({ role: users.role, banned: users.banned, banExpires: users.banExpires })
+        .from(users)
+        .where(eq(users.id, userId))
+        .for('update');
+      if (!user) return 'not_found';
+      if (hasAdminRole(user.role)) return 'admin';
+      if (!isSuspended(user, now)) return 'not_suspended';
+      await eraseModules(tx);
+      await tx.delete(sessions).where(eq(sessions.userId, userId));
+      await tx.delete(accounts).where(eq(accounts.userId, userId));
+      await tx.delete(users).where(eq(users.id, userId));
+      return 'erased';
+    });
+  }
+
   /** Un admin peut-il encore se connecter (non banni, ou bannissement expiré) ? */
   async hasActiveAdmin(now = new Date()): Promise<boolean> {
     const [row] = await this.db
@@ -151,4 +193,12 @@ export class AuthRepository {
       rateLimits: staleRateLimits.rowCount ?? 0,
     };
   }
+}
+
+/** Suspendu : banni, et la suspension n'a pas expiré. */
+function isSuspended(
+  user: { banned: boolean | null; banExpires: Date | null },
+  now: Date,
+): boolean {
+  return user.banned === true && (user.banExpires === null || user.banExpires > now);
 }

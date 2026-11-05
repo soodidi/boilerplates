@@ -1,6 +1,10 @@
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useQuery, useSuspenseQuery } from '@tanstack/react-query';
 import { useEffect, useId, useRef, useState } from 'react';
+import { useForm } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
+import { FormField } from '@/components/ui/form-field';
+import { Input } from '@/components/ui/input';
 import {
   type AdminUser,
   adminUsersQueryOptions,
@@ -8,13 +12,24 @@ import {
   useAdminUserAction,
 } from '@/features/auth';
 import { useMessages } from '@/i18n';
-import { ForbiddenError } from '@/lib/errors';
+import { isForbidden } from '@/lib/errors';
+import {
+  isStaleAccount,
+  isWrongPassword,
+  useEraseSuspendedUser,
+  useExportSuspendedUser,
+} from '../api/admin-api';
+import { eraseUserFormSchema } from '../schemas/admin';
 
-type ActionType = 'ban' | 'unban';
+type ActionType = 'ban' | 'unban' | 'export';
+/** Actions qui se confirment : un clic de travers aurait de lourds effets. */
+type ConfirmedAction = 'ban' | 'erase';
 
 /**
  * BE-010 : comptes, avec suspension des comptes ordinaires. Les admins viennent de la configuration
- * de l'API (ADMIN_EMAILS) : aucune action sur eux ici. L'API vérifie chaque action.
+ * de l'API (ADMIN_EMAILS) : aucune action sur eux ici, sauf lever une suspension. GLB-013 : sur un
+ * compte suspendu, qui ne peut plus le faire lui-même, export et effacement de ses données.
+ * L'API vérifie chaque action.
  */
 export function UsersSection() {
   const m = useMessages();
@@ -22,11 +37,57 @@ export function UsersSection() {
   const { data } = useSuspenseQuery(adminUsersQueryOptions());
   const { data: session } = useQuery(sessionQueryOptions());
   const action = useAdminUserAction();
+  const exportUser = useExportSuspendedUser();
+  const eraseUser = useEraseSuspendedUser();
+  const [done, setDone] = useState<string | null>(null);
+  const [failure, setFailure] = useState<unknown>(null);
+  const isPending = action.isPending || exportUser.isPending || eraseUser.isPending;
+  // Après une suppression, la carte disparaît : le focus passe sur le message, qui reste.
+  const status = useRef<HTMLParagraphElement>(null);
 
   function run(user: AdminUser, type: ActionType) {
     // Un second clic pendant l'envoi est ignoré (le bouton garde le focus : pas de `disabled`).
-    if (action.isPending) return;
-    action.mutate({ type, userId: user.id });
+    if (isPending) return;
+    setDone(null);
+    setFailure(null);
+    const callbacks = {
+      onError: (error: unknown) => {
+        setFailure(error);
+      },
+    };
+    if (type === 'export') {
+      exportUser.mutate(user.id, {
+        ...callbacks,
+        onSuccess: () => {
+          setDone(m.admin.users.exported);
+        },
+      });
+    } else {
+      action.mutate(
+        { type, userId: user.id },
+        {
+          ...callbacks,
+          onSuccess: () => {
+            setDone(m.admin.users.saved);
+          },
+        },
+      );
+    }
+  }
+
+  /** Mot de passe faux : renvoyé au formulaire, qui l'affiche sous le champ. */
+  async function erase(user: AdminUser, password: string) {
+    setDone(null);
+    setFailure(null);
+    try {
+      await eraseUser.mutateAsync({ userId: user.id, password });
+    } catch (error) {
+      if (isWrongPassword(error)) throw error;
+      setFailure(error);
+      return;
+    }
+    setDone(m.admin.users.erased(user.name));
+    status.current?.focus();
   }
 
   return (
@@ -35,12 +96,16 @@ export function UsersSection() {
         {m.admin.users.title}
       </h2>
       <p className="text-sm text-muted-foreground">{m.admin.users.description}</p>
-      <p role="status" className="text-sm text-success">
-        {action.isSuccess ? m.admin.users.saved : null}
+      <p ref={status} tabIndex={-1} role="status" className="text-sm text-success">
+        {done}
       </p>
-      {action.isError ? (
+      {failure ? (
         <p role="alert" className="text-sm text-destructive">
-          {action.error instanceof ForbiddenError ? m.admin.users.forbidden : m.admin.users.error}
+          {isForbidden(failure)
+            ? m.admin.users.forbidden
+            : isStaleAccount(failure)
+              ? m.admin.users.stale
+              : m.admin.users.error}
         </p>
       ) : null}
       {/* FE-008 : des cartes plutôt qu'un tableau, lisibles dès 320 px. */}
@@ -51,10 +116,11 @@ export function UsersSection() {
             user={user}
             // Pas d'action sur son propre compte : un admin ne s'enferme pas dehors.
             isSelf={user.id === session?.user.id}
-            isPending={action.isPending}
+            isPending={isPending}
             onAction={(type) => {
               run(user, type);
             }}
+            onErase={(password) => erase(user, password)}
           />
         ))}
       </ul>
@@ -67,34 +133,35 @@ type UserCardProps = {
   isSelf: boolean;
   isPending: boolean;
   onAction: (type: ActionType) => void;
+  onErase: (password: string) => Promise<void>;
 };
 
-function UserCard({ user, isSelf, isPending, onAction }: UserCardProps) {
+function UserCard({ user, isSelf, isPending, onAction, onErase }: UserCardProps) {
   const m = useMessages();
   const role = user.role ?? 'user';
   const isAdmin = role === 'admin';
-  // Suspendre se confirme : un clic de travers fermerait les sessions du compte.
-  const [confirming, setConfirming] = useState(false);
+  const [confirming, setConfirming] = useState<ConfirmedAction | null>(null);
   // Après « Confirmer » ou « Annuler », le focus revient sur le bouton qui a ouvert la confirmation.
-  const returnFocus = useRef(false);
-  const restoreFocus = (button: HTMLButtonElement | null) => {
-    if (button && returnFocus.current) {
+  const returnFocusTo = useRef<ConfirmedAction | null>(null);
+  const restoreFocus = (kind: ConfirmedAction) => (button: HTMLButtonElement | null) => {
+    if (button && returnFocusTo.current === kind) {
       button.focus();
-      returnFocus.current = false;
+      returnFocusTo.current = null;
     }
   };
   const confirmButton = useRef<HTMLButtonElement>(null);
+  const confirmTextId = useId();
   useEffect(() => {
     // Le focus passe sur la confirmation, que le clavier et les lecteurs d'écran trouvent.
     if (confirming) confirmButton.current?.focus();
   }, [confirming]);
   function close() {
-    returnFocus.current = true;
-    setConfirming(false);
+    returnFocusTo.current = confirming;
+    setConfirming(null);
   }
-  function open() {
+  function open(kind: ConfirmedAction) {
     // Pendant un envoi, rien ne s'ouvre : la confirmation serait ignorée.
-    if (!isPending) setConfirming(true);
+    if (!isPending) setConfirming(kind);
   }
 
   return (
@@ -123,7 +190,6 @@ function UserCard({ user, isSelf, isPending, onAction }: UserCardProps) {
                 name={user.name}
                 variant="secondary"
                 isPending={isPending}
-                buttonRef={restoreFocus}
                 onClick={() => {
                   onAction('unban');
                 }}
@@ -131,13 +197,18 @@ function UserCard({ user, isSelf, isPending, onAction }: UserCardProps) {
             </div>
           ) : null}
         </div>
-      ) : confirming ? (
+      ) : confirming === 'erase' ? (
+        <EraseForm name={user.name} onErase={onErase} onCancel={close} />
+      ) : confirming === 'ban' ? (
         <div className="grid gap-2">
-          <p className="text-sm">{m.admin.users.confirmBan(user.name)}</p>
+          <p id={confirmTextId} className="text-sm">
+            {m.admin.users.confirmBan(user.name)}
+          </p>
           <div className="flex flex-wrap gap-2">
             <Button
               variant="destructive"
               ref={confirmButton}
+              aria-describedby={confirmTextId}
               onClick={() => {
                 onAction('ban');
                 close();
@@ -145,22 +216,53 @@ function UserCard({ user, isSelf, isPending, onAction }: UserCardProps) {
             >
               {m.admin.users.confirm}
             </Button>
-            <Button variant="secondary" onClick={close}>
+            <Button variant="secondary" aria-describedby={confirmTextId} onClick={close}>
               {m.admin.users.cancel}
             </Button>
           </div>
         </div>
+      ) : user.banned ? (
+        <div className="flex flex-wrap gap-2">
+          <ActionButton
+            label={m.admin.users.unban}
+            name={user.name}
+            variant="secondary"
+            isPending={isPending}
+            onClick={() => {
+              onAction('unban');
+            }}
+          />
+          {/* GLB-013 : le compte suspendu ne peut plus le faire lui-même ; l'admin répond à sa demande. */}
+          <ActionButton
+            label={m.admin.users.exportData}
+            name={user.name}
+            variant="secondary"
+            isPending={isPending}
+            onClick={() => {
+              onAction('export');
+            }}
+          />
+          <ActionButton
+            label={m.admin.users.erase}
+            name={user.name}
+            variant="destructive"
+            isPending={isPending}
+            buttonRef={restoreFocus('erase')}
+            onClick={() => {
+              open('erase');
+            }}
+          />
+        </div>
       ) : (
         <div className="flex flex-wrap gap-2">
           <ActionButton
-            label={user.banned ? m.admin.users.unban : m.admin.users.ban}
+            label={m.admin.users.ban}
             name={user.name}
-            variant={user.banned ? 'secondary' : 'destructive'}
+            variant="destructive"
             isPending={isPending}
-            buttonRef={restoreFocus}
+            buttonRef={restoreFocus('ban')}
             onClick={() => {
-              if (user.banned) onAction('unban');
-              else open();
+              open('ban');
             }}
           />
         </div>
@@ -169,12 +271,76 @@ function UserCard({ user, isSelf, isPending, onAction }: UserCardProps) {
   );
 }
 
+type EraseFormProps = {
+  name: string;
+  onErase: (password: string) => Promise<void>;
+  onCancel: () => void;
+};
+
+/**
+ * GLB-013 : effacement définitif d'un compte suspendu, après ressaisie du mot de passe de l'admin
+ * (une session volée ne suffit pas). FE-006 : React Hook Form + Zod.
+ */
+function EraseForm({ name, onErase, onCancel }: EraseFormProps) {
+  const m = useMessages();
+  const textId = useId();
+  const form = useForm({
+    resolver: zodResolver(eraseUserFormSchema(m)),
+    mode: 'onTouched',
+    defaultValues: { password: '' },
+  });
+  const { errors, isSubmitting } = form.formState;
+  useEffect(() => {
+    // Le focus passe sur le champ, que le clavier et les lecteurs d'écran trouvent.
+    form.setFocus('password');
+  }, [form]);
+
+  const onSubmit = form.handleSubmit(async ({ password }) => {
+    try {
+      await onErase(password);
+    } catch {
+      form.setError('password', { message: m.admin.users.wrongPassword });
+    }
+  });
+
+  return (
+    <form
+      noValidate
+      aria-describedby={textId}
+      className="grid gap-2"
+      onSubmit={(event) => void onSubmit(event)}
+    >
+      <p id={textId} className="text-sm">
+        {m.admin.users.confirmErase(name)}
+      </p>
+      <FormField label={m.admin.users.yourPassword} error={errors.password?.message}>
+        {(control) => (
+          <Input
+            {...control}
+            type="password"
+            autoComplete="current-password"
+            {...form.register('password')}
+          />
+        )}
+      </FormField>
+      <div className="flex flex-wrap gap-2">
+        <Button type="submit" variant="destructive" disabled={isSubmitting}>
+          {m.admin.users.confirm}
+        </Button>
+        <Button type="button" variant="secondary" onClick={onCancel}>
+          {m.admin.users.cancel}
+        </Button>
+      </div>
+    </form>
+  );
+}
+
 type ActionButtonProps = {
   label: string;
   name: string;
   variant: 'secondary' | 'destructive';
   isPending: boolean;
-  buttonRef: (button: HTMLButtonElement | null) => void;
+  buttonRef?: (button: HTMLButtonElement | null) => void;
   onClick: () => void;
 };
 

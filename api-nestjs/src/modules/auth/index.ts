@@ -5,4 +5,5 @@ export { AllowAnonymous as Public, Session, type UserSession } from '@thallesp/n
 // BE-010 : une route réservée porte `@UserHasPermission({ permissions })` (actions déclarées dans
 // access-control.ts) ou `@Roles([...])`. Refus : 403 Problem Details.
 export { Roles, UserHasPermission } from '@thallesp/nestjs-better-auth';
+export { hasAdminRole } from './access-control.js';
 export { UsersService } from './users.service.js';

@@ -18,7 +18,7 @@ export { authKeys, sessionQueryOptions, useDeleteAccount } from './api/auth-api'
 export { deleteAccountErrorMessage } from './api/auth-errors';
 export { configureAuthClient } from './api/auth-client';
 export { redirectIfSignedIn, requirePermission, requireSession } from './guard';
-export { type Permissions, useCan } from './api/permissions-api';
+export { permissionKeys, type Permissions, useCan } from './api/permissions-api';
 export { adminUsersQueryOptions, useAdminUserAction } from './api/admin-users-api';
 export { type AdminUser } from './schemas/admin';
 export { createUnauthorizedHandler } from './session-expiry';

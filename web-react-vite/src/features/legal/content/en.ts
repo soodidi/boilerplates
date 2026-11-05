@@ -106,6 +106,7 @@ export const en: LegalContent = (info) => ({
             'export all your data to a file (right of access and portability);',
             `delete your account and all your data, immediately and permanently (right to erasure); only the backups keep them, for ${info.backupRetentionDays} days at most.`,
           ],
+          `If your account is suspended, you can no longer sign in: write to ${info.contactEmail} from your account's address, and we will send you your data or delete your account within one month.`,
           `You can also ask for your data to be corrected, restrict or object to its processing, or set instructions on what happens to it after your death, by writing to ${info.contactEmail}. If you believe your rights are not respected, you can lodge a complaint with the CNIL (www.cnil.fr) or the supervisory authority of your country of residence.`,
         ],
       },

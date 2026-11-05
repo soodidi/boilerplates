@@ -34,6 +34,8 @@ describe('access control', () => {
     expect(roles.user.authorize({ user: ['list'] }).success).toBe(false);
     expect(roles.user.authorize({ session: ['revoke'] }).success).toBe(false);
     expect(roles.user.authorize({ stats: ['read'] }).success).toBe(false);
+    expect(roles.user.authorize({ account: ['export'] }).success).toBe(false);
+    expect(roles.user.authorize({ account: ['erase'] }).success).toBe(false);
   });
 
   it('lets an admin list, ban and revoke sessions, and read stats', () => {
@@ -42,6 +44,7 @@ describe('access control', () => {
         user: ['list', 'get', 'ban'],
         session: ['revoke'],
         stats: ['read'],
+        account: ['export', 'erase'],
       }).success,
     ).toBe(true);
   });
