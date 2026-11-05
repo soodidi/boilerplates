@@ -131,6 +131,11 @@ jobs:
       SCW_DEFAULT_ORGANIZATION_ID: ${{ vars.SCW_DEFAULT_ORGANIZATION_ID }}
       # OPS-006 : passphrase de chiffrement du state, nécessaire dès `tofu init`.
       TF_VAR_state_passphrase: ${{ secrets.TF_STATE_PASSPHRASE }}
+      # OPS-006 : secrets saisis à la main (clé d'une API tierce), un par ligne, lus dans les secrets
+      # de l'environnement GitHub de l'apply (staging ou production). Chacun a sa variable sensible
+      # dans envs/<env>/variables.tf et sa ligne dans secret_environment_variables (README, « Secrets »).
+      # Jamais `toJSON(secrets)` : les clés de la CI finiraient dans le conteneur. Exemple :
+      # TF_VAR_stripe_secret_key: ${{ secrets.STRIPE_SECRET_KEY }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

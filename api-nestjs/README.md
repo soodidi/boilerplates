@@ -142,7 +142,7 @@ Le code métier injecte `Mailer` et lui passe un gabarit de `src/mail/templates.
 | Staging       | `smtp://<ID projet>:<clé API>@smtp.tem.scaleway.com:587` | tes adresses              |
 | Production    | idem, TLS imposé                                         | vide                      |
 
-En staging et en production, `SMTP_URL` est un secret (Secret Manager, OPS-006). Avant le premier envoi réel : domaine d'envoi vérifié dans Scaleway TEM, avec SPF, DKIM et DMARC (checklist « nouveau projet »).
+En staging et en production, `SMTP_URL` est une variable secrète du conteneur, générée par OpenTofu (OPS-006). Avant le premier envoi réel : domaine d'envoi vérifié dans Scaleway TEM, avec SPF, DKIM et DMARC (checklist « nouveau projet »).
 
 ## Libs partagées
 
