@@ -4,32 +4,16 @@ import okhttp3.Interceptor
 import okhttp3.logging.HttpLoggingInterceptor
 
 /**
- * AND-004 : logs HTTP détaillés en debug uniquement, sans en-têtes d'authentification.
- * Les routes d'auth ne journalisent pas leur corps : il contient le mot de passe ou le token.
+ * AND-004 / GLB-013 : logs HTTP en debug uniquement, sans aucun corps de requête ni de réponse
+ * (notes, export du compte, mot de passe : rien de personnel dans logcat, qui part avec un rapport
+ * de bug), et sans en-têtes d'authentification. Méthode, URL, statut et autres en-têtes suffisent ;
+ * pour voir un contenu, les logs de l'API locale.
  */
-fun debugLoggingInterceptor(logger: HttpLoggingInterceptor.Logger = HttpLoggingInterceptor.Logger.DEFAULT): Interceptor {
-    val withBody = loggingInterceptor(HttpLoggingInterceptor.Level.BODY, logger)
-    val headersOnly = loggingInterceptor(HttpLoggingInterceptor.Level.HEADERS, logger)
-    return Interceptor { chain ->
-        val isAuthRoute =
-            chain
-                .request()
-                .url.encodedPath
-                .contains(AUTH_PATH)
-        (if (isAuthRoute) headersOnly else withBody).intercept(chain)
+fun debugLoggingInterceptor(logger: HttpLoggingInterceptor.Logger = HttpLoggingInterceptor.Logger.DEFAULT): Interceptor =
+    HttpLoggingInterceptor(logger).apply {
+        level = HttpLoggingInterceptor.Level.HEADERS
+        redactHeader("Authorization")
+        redactHeader("Cookie")
+        redactHeader("Set-Cookie")
+        redactHeader("set-auth-token")
     }
-}
-
-// `contains` et non `startsWith` : reste vrai si API_BASE_URL a un chemin (`https://x/api/`).
-private const val AUTH_PATH = "/v1/auth/"
-
-private fun loggingInterceptor(
-    logLevel: HttpLoggingInterceptor.Level,
-    logger: HttpLoggingInterceptor.Logger,
-) = HttpLoggingInterceptor(logger).apply {
-    level = logLevel
-    redactHeader("Authorization")
-    redactHeader("Cookie")
-    redactHeader("Set-Cookie")
-    redactHeader("set-auth-token")
-}
