@@ -206,7 +206,7 @@ describe('Roles and permissions (e2e)', () => {
 
       const actions = log.mock.calls.filter(([, message]) => message === 'Admin action');
       log.mockRestore();
-      expect(actions.map(([entry]) => entry)).toEqual([
+      expect(actions.map(([entry]): unknown => entry)).toEqual([
         { action: 'user.banned', actorId: actor, targetId: target },
         { action: 'user.unbanned', actorId: actor, targetId: target },
         { action: 'user.sessions_revoked', actorId: actor, targetId: target },
