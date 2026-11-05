@@ -57,7 +57,7 @@ app/src/main/java/com/example/app/
 - **Requêtes** : `AuthInterceptor` ajoute `Authorization: Bearer` aux appels vers `API_BASE_URL`, et seulement vers elle. Pas de cookies.
 - **Fin de session** : il n'y a pas de refresh token. Un `401` efface le token, et la navigation revient à la connexion. La déconnexion révoque la session côté serveur si le réseau le permet, et l'oublie localement dans tous les cas. Changer de graphe vide la pile de navigation : les ViewModels de l'utilisateur précédent sont détruits.
 - **Inscription et mot de passe oublié** : les formulaires sont dans l'app. Les liens des e-mails ouvrent le front web (`WEB_BASE_URL` + `login` ou `reset-password`), puis l'utilisateur revient se connecter dans l'app. Il n'y a pas de deep links.
-- **Logs debug** : les routes `/v1/auth/` ne journalisent que leurs en-têtes, masqués (`Authorization`, `set-auth-token`, cookies). Elles ne journalisent jamais leur corps.
+- **Logs debug** : méthode, URL, statut et en-têtes seulement, ceux d'authentification masqués (`Authorization`, `set-auth-token`, cookies). Aucun corps de requête ni de réponse, sur aucune route (AND-004, GLB-013) : logcat part avec les rapports de bug. En release, aucun log HTTP.
 
 ## Mon compte (GLB-013)
 
