@@ -30,7 +30,7 @@ describe('Roles and permissions (e2e)', () => {
     await database.reset();
     user = bearer(await signUpAndSignIn(app, mailer, 'ada@example.com'));
     const adminSession = await signUpAndSignIn(app, mailer, 'grace@example.com');
-    // Comme `npm run user:promote` ; le rôle s'applique à la requête suivante (pas de cache de session).
+    // Comme la liste ADMIN_EMAILS au démarrage ; le rôle s'applique à la requête suivante (pas de cache de session).
     expect(await app.get(UsersService).promoteToAdmin(' Grace@Example.com ')).toBe(true);
     admin = bearer(adminSession);
   });
@@ -221,6 +221,14 @@ describe('Roles and permissions (e2e)', () => {
           payload: { userId: ada },
         });
         expect(response.statusCode).toBe(403);
+        expect(response.json()).toMatchObject({ message: 'Admins are managed by configuration' });
+        // Sans session : 401, comme pour un compte ordinaire (rien ne trahit un admin).
+        const anonymous = await app.inject({
+          method: 'POST',
+          url: `/v1/auth${path}`,
+          payload: { userId: ada },
+        });
+        expect(anonymous.statusCode).toBe(401);
       }
       // ada garde sa session et son accès.
       const stats = await app.inject({ method: 'GET', url: '/v1/admin/stats', headers: user });
@@ -293,6 +301,18 @@ describe('Roles and permissions (e2e)', () => {
       expect(stats.statusCode).toBe(401);
     });
 
+    it('demotes a multi-value role outside the list (the plugin reads "user,admin" as admin)', async () => {
+      await database.db.execute(
+        sql`update users set role = 'user,admin' where email = 'ada@example.com'`,
+      );
+
+      await restartWith('grace@example.com');
+
+      expect(await database.role('ada@example.com')).toBe('user');
+      const stats = await app.inject({ method: 'GET', url: '/v1/admin/stats', headers: user });
+      expect(stats.statusCode).toBe(401);
+    });
+
     it('promotes listed verified accounts at startup, and only them', async () => {
       await app.inject({
         method: 'POST',
@@ -318,10 +338,9 @@ describe('Roles and permissions (e2e)', () => {
 
     it('lifts the ban when no admin can sign in any more', async () => {
       await banAda();
-      await database.db.execute(
-        sql`update users set banned = true where email = 'grace@example.com'`,
-      );
 
+      // grace, seule admin active, n'est plus dans la liste : rétrogradée d'abord, il ne reste
+      // aucun admin actif, donc le bannissement d'ada est levé.
       await restartWith('ada@example.com');
 
       expect((await signIn('ada@example.com')).statusCode).toBe(200);

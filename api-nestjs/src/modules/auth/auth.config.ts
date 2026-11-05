@@ -29,6 +29,11 @@ export const SESSION_MAX_LIFETIME_MS = 90 * DAY_SECONDS * 1000;
 /** Préfixe des routes de Better Auth, dans la version 1 de l'API (BE-004). */
 export const AUTH_BASE_PATH = '/v1/auth';
 
+/** Le plugin `admin` lit un rôle à plusieurs valeurs (`"user,admin"`) : admin si l'une l'est. */
+export function hasAdminRole(role: unknown): boolean {
+  return typeof role === 'string' && role.split(',').some((value) => value.trim() === ADMIN_ROLE);
+}
+
 /** Routes du plugin `admin` qui visent un compte et ne doivent jamais viser un admin (BE-010). */
 const ADMIN_PROTECTED_PATHS = new Set(['/admin/ban-user', '/admin/revoke-user-sessions']);
 
@@ -165,9 +170,15 @@ export function createAuth({ env, db, mailer, userData }: AuthDependencies) {
         // BE-010 : les admins sont exactement la liste ADMIN_EMAILS. Aucun admin n'en bannit un autre
         // ni ne coupe ses sessions depuis l'interface : un compte volé ne peut pas enfermer les autres
         // dehors. Écarter un admin : le retirer de la liste, puis redéployer.
-        if (ADMIN_PROTECTED_PATHS.has(ctx.path) && typeof userId === 'string') {
+        // Sans identifiant (ni cookie ni `Authorization`), le plugin répond 401 : rien n'indique alors
+        // si le compte visé est un admin. La session elle-même n'est pas encore lisible ici (le jeton
+        // Bearer est converti par le hook du plugin `bearer`, qui passe après celui-ci).
+        const hasCredentials = Boolean(
+          ctx.headers?.get('cookie') ?? ctx.headers?.get('authorization'),
+        );
+        if (ADMIN_PROTECTED_PATHS.has(ctx.path) && typeof userId === 'string' && hasCredentials) {
           const target = await ctx.context.internalAdapter.findUserById(userId);
-          if ((target as { role?: unknown } | null)?.role === ADMIN_ROLE) {
+          if (hasAdminRole((target as { role?: unknown } | null)?.role)) {
             throw new APIError('FORBIDDEN', { message: 'Admins are managed by configuration' });
           }
         }

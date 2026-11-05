@@ -113,7 +113,24 @@ function UserCard({ user, isSelf, isPending, onAction }: UserCardProps) {
         </p>
       </div>
       {isSelf ? null : isAdmin ? (
-        <p className="text-sm text-muted-foreground">{m.admin.users.managedByConfig}</p>
+        <div className="grid gap-2">
+          <p className="text-sm text-muted-foreground">{m.admin.users.managedByConfig}</p>
+          {/* Suspendu avant d'être nommé : lever la suspension est sans risque (BE-010). */}
+          {user.banned ? (
+            <div className="flex flex-wrap gap-2">
+              <ActionButton
+                label={m.admin.users.unban}
+                name={user.name}
+                variant="secondary"
+                isPending={isPending}
+                buttonRef={restoreFocus}
+                onClick={() => {
+                  onAction('unban');
+                }}
+              />
+            </div>
+          ) : null}
+        </div>
       ) : confirming ? (
         <div className="grid gap-2">
           <p className="text-sm">{m.admin.users.confirmBan(user.name)}</p>

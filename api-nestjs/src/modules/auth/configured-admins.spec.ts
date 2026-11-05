@@ -1,7 +1,7 @@
 import { Logger } from '@nestjs/common';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { type Env } from '../../config/env.js';
-import { ConfiguredAdmins } from './configured-admins.js';
+import { ConfiguredAdmins, REAPPLY_INTERVAL_MS } from './configured-admins.js';
 import { type UsersService } from './users.service.js';
 
 // BE-010 : promotion des comptes de ADMIN_EMAILS au démarrage.
@@ -64,14 +64,30 @@ describe('ConfiguredAdmins', () => {
     expect(users.promoteToAdmin).toHaveBeenCalledWith('grace@example.com', { liftBan: true });
   });
 
-  it('does nothing at bootstrap when the list is empty', async () => {
+  it('demotes every admin when the list is empty (no admin)', async () => {
     const { service, users } = configuredAdmins([], []);
 
-    await service.onApplicationBootstrap();
+    await service.apply();
 
+    expect(users.demoteAdminsNotIn).toHaveBeenCalledWith([]);
     expect(users.promoteToAdmin).not.toHaveBeenCalled();
-    // Liste vide : les admins nommés en local par `npm run user:promote` gardent leur rôle.
-    expect(users.demoteAdminsNotIn).not.toHaveBeenCalled();
+  });
+
+  it('applies the list again every 10 minutes, and logs only when someone lost the role', async () => {
+    vi.useFakeTimers();
+    const log = vi.spyOn(Logger.prototype, 'log').mockImplementation(() => undefined);
+    const { service, users } = configuredAdmins(['grace@example.com'], ['grace@example.com']);
+
+    await service.onApplicationBootstrap();
+    await vi.advanceTimersByTimeAsync(REAPPLY_INTERVAL_MS);
+    users.demoteAdminsNotIn.mockResolvedValueOnce(1);
+    await vi.advanceTimersByTimeAsync(REAPPLY_INTERVAL_MS);
+    service.onApplicationShutdown();
+
+    expect(users.demoteAdminsNotIn).toHaveBeenCalledTimes(3);
+    // Démarrage, puis le passage qui a rétrogradé un compte.
+    expect(log).toHaveBeenCalledTimes(2);
+    vi.useRealTimers();
   });
 
   it('never logs an address (BE-007)', async () => {
@@ -79,6 +95,7 @@ describe('ConfiguredAdmins', () => {
     const { service } = configuredAdmins(['grace@example.com'], ['grace@example.com']);
 
     await service.onApplicationBootstrap();
+    service.onApplicationShutdown();
 
     expect(log).toHaveBeenCalledOnce();
     expect(JSON.stringify(log.mock.calls)).not.toContain('@');
@@ -90,5 +107,6 @@ describe('ConfiguredAdmins', () => {
     users.promoteToAdmin.mockRejectedValueOnce(new Error('connection refused'));
 
     await expect(service.onApplicationBootstrap()).resolves.toBeUndefined();
+    service.onApplicationShutdown();
   });
 });

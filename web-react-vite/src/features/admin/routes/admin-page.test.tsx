@@ -84,6 +84,21 @@ describe('AdminPage', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('permet de réactiver un administrateur suspendu avant d’être nommé', async () => {
+    signInAsDemo();
+    const other = db.users.find((candidate) => candidate.id === OTHER_USER.id);
+    if (other) Object.assign(other, { role: 'admin', banned: true });
+    const user = userEvent.setup();
+    renderRoute('/admin');
+
+    await user.click(await screen.findByRole('button', { name: `Réactiver ${OTHER_USER.name}` }));
+
+    await expect.poll(() => other?.banned).toBe(false);
+    expect(
+      screen.queryByRole('button', { name: `Suspendre ${OTHER_USER.name}` }),
+    ).not.toBeInTheDocument();
+  });
+
   it('signale l’échec d’une action', async () => {
     signInAsDemo();
     server.use(

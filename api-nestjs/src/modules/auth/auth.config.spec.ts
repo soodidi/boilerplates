@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { capSessionExpiry, hasEmailChange, SESSION_MAX_LIFETIME_MS } from './auth.config.js';
+import {
+  capSessionExpiry,
+  hasAdminRole,
+  hasEmailChange,
+  SESSION_MAX_LIFETIME_MS,
+} from './auth.config.js';
 
 describe('capSessionExpiry', () => {
   const createdAt = new Date('2026-01-01T00:00:00.000Z');
@@ -44,4 +49,17 @@ describe('hasEmailChange', () => {
   ])('lets %s through to Better Auth', (_label, token) => {
     expect(hasEmailChange(token)).toBe(false);
   });
+});
+
+describe('hasAdminRole', () => {
+  it.each(['admin', 'user,admin', 'admin, user', ' admin '])('reads %j as an admin', (role) => {
+    expect(hasAdminRole(role)).toBe(true);
+  });
+
+  it.each(['user', 'Admin', 'administrator', '', null, undefined])(
+    'reads %j as not an admin',
+    (role) => {
+      expect(hasAdminRole(role)).toBe(false);
+    },
+  );
 });

@@ -7,7 +7,8 @@ import { defaultStatements, userAc } from 'better-auth/plugins/admin/access';
  * vérification d'appartenance sur la ressource elle-même (BE-006).
  */
 export const statements = {
-  // Administration des comptes par le plugin `admin` : user (lister, bannir, changer de rôle…), session.
+  // Actions déclarées par le plugin `admin` (user : lister, bannir, changer de rôle… ; session). Le rôle
+  // `admin` n'en reçoit qu'une partie, ci-dessous.
   ...defaultStatements,
   // Exemple de permission propre à l'app : les statistiques de GET /v1/admin/stats.
   stats: ['read'],

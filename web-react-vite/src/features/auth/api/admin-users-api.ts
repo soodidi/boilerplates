@@ -7,7 +7,7 @@ import { permissionKeys } from './permissions-api';
 
 /**
  * BE-010 : administration des comptes par les routes /v1/auth/admin/* du plugin `admin`.
- * L'API n'en ouvre que quelques-unes : lister, changer de rôle, bannir, révoquer les sessions.
+ * L'API n'en ouvre que quelques-unes : lister, bannir et révoquer les sessions d'un compte ordinaire.
  */
 export const adminUserKeys = {
   all: ['admin-users'] as const,
