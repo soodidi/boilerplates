@@ -22,9 +22,10 @@ export const roles = {
   /** Rôle par défaut : aucune action d'administration. */
   user: ac.newRole({ ...userAc.statements }),
   /**
-   * BE-010 : lister les comptes, bannir un compte ordinaire, révoquer ses sessions. Rien qui permette
-   * de prendre un compte (mot de passe, e-mail, création, usurpation), de le supprimer, ni de changer
-   * un rôle : les admins sont exactement la liste ADMIN_EMAILS (ConfiguredAdmins).
+   * BE-010 : lister les comptes, bannir un compte ordinaire, révoquer ses sessions ; GLB-013 : exporter
+   * et effacer les données d'un compte suspendu (routes de l'app, mot de passe de l'admin exigé pour
+   * l'effacement). Rien qui permette de prendre un compte (mot de passe, e-mail, création, usurpation)
+   * ni de changer un rôle : les admins sont exactement la liste ADMIN_EMAILS (ConfiguredAdmins).
    */
   admin: ac.newRole({
     user: ['list', 'get', 'ban'],
@@ -65,8 +66,9 @@ export const ADMIN_SELF_PATHS = ['/admin/has-permission'];
  * - prise de contrôle d'un compte : usurpation (l'activer demande un ADR de projet), mot de passe,
  *   e-mail (`update-user`), création d'un compte déjà vérifié sans les règles du mot de passe ;
  * - sessions d'un compte : leur liste contient les tokens ; `revoke-user-sessions` suffit ;
- * - suppression par un admin : elle n'efface pas les données des modules (GLB-013). Seul
- *   l'utilisateur supprime son compte (`/delete-user`) ; un admin peut le bannir.
+ * - suppression par le plugin : elle n'efface pas les données des modules (GLB-013). L'utilisateur
+ *   supprime son compte (`/delete-user`) ; un admin n'efface qu'un compte suspendu, par la route de
+ *   l'app `POST /v1/admin/users/:id/erase`, qui passe par le registre.
  */
 export const ADMIN_DISABLED_PATHS = [
   // Les rôles viennent de la configuration (ADMIN_EMAILS), jamais de l'interface (BE-010).

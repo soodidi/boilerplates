@@ -189,9 +189,12 @@ export const handlers = [
     });
   }),
 
-  http.delete('*/v1/admin/users/:id', ({ params }) => {
+  http.post('*/v1/admin/users/:id/erase', async ({ params, request }) => {
     const refused = suspendedTarget(params.id, 'erase');
     if (refused instanceof Response) return refused;
+    // Comme l'API : le mot de passe de l'admin est exigé (400 s'il est faux).
+    const { password } = (await request.json()) as { password?: string };
+    if (password !== currentUser()?.password) return problem(400, { title: 'Bad Request' });
     db.users = db.users.filter((user) => user.id !== refused.id);
     db.notes = db.notes.filter((note) => note.ownerId !== refused.id);
     return new HttpResponse(null, { status: 204 });

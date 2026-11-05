@@ -38,8 +38,9 @@ type AccountExport = z.infer<typeof accountExportSchema>;
 
 /**
  * GLB-013 : le compte, ses sessions et ses moyens de connexion, dans l'export.
- * L'effacement est fait par Better Auth (`/delete-user`), juste après la transaction des modules :
- * il supprime le compte, puis ses sessions et ses moyens de connexion (clés étrangères internes au module).
+ * L'effacement est fait par Better Auth (`/delete-user`), juste après la transaction des modules, ou
+ * par `AuthRepository.eraseSuspendedAccount` (compte suspendu, dans la même transaction) : le compte,
+ * ses sessions et ses moyens de connexion (clés étrangères internes au module).
  */
 @ContributesUserData()
 @Injectable()
@@ -77,7 +78,7 @@ export class AuthUserData implements UserDataContributor<AccountExport> {
     };
   }
 
-  /** Rien à faire dans la transaction : Better Auth supprime ces lignes ensuite. */
+  /** Rien à faire ici : ces lignes sont supprimées avec le compte (voir plus haut). */
   erase(): Promise<void> {
     return Promise.resolve();
   }

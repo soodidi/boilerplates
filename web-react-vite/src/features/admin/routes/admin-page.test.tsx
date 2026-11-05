@@ -2,7 +2,7 @@ import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { http, HttpResponse } from 'msw/http';
-import { db, OTHER_USER, signInAsDemo, signInAsUser } from '@/mocks/db';
+import { db, DEMO_USER, OTHER_USER, signInAsDemo, signInAsUser } from '@/mocks/db';
 import { server } from '@/mocks/server';
 import { renderRoute } from '@/test/render';
 
@@ -146,10 +146,14 @@ describe('AdminPage', () => {
     );
   });
 
-  it('supprime un compte suspendu après confirmation (GLB-013)', async () => {
-    signInAsDemo();
+  function suspendOther() {
     const other = db.users.find((candidate) => candidate.id === OTHER_USER.id);
     if (other) other.banned = true;
+  }
+
+  it('supprime un compte suspendu après ressaisie du mot de passe (GLB-013)', async () => {
+    signInAsDemo();
+    suspendOther();
     const user = userEvent.setup();
     renderRoute('/admin');
 
@@ -157,6 +161,7 @@ describe('AdminPage', () => {
       await screen.findByRole('button', { name: `Supprimer le compte ${OTHER_USER.name}` }),
     );
     expect(screen.getByText(/C'est définitif/)).toBeVisible();
+    expect(screen.getByLabelText('Votre mot de passe')).toHaveFocus();
     await user.click(screen.getByRole('button', { name: 'Annuler' }));
     // Le focus revient sur le bouton qui a ouvert la confirmation ; rien n'est supprimé.
     expect(
@@ -167,13 +172,74 @@ describe('AdminPage', () => {
     await user.click(
       screen.getByRole('button', { name: `Supprimer le compte ${OTHER_USER.name}` }),
     );
+    await user.type(screen.getByLabelText('Votre mot de passe'), DEMO_USER.password);
     await user.click(screen.getByRole('button', { name: 'Confirmer' }));
 
-    expect(await screen.findByRole('status')).toHaveTextContent(
+    const status = await screen.findByText(
       `Le compte de ${OTHER_USER.name} et ses données ont été supprimés.`,
     );
+    // La carte disparaît : le focus passe sur le message, qui reste.
+    expect(status).toHaveFocus();
     const accounts = screen.getByRole('region', { name: 'Comptes' });
     await expect.poll(() => within(accounts).queryByText(OTHER_USER.email)).toBeNull();
+  });
+
+  it('refuse un mauvais mot de passe, sans rien supprimer', async () => {
+    signInAsDemo();
+    suspendOther();
+    const user = userEvent.setup();
+    renderRoute('/admin');
+
+    await user.click(
+      await screen.findByRole('button', { name: `Supprimer le compte ${OTHER_USER.name}` }),
+    );
+    await user.type(screen.getByLabelText('Votre mot de passe'), 'not the password');
+    await user.click(screen.getByRole('button', { name: 'Confirmer' }));
+
+    expect(await screen.findByText('Mot de passe incorrect.')).toBeVisible();
+    expect(db.users.some((candidate) => candidate.id === OTHER_USER.id)).toBe(true);
+  });
+
+  it('signale un droit retiré pendant la session sur l’export (403)', async () => {
+    signInAsDemo();
+    suspendOther();
+    server.use(
+      http.get('*/v1/admin/users/:id/export', () =>
+        HttpResponse.json({ status: 403, title: 'Forbidden' }, { status: 403 }),
+      ),
+    );
+    const user = userEvent.setup();
+    renderRoute('/admin');
+
+    await user.click(
+      await screen.findByRole('button', { name: `Exporter ses données ${OTHER_USER.name}` }),
+    );
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      "Votre compte n'a plus le droit de faire cette action.",
+    );
+  });
+
+  it('recharge la liste quand le compte a changé entre-temps (409)', async () => {
+    signInAsDemo();
+    suspendOther();
+    const user = userEvent.setup();
+    renderRoute('/admin');
+    const exportButton = await screen.findByRole('button', {
+      name: `Exporter ses données ${OTHER_USER.name}`,
+    });
+    // Un autre admin a réactivé le compte entre l'affichage et le clic.
+    const other = db.users.find((candidate) => candidate.id === OTHER_USER.id);
+    if (other) other.banned = false;
+
+    await user.click(exportButton);
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Ce compte a changé entre-temps : la liste a été rechargée.',
+    );
+    expect(
+      await screen.findByRole('button', { name: `Suspendre ${OTHER_USER.name}` }),
+    ).toBeVisible();
   });
 
   it('signale l’échec d’une action', async () => {

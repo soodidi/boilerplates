@@ -1,11 +1,17 @@
 import { Injectable } from '@nestjs/common';
+import { AuthService } from '@thallesp/nestjs-better-auth';
+import { isAPIError } from 'better-auth/api';
+import { type Transaction } from '../../database/database.module.js';
 import { ADMIN_ROLE } from './access-control.js';
 import { AuthRepository } from './auth.repository.js';
 
 /** BE-002 : ce que les autres modules peuvent savoir des comptes, sans lire les tables d'auth. */
 @Injectable()
 export class UsersService {
-  constructor(private readonly repository: AuthRepository) {}
+  constructor(
+    private readonly repository: AuthRepository,
+    private readonly auth: AuthService,
+  ) {}
 
   count(): Promise<number> {
     return this.repository.countUsers();
@@ -30,14 +36,31 @@ export class UsersService {
     return this.repository.demoteAdminsNotIn(emails);
   }
 
-  /** GLB-013 : rôle et bannissement d'un compte, `null` s'il n'existe pas. */
-  accountState(userId: string): Promise<{ role: string | null; banned: boolean } | null> {
+  /** GLB-013 : rôle et suspension d'un compte, `null` s'il n'existe pas. */
+  accountState(userId: string): Promise<{ role: string | null; suspended: boolean } | null> {
     return this.repository.findAccountState(userId);
   }
 
-  /** GLB-013 : supprime le compte et ses données d'authentification (les modules d'abord). */
-  deleteAccount(userId: string): Promise<void> {
-    return this.repository.deleteAccount(userId);
+  /** GLB-013 : efface un compte suspendu et ses données (modules d'abord, même transaction). */
+  eraseSuspendedAccount(
+    userId: string,
+    eraseModules: (tx: Transaction) => Promise<void>,
+  ): Promise<'erased' | 'not_found' | 'admin' | 'not_suspended'> {
+    return this.repository.eraseSuspendedAccount(userId, eraseModules);
+  }
+
+  /**
+   * GLB-013 : ressaisie du mot de passe de l'utilisateur de la requête avant une action
+   * irréversible (route serveur de Better Auth, jamais exposée en HTTP).
+   */
+  async verifyPassword(headers: Headers, password: string): Promise<boolean> {
+    try {
+      await this.auth.api.verifyPassword({ headers, body: { password } });
+      return true;
+    } catch (error) {
+      if (isAPIError(error)) return false;
+      throw error;
+    }
   }
 
   hasActiveAdmin(): Promise<boolean> {

@@ -7,3 +7,8 @@ export const adminStatsResponseSchema = z.object({
 });
 
 export type AdminStatsResponse = z.infer<typeof adminStatsResponseSchema>;
+
+/** GLB-013 : l'effacement d'un compte suspendu exige la ressaisie du mot de passe de l'admin. */
+export const eraseUserSchema = z.strictObject({ password: z.string().min(1).max(256) });
+
+export type EraseUserInput = z.infer<typeof eraseUserSchema>;

@@ -92,10 +92,11 @@ describe('Roles and permissions (e2e)', () => {
 
     it.each([
       ['GET', 'export'],
-      ['DELETE', ''],
+      ['POST', 'erase'],
     ] as const)(
-      'refuses %s without session (401), to a user (403), on a bad id (400)',
+      'refuses %s %s without session (401), to a user (403), on a bad id (400), without logging',
       async (method, suffix) => {
+        const log = vi.spyOn(Logger.prototype, 'log');
         const ada = await database.userId('ada@example.com');
         const grace = await database.userId('grace@example.com');
         // L'export est limité à 5 par minute et les compteurs sont partagés en e2e : une IP par appel.
@@ -105,8 +106,9 @@ describe('Roles and permissions (e2e)', () => {
           const ip = `198.51.100.${(method === 'GET' ? 0 : 50) + call}`;
           const response = await app.inject({
             method,
-            url: `/v1/admin/users/${id}${suffix ? `/${suffix}` : ''}`,
+            url: `/v1/admin/users/${id}/${suffix}`,
             headers: { ...headers, 'x-forwarded-for': ip },
+            payload: method === 'POST' ? { password: PASSWORD } : undefined,
           });
           return response.statusCode;
         };
@@ -119,8 +121,43 @@ describe('Roles and permissions (e2e)', () => {
         expect(await status(ada, admin)).toBe(409);
         expect(await status(grace, admin)).toBe(403);
         expect(await database.role('ada@example.com')).toBe('user');
+        // Une action refusée n'est pas journalisée.
+        expect(log.mock.calls.filter(([, message]) => message === 'Admin action')).toEqual([]);
+        log.mockRestore();
       },
     );
+
+    it('treats an expired suspension as no suspension (409)', async () => {
+      const ada = await suspendAda();
+      await database.db.execute(
+        sql`update users set ban_expires = now() - interval '1 minute' where id = ${ada}`,
+      );
+
+      const response = await app.inject({
+        method: 'POST',
+        url: `/v1/admin/users/${ada}/erase`,
+        headers: admin,
+        payload: { password: PASSWORD },
+      });
+
+      expect(response.statusCode).toBe(409);
+      await expect(database.userId('ada@example.com')).resolves.toBe(ada);
+    });
+
+    it('requires the admin password to erase (400 when missing or wrong)', async () => {
+      const ada = await suspendAda();
+
+      for (const payload of [{}, { password: '' }, { password: 'not the password' }]) {
+        const response = await app.inject({
+          method: 'POST',
+          url: `/v1/admin/users/${ada}/erase`,
+          headers: { ...admin, 'x-forwarded-for': '198.51.100.200' },
+          payload,
+        });
+        expect(response.statusCode).toBe(400);
+      }
+      await expect(database.userId('ada@example.com')).resolves.toBe(ada);
+    });
 
     it('exports the data of a suspended account, like « Mon compte »', async () => {
       await app.inject({
@@ -164,13 +201,22 @@ describe('Roles and permissions (e2e)', () => {
       });
       const ada = await suspendAda();
 
+      const log = vi.spyOn(Logger.prototype, 'log');
+
       const response = await app.inject({
-        method: 'DELETE',
-        url: `/v1/admin/users/${ada}`,
+        method: 'POST',
+        url: `/v1/admin/users/${ada}/erase`,
         headers: admin,
+        payload: { password: PASSWORD },
       });
 
       expect(response.statusCode).toBe(204);
+      const grace = await database.userId('grace@example.com');
+      expect(log).toHaveBeenCalledWith(
+        { action: 'user.erased', actorId: grace, targetId: ada },
+        'Admin action',
+      );
+      log.mockRestore();
       await expect(database.userId('ada@example.com')).rejects.toThrow();
       const stats = await app.inject({ method: 'GET', url: '/v1/admin/stats', headers: admin });
       expect(stats.json()).toEqual({ users: 1, notes: 0 });

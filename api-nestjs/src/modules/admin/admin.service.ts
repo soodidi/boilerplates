@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   ForbiddenException,
   Injectable,
@@ -40,15 +41,22 @@ export class AdminService {
   }
 
   /**
-   * GLB-013 : effacement d'un compte suspendu, comme `/delete-user` : les données des modules dans une
-   * transaction, puis le compte, puis une seconde passe pour ce qu'une requête concurrente aurait écrit.
+   * GLB-013 : effacement d'un compte suspendu, comme `/delete-user`, après ressaisie du mot de passe
+   * de l'admin (une session volée ne suffit pas pour une action irréversible). Vérification et
+   * effacement dans une seule transaction qui verrouille le compte.
    */
-  async eraseSuspended(userId: string, actorId: string): Promise<void> {
-    await this.assertSuspendedUser(userId);
-    await this.userData.eraseAll(userId);
-    await this.usersService.deleteAccount(userId);
-    await this.userData.eraseAll(userId);
-    this.logger.log({ action: 'user.erased', actorId, targetId: userId }, 'Admin action');
+  async eraseSuspended(
+    userId: string,
+    actor: { id: string; headers: Headers; password: string },
+  ): Promise<void> {
+    if (!(await this.usersService.verifyPassword(actor.headers, actor.password))) {
+      throw new BadRequestException('Invalid password');
+    }
+    const result = await this.usersService.eraseSuspendedAccount(userId, (tx) =>
+      this.userData.eraseAllIn(userId, tx),
+    );
+    assertErasable(result);
+    this.logger.log({ action: 'user.erased', actorId: actor.id, targetId: userId }, 'Admin action');
   }
 
   /** BE-010 : jamais sur un admin (géré par la configuration), seulement sur un compte suspendu. */
@@ -57,7 +65,15 @@ export class AdminService {
     if (!state) throw new NotFoundException();
     if (hasAdminRole(state.role))
       throw new ForbiddenException('Admins are managed by configuration');
-    if (!state.banned)
+    if (!state.suspended)
       throw new ConflictException('Only a suspended account can be handled by an admin');
+  }
+}
+
+function assertErasable(result: 'erased' | 'not_found' | 'admin' | 'not_suspended'): void {
+  if (result === 'not_found') throw new NotFoundException();
+  if (result === 'admin') throw new ForbiddenException('Admins are managed by configuration');
+  if (result === 'not_suspended') {
+    throw new ConflictException('Only a suspended account can be handled by an admin');
   }
 }

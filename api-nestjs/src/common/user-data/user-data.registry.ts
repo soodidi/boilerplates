@@ -1,6 +1,6 @@
 import { Inject, Injectable, type OnModuleInit } from '@nestjs/common';
 import { DiscoveryService } from '@nestjs/core';
-import { DB, type Database } from '../../database/database.module.js';
+import { DB, type Database, type Transaction } from '../../database/database.module.js';
 import { ContributesUserData, type UserDataContributor } from './user-data-contributor.js';
 
 /** GLB-013 : export et effacement des données d'un utilisateur, à travers tous les modules. */
@@ -44,8 +44,11 @@ export class UserDataRegistry implements OnModuleInit {
 
   /** Tout ou rien : si un contributeur échoue, aucune donnée n'est effacée. */
   async eraseAll(userId: string): Promise<void> {
-    await this.db.transaction(async (tx) => {
-      for (const contributor of this.contributors) await contributor.erase(userId, tx);
-    });
+    await this.db.transaction((tx) => this.eraseAllIn(userId, tx));
+  }
+
+  /** Même effacement, dans une transaction ouverte par l'appelant (effacement d'un compte suspendu). */
+  async eraseAllIn(userId: string, tx: Transaction): Promise<void> {
+    for (const contributor of this.contributors) await contributor.erase(userId, tx);
   }
 }
