@@ -12,7 +12,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 
-/** AND-004 : les logs debug ne contiennent ni mot de passe ni token. */
+/** AND-004 / GLB-013 : les logs debug ne contiennent ni corps, ni mot de passe, ni token. */
 class DebugLoggingTest {
     private val server = MockWebServer()
     private val lines = mutableListOf<String>()
@@ -57,11 +57,14 @@ class DebugLoggingTest {
     }
 
     @Test
-    fun otherRoutesLogBodiesButMaskTheToken() {
+    fun otherRoutesLogNoBodyEither() {
         post("/v1/notes", """{"title":"Coffee"}""")
 
         val log = lines.joinToString("\n")
-        assertTrue(log.contains("Coffee"))
+        assertTrue(log.contains("/v1/notes"))
+        // GLB-013 : le contenu d'une note (ou d'un export) ne passe jamais dans logcat.
+        assertFalse(log.contains("Coffee"))
+        assertFalse(log.contains("raw-token"))
         assertFalse(log.contains("secret-token"))
     }
 }
