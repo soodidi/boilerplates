@@ -16,14 +16,17 @@ export class UsersService {
    * seulement pour les adresses de `ADMIN_EMAILS` (ConfiguredAdmins), jamais à l'inscription ni
    * depuis une requête. L'adresse doit être vérifiée. Effet à la requête suivante.
    */
-  promoteToAdmin(email: string, { liftBan = true }: { liftBan?: boolean } = {}): Promise<boolean> {
+  promoteToAdmin(
+    email: string,
+    { liftBan = true }: { liftBan?: boolean } = {},
+  ): Promise<{ id: string; granted: boolean } | null> {
     return this.repository.setRoleOfVerifiedEmail(email.trim().toLowerCase(), ADMIN_ROLE, {
       liftBan,
     });
   }
 
   /** BE-010 : seuls les comptes de la liste restent admins ; les autres perdent le rôle et leurs sessions. */
-  demoteAdminsNotIn(emails: readonly string[]): Promise<number> {
+  demoteAdminsNotIn(emails: readonly string[]): Promise<string[]> {
     return this.repository.demoteAdminsNotIn(emails);
   }
 

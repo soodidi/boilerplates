@@ -45,9 +45,12 @@ export class ConfiguredAdmins implements OnApplicationBootstrap, OnApplicationSh
 
   private async run(atStartup: boolean) {
     try {
-      const result = await this.apply();
-      // Journalisé au démarrage, puis seulement quand un compte a perdu le rôle.
-      if (atStartup || result.demoted > 0) this.logger.log(result, 'Configured admins applied');
+      const { grantedIds, revokedIds, ...counts } = await this.apply();
+      if (atStartup) this.logger.log(counts, 'Configured admins applied');
+      // BE-010 : chaque changement de rôle par la liste, avec des ids seulement (BE-007, GLB-013).
+      if (grantedIds.length > 0 || revokedIds.length > 0) {
+        this.logger.log({ action: 'admin.role_changed', grantedIds, revokedIds }, 'Admin action');
+      }
     } catch (error) {
       // Réessayé au passage suivant ; l'API reste disponible.
       Sentry.captureException(error);
@@ -58,15 +61,25 @@ export class ConfiguredAdmins implements OnApplicationBootstrap, OnApplicationSh
     }
   }
 
-  async apply(): Promise<{ promoted: number; skipped: number; demoted: number }> {
+  async apply() {
     // Avant tout : un admin retiré de la liste ne compte plus parmi les admins actifs.
-    const demoted = await this.users.demoteAdminsNotIn(this.env.ADMIN_EMAILS);
+    const revokedIds = await this.users.demoteAdminsNotIn(this.env.ADMIN_EMAILS);
     const liftBan = !(await this.users.hasActiveAdmin());
     let promoted = 0;
+    const grantedIds: string[] = [];
     for (const email of this.env.ADMIN_EMAILS) {
-      if (await this.users.promoteToAdmin(email, { liftBan })) promoted += 1;
+      const result = await this.users.promoteToAdmin(email, { liftBan });
+      if (!result) continue;
+      promoted += 1;
+      if (result.granted) grantedIds.push(result.id);
     }
-    // `skipped` : compte absent ou adresse pas encore vérifiée.
-    return { promoted, skipped: this.env.ADMIN_EMAILS.length - promoted, demoted };
+    return {
+      promoted,
+      // Compte absent ou adresse pas encore vérifiée.
+      skipped: this.env.ADMIN_EMAILS.length - promoted,
+      demoted: revokedIds.length,
+      grantedIds,
+      revokedIds,
+    };
   }
 }

@@ -10,11 +10,12 @@ describe('ConfiguredAdmins', () => {
 
   function configuredAdmins(emails: string[], verified: string[], activeAdmin = true) {
     const users = {
+      // Compte vérifié déjà admin par défaut (`granted: false`) : aucun changement de rôle.
       promoteToAdmin: vi.fn((email: string, _options?: { liftBan?: boolean }) =>
-        Promise.resolve(verified.includes(email)),
+        Promise.resolve(verified.includes(email) ? { id: `id-${email}`, granted: false } : null),
       ),
       hasActiveAdmin: vi.fn(() => Promise.resolve(activeAdmin)),
-      demoteAdminsNotIn: vi.fn((_emails: readonly string[]) => Promise.resolve(0)),
+      demoteAdminsNotIn: vi.fn((_emails: readonly string[]) => Promise.resolve<string[]>([])),
     };
     const service = new ConfiguredAdmins(
       { ADMIN_EMAILS: emails } as unknown as Env,
@@ -29,13 +30,19 @@ describe('ConfiguredAdmins', () => {
       ['grace@example.com'],
     );
 
-    await expect(service.apply()).resolves.toEqual({ promoted: 1, skipped: 1, demoted: 0 });
+    await expect(service.apply()).resolves.toEqual({
+      promoted: 1,
+      skipped: 1,
+      demoted: 0,
+      grantedIds: [],
+      revokedIds: [],
+    });
     expect(users.promoteToAdmin).toHaveBeenCalledTimes(2);
   });
 
   it('demotes admins missing from the list before counting the active ones', async () => {
     const { service, users } = configuredAdmins(['grace@example.com'], ['grace@example.com']);
-    users.demoteAdminsNotIn.mockResolvedValueOnce(1);
+    users.demoteAdminsNotIn.mockResolvedValueOnce(['id-old-admin']);
 
     await expect(service.apply()).resolves.toMatchObject({ demoted: 1 });
     expect(users.demoteAdminsNotIn).toHaveBeenCalledWith(['grace@example.com']);
@@ -73,21 +80,37 @@ describe('ConfiguredAdmins', () => {
     expect(users.promoteToAdmin).not.toHaveBeenCalled();
   });
 
-  it('applies the list again every 10 minutes, and logs only when someone lost the role', async () => {
+  it('applies the list again every 10 minutes, and logs only when a role changed', async () => {
     vi.useFakeTimers();
     const log = vi.spyOn(Logger.prototype, 'log').mockImplementation(() => undefined);
     const { service, users } = configuredAdmins(['grace@example.com'], ['grace@example.com']);
 
     await service.onApplicationBootstrap();
     await vi.advanceTimersByTimeAsync(REAPPLY_INTERVAL_MS);
-    users.demoteAdminsNotIn.mockResolvedValueOnce(1);
+    users.demoteAdminsNotIn.mockResolvedValueOnce(['id-old-admin']);
     await vi.advanceTimersByTimeAsync(REAPPLY_INTERVAL_MS);
     service.onApplicationShutdown();
 
     expect(users.demoteAdminsNotIn).toHaveBeenCalledTimes(3);
-    // Démarrage, puis le passage qui a rétrogradé un compte.
+    // Démarrage, puis le passage qui a retiré le rôle à un compte.
     expect(log).toHaveBeenCalledTimes(2);
     vi.useRealTimers();
+  });
+
+  it('logs each role change with ids only (BE-007)', async () => {
+    const log = vi.spyOn(Logger.prototype, 'log').mockImplementation(() => undefined);
+    const { service, users } = configuredAdmins(['grace@example.com'], ['grace@example.com']);
+    users.promoteToAdmin.mockResolvedValueOnce({ id: 'id-grace', granted: true });
+    users.demoteAdminsNotIn.mockResolvedValueOnce(['id-old-admin']);
+
+    await service.onApplicationBootstrap();
+    service.onApplicationShutdown();
+
+    expect(log).toHaveBeenCalledWith(
+      { action: 'admin.role_changed', grantedIds: ['id-grace'], revokedIds: ['id-old-admin'] },
+      'Admin action',
+    );
+    expect(JSON.stringify(log.mock.calls)).not.toContain('@');
   });
 
   it('never logs an address (BE-007)', async () => {

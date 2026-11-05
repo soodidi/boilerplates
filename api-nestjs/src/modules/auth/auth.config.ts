@@ -1,7 +1,7 @@
 import { Logger } from '@nestjs/common';
 import { hash, verify } from '@node-rs/argon2';
 import { betterAuth } from 'better-auth';
-import { APIError, createAuthMiddleware } from 'better-auth/api';
+import { APIError, createAuthMiddleware, getSessionFromCtx } from 'better-auth/api';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { admin, bearer } from 'better-auth/plugins';
 import { v7 as uuidv7, validate as isUuid } from 'uuid';
@@ -33,6 +33,13 @@ export const AUTH_BASE_PATH = '/v1/auth';
 export function hasAdminRole(role: unknown): boolean {
   return typeof role === 'string' && role.split(',').some((value) => value.trim() === ADMIN_ROLE);
 }
+
+/** BE-010 / BE-007 : actions d'administration journalisées (ids seulement), par route du plugin `admin`. */
+const AUDITED_ADMIN_ACTIONS: Record<string, string> = {
+  '/admin/ban-user': 'user.banned',
+  '/admin/unban-user': 'user.unbanned',
+  '/admin/revoke-user-sessions': 'user.sessions_revoked',
+};
 
 /** Routes du plugin `admin` qui visent un compte et ne doivent jamais viser un admin (BE-010). */
 const ADMIN_PROTECTED_PATHS = new Set(['/admin/ban-user', '/admin/revoke-user-sessions']);
@@ -182,6 +189,15 @@ export function createAuth({ env, db, mailer, userData }: AuthDependencies) {
             throw new APIError('FORBIDDEN', { message: 'Admins are managed by configuration' });
           }
         }
+      }),
+      // BE-010 : une ligne de log par action d'administration réussie, avec des ids seulement
+      // (BE-007, GLB-013). Les routes /v1/auth/* ne passent pas par pino-http : sans ce hook, rien.
+      after: createAuthMiddleware(async (ctx) => {
+        const action = AUDITED_ADMIN_ACTIONS[ctx.path];
+        if (!action || ctx.context.returned instanceof APIError) return;
+        const session = await getSessionFromCtx(ctx);
+        const targetId = (ctx.body as { userId?: unknown } | undefined)?.userId;
+        logger.log({ action, actorId: session?.user.id, targetId }, 'Admin action');
       }),
     },
     // Suppression par lien e-mail : non utilisée (GLB-013), la route reste fermée.

@@ -50,21 +50,27 @@ export class AuthRepository {
     email: string,
     role: string,
     { liftBan }: { liftBan: boolean },
-  ): Promise<boolean> {
-    const updated = await this.db
-      .update(users)
-      .set(liftBan ? { role, banned: false, banReason: null, banExpires: null } : { role })
-      .where(and(eq(users.email, email), eq(users.emailVerified, true)))
-      .returning({ id: users.id });
-    return updated.length > 0;
+  ): Promise<{ id: string; granted: boolean } | null> {
+    return this.db.transaction(async (tx) => {
+      const verified = and(eq(users.email, email), eq(users.emailVerified, true));
+      const [current] = await tx.select({ role: users.role }).from(users).where(verified);
+      if (!current) return null;
+      const [updated] = await tx
+        .update(users)
+        .set(liftBan ? { role, banned: false, banReason: null, banExpires: null } : { role })
+        .where(verified)
+        .returning({ id: users.id });
+      // `granted` : le compte n'avait pas ce rôle avant (journalisé par ConfiguredAdmins).
+      return updated ? { id: updated.id, granted: current.role !== role } : null;
+    });
   }
 
   /**
    * BE-010 : rôle `user` pour tout compte hors de la liste dont le rôle n'est pas `user` (`admin`,
    * mais aussi une valeur multiple comme `user,admin`), et ses sessions révoquées, dans une
-   * transaction. Liste vide : tous ces comptes. Renvoie le nombre de comptes rétrogradés.
+   * transaction. Liste vide : tous ces comptes. Renvoie les ids des comptes rétrogradés.
    */
-  async demoteAdminsNotIn(emails: readonly string[]): Promise<number> {
+  async demoteAdminsNotIn(emails: readonly string[]): Promise<string[]> {
     return this.db.transaction(async (tx) => {
       const demoted = await tx
         .update(users)
@@ -78,7 +84,7 @@ export class AuthRepository {
         .returning({ id: users.id });
       const ids = demoted.map(({ id }) => id);
       if (ids.length > 0) await tx.delete(sessions).where(inArray(sessions.userId, ids));
-      return ids.length;
+      return ids;
     });
   }
 
